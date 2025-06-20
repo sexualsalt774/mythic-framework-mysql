@@ -1,5 +1,7 @@
 # Mythic Framework (MySQL Conversion)
 
+** THIS IS A MAJOR WIP REPO! main branch has a few resources ready to go
+
 **Work In Progress** MySQL conversion for the Mythic Framework.
 All Credits goto the original authors
 
