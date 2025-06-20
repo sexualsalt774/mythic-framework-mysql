@@ -1,6 +1,7 @@
 # Mythic Framework (MySQL Conversion)
 
 **Work In Progress** MySQL conversion for the Mythic Framework.
+All Credits goto the original authors
 
 ---
 
