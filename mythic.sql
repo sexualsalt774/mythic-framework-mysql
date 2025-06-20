@@ -111,4 +111,35 @@ CREATE TABLE IF NOT EXISTS `billboards` (
   PRIMARY KEY (`billboardId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
+DROP TABLE IF EXISTS `scenes`;
+CREATE TABLE IF NOT EXISTS `scenes` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `x` FLOAT NOT NULL,
+  `y` FLOAT NOT NULL,
+  `z` FLOAT NOT NULL,
+  `route` INT NOT NULL DEFAULT 1,
+  `text` TEXT NOT NULL,
+  `font` INT NOT NULL DEFAULT 1,
+  `size` FLOAT NOT NULL DEFAULT 0.35,
+  `outline` TINYINT(1) NOT NULL DEFAULT 0,
+  `text_color_r` INT NOT NULL DEFAULT 255,
+  `text_color_g` INT NOT NULL DEFAULT 255,
+  `text_color_b` INT NOT NULL DEFAULT 255,
+  `background_type` INT NOT NULL DEFAULT 0,
+  `background_opacity` INT NOT NULL DEFAULT 255,
+  `background_color_r` INT NOT NULL DEFAULT 255,
+  `background_color_g` INT NOT NULL DEFAULT 255,
+  `background_color_b` INT NOT NULL DEFAULT 255,
+  `background_h` FLOAT NOT NULL DEFAULT 0.02,
+  `background_w` FLOAT NOT NULL DEFAULT 0.0,
+  `background_x` FLOAT NOT NULL DEFAULT 0.0,
+  `background_y` FLOAT NOT NULL DEFAULT 0.0,
+  `background_rotation` FLOAT NOT NULL DEFAULT 0.0,
+  `length` INT NOT NULL DEFAULT 6,
+  `distance` FLOAT NOT NULL DEFAULT 7.5,
+  `expires` BIGINT NULL DEFAULT NULL,
+  `staff` TINYINT(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1; 
+
 -- Below needs to be worked on / formatted

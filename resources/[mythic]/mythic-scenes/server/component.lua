@@ -10,7 +10,6 @@ function RetrieveComponents()
 	Fetch = exports['mythic-base']:FetchComponent('Fetch')
 	Utils = exports['mythic-base']:FetchComponent('Utils')
     Execute = exports['mythic-base']:FetchComponent('Execute')
-	Database = exports['mythic-base']:FetchComponent('Database')
 	Middleware = exports['mythic-base']:FetchComponent('Middleware')
 	Callbacks = exports['mythic-base']:FetchComponent('Callbacks')
     Chat = exports['mythic-base']:FetchComponent('Chat')
@@ -29,7 +28,6 @@ AddEventHandler('Core:Shared:Ready', function()
 		'Utils',
         'Execute',
         'Chat',
-		'Database',
 		'Middleware',
 		'Callbacks',
 		'Logger',
@@ -194,12 +192,33 @@ _SCENES = {
             end
 
             local p = promise.new()
-            Database.Game:insertOne({
-                collection = 'scenes',
-                document = scene,
-            }, function(success, result, insertedIds)
-                if success then
-                    scene._id = insertedIds[1]
+            MySQL.insert('INSERT INTO scenes (x, y, z, route, text, font, size, outline, text_color_r, text_color_g, text_color_b, background_type, background_opacity, background_color_r, background_color_g, background_color_b, background_h, background_w, background_x, background_y, background_rotation, length, distance, expires, staff) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+                scene.coords.x, scene.coords.y, scene.coords.z,
+                scene.route or 1,
+                scene.text and scene.text.text or '',
+                scene.text and scene.text.font or 1,
+                scene.text and scene.text.size or 0.35,
+                scene.text and (scene.text.outline and 1 or 0),
+                scene.text and scene.text.color and scene.text.color.r or 255,
+                scene.text and scene.text.color and scene.text.color.g or 255,
+                scene.text and scene.text.color and scene.text.color.b or 255,
+                scene.background and scene.background.type or 0,
+                scene.background and scene.background.opacity or 255,
+                scene.background and scene.background.color and scene.background.color.r or 255,
+                scene.background and scene.background.color and scene.background.color.g or 255,
+                scene.background and scene.background.color and scene.background.color.b or 255,
+                scene.background and scene.background.h or 0.02,
+                scene.background and scene.background.w or 0.0,
+                scene.background and scene.background.x or 0.0,
+                scene.background and scene.background.y or 0.0,
+                scene.background and scene.background.rotation or 0.0,
+                scene.length or 6,
+                scene.distance or 7.5,
+                scene.expires or nil,
+                scene.staff and 1 or 0
+            }, function(id)
+                if id then
+                    scene._id = id
                     p:resolve(scene)
                     _loadedScenes[scene._id] = scene
                     TriggerClientEvent('Scenes:Client:AddScene', -1, scene._id, scene)
@@ -207,7 +226,6 @@ _SCENES = {
                     p:resolve(false)
                 end
             end)
-
             return Citizen.Await(p)
         end
     end,
@@ -241,20 +259,34 @@ _SCENES = {
                 newData.distance = 7.5
             end
 
-            newData._id = nil
-
             local p = promise.new()
-            Database.Game:updateOne({
-                collection = 'scenes',
-                query = {
-                    _id = id,
-                },
-                update = {
-                    ['$set'] = newData
-                },
-            }, function(success, result)
-                print(success, result)
-                if success then
+            MySQL.update('UPDATE scenes SET x = ?, y = ?, z = ?, route = ?, text = ?, font = ?, size = ?, outline = ?, text_color_r = ?, text_color_g = ?, text_color_b = ?, background_type = ?, background_opacity = ?, background_color_r = ?, background_color_g = ?, background_color_b = ?, background_h = ?, background_w = ?, background_x = ?, background_y = ?, background_rotation = ?, length = ?, distance = ?, expires = ?, staff = ? WHERE id = ?', {
+                newData.coords.x, newData.coords.y, newData.coords.z,
+                newData.route or 1,
+                newData.text and newData.text.text or '',
+                newData.text and newData.text.font or 1,
+                newData.text and newData.text.size or 0.35,
+                newData.text and (newData.text.outline and 1 or 0),
+                newData.text and newData.text.color and newData.text.color.r or 255,
+                newData.text and newData.text.color and newData.text.color.g or 255,
+                newData.text and newData.text.color and newData.text.color.b or 255,
+                newData.background and newData.background.type or 0,
+                newData.background and newData.background.opacity or 255,
+                newData.background and newData.background.color and newData.background.color.r or 255,
+                newData.background and newData.background.color and newData.background.color.g or 255,
+                newData.background and newData.background.color and newData.background.color.b or 255,
+                newData.background and newData.background.h or 0.02,
+                newData.background and newData.background.w or 0.0,
+                newData.background and newData.background.x or 0.0,
+                newData.background and newData.background.y or 0.0,
+                newData.background and newData.background.rotation or 0.0,
+                newData.length or 6,
+                newData.distance or 7.5,
+                newData.expires or nil,
+                newData.staff and 1 or 0,
+                id
+            }, function(affectedRows)
+                if affectedRows and affectedRows > 0 then
                     newData._id = id
                     p:resolve(newData)
                     _loadedScenes[id] = newData
@@ -263,26 +295,22 @@ _SCENES = {
                     p:resolve(false)
                 end
             end)
-
             return Citizen.Await(p)
         end
     end,
     Delete = function(self, id)
         local p = promise.new()
-        Database.Game:deleteOne({
-            collection = 'scenes',
-            query = {
-                _id = id
-            },
-        }, function(success, deleted)
-            p:resolve(success)
-
-            if success and _loadedScenes[id] then
-                _loadedScenes[id] = nil
-                TriggerClientEvent('Scenes:Client:RemoveScene', -1, id)
+        MySQL.update('DELETE FROM scenes WHERE id = ?', {id}, function(affectedRows)
+            if affectedRows and affectedRows > 0 then
+                p:resolve(true)
+                if _loadedScenes[id] then
+                    _loadedScenes[id] = nil
+                    TriggerClientEvent('Scenes:Client:RemoveScene', -1, id)
+                end
+            else
+                p:resolve(false)
             end
         end)
-
         return Citizen.Await(p)
     end,
 }
@@ -293,43 +321,22 @@ end)
 
 function DeleteExpiredScenes(deleteRouted)
     local p = promise.new()
-
-    local query = {
-        staff = false,
-        expires = {
-            ['$lte'] = os.time()
-        }
-    }
-
-    if deleteRouted then -- Delete Routed
-        query = {
-            ['$or'] = {
-                {
-                    staff = false,
-                    expires = {
-                        ['$lte'] = os.time()
-                    }
-                },
-                {
-                    route = {
-                        ['$ne'] = 0,
-                    }
-                }
-            }
-        }
+    local query = ''
+    local params = {}
+    if deleteRouted then
+        query = 'DELETE FROM scenes WHERE (staff = 0 AND expires <= ?) OR (route <> 0)'
+        table.insert(params, os.time())
+    else
+        query = 'DELETE FROM scenes WHERE staff = 0 AND expires <= ?'
+        table.insert(params, os.time())
     end
-
-    Database.Game:delete({
-        collection = 'scenes',
-        query = query,
-    }, function(success, deleted)
-        if success then
-            p:resolve(deleted)
+    MySQL.update(query, params, function(affectedRows)
+        if affectedRows then
+            p:resolve(affectedRows)
         else
             p:resolve(false)
         end
     end)
-
     return Citizen.Await(p)
 end
 
@@ -337,13 +344,29 @@ function LoadScenesFromDB()
     if not _hasLoadedScenes then
         _hasLoadedScenes = true
         DeleteExpiredScenes(true)
-
-        Database.Game:find({
-            collection = 'scenes',
-            query = {}
-        }, function(success, results)
-            if success and #results > 0 then
+        MySQL.query('SELECT * FROM scenes', {}, function(results)
+            if results and #results > 0 then
                 for k, v in ipairs(results) do
+                    -- reconstruct nested tables
+                    v.coords = { x = v.x, y = v.y, z = v.z }
+                    v.text = {
+                        text = v.text,
+                        font = v.font,
+                        size = v.size,
+                        outline = v.outline == 1,
+                        color = { r = v.text_color_r, g = v.text_color_g, b = v.text_color_b }
+                    }
+                    v.background = {
+                        type = v.background_type,
+                        opacity = v.background_opacity,
+                        color = { r = v.background_color_r, g = v.background_color_g, b = v.background_color_b },
+                        h = v.background_h,
+                        w = v.background_w,
+                        x = v.background_x,
+                        y = v.background_y,
+                        rotation = v.background_rotation
+                    }
+                    v._id = v.id
                     _loadedScenes[v._id] = v
                 end
             end
@@ -354,22 +377,19 @@ end
 function StartExpirationThread()
     if not _expirationThread then
         _expirationThread = true
-
         CreateThread(function()
             while true do
                 Wait(60 * 1000 * 30)
                 if _hasLoadedScenes then
                     local deleteScenes = {}
                     local timeStamp = os.time()
-
                     for k, v in pairs(_loadedScenes) do
-                        if v.expires and timeStamp >= v.expires then
+                        if v.expires and v.expires ~= 0 and timeStamp >= v.expires then
                             if Scenes:Delete(v._id) then
                                 table.insert(deleteScenes, v._id)
                             end
                         end
                     end
-
                     TriggerClientEvent('Scenes:Client:RemoveScenes', -1, deleteScenes)
                 end
             end
