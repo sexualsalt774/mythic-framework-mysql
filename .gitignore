@@ -1,5 +1,7 @@
 node_modules/
 cache/
+gitleaks.exe
+gitleaks-report.json
 server.cfg
 .bkp
 .yarn.installed
