@@ -7,6 +7,7 @@
 ## ✅ Completed
 
 - `mythic-weed`
+- `mythic-billboards`
 
 ---
 
@@ -78,7 +79,6 @@
 - `mythic-voip`
 - `mythic-radio`
 - `mythic-phone`
-- `mythic-billboards`
 - `mythic-casino`
 - `mythic-arcade`
 
