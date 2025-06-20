@@ -1,0 +1,6 @@
+node_modules/
+cache/
+server.cfg
+.bkp
+.yarn.installed
+yarn.lock
