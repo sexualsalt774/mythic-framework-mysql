@@ -27,7 +27,7 @@ function RegisterCallbacks()
 					if Jobs.Permissions:HasPermissionInJob(v:GetData("Source"), "realestate", "JOB_SELL") then
 						Phone.Email:Send(
 							v:GetData("Source"),
-							char:GetData("Alias").email,
+							(char:GetData("Alias") or {}).email,
 							os.time() * 1e3,
 							"Requesting Agent",
 							string.format(

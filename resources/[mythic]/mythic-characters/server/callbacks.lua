@@ -42,16 +42,8 @@ function RegisterCallbacks()
 
 	Callbacks:RegisterServerCallback('Characters:GetCharacters', function(source, data, cb)
 		local player = Fetch:Source(source)
-		Database.Game:find({
-			collection = 'characters',
-			query = {
-				User = player:GetData('AccountID'),
-				Deleted = {
-					['$ne'] = true,
-				},
-			},
-		}, function(success, results)
-			if not success then
+		MySQL.query('SELECT * FROM characters WHERE User = ? AND (Deleted IS NULL OR Deleted != 1)', { player:GetData('AccountID') }, function(results)
+			if not results then
 				cb(nil)
 				return
 			end
@@ -62,18 +54,18 @@ function RegisterCallbacks()
 				Database.Game:findOne({
 					collection = 'peds',
 					query = {
-						Char = v._id
+						Char = v.ID
 					}
 				}, function(s2, pedData)
 					table.insert(cData, {
-						ID = v._id,
+						ID = v.ID,
 						First = v.First,
 						Last = v.Last,
 						Phone = v.Phone,
 						DOB = v.DOB,
 						Gender = v.Gender,
 						LastPlayed = v.LastPlayed,
-						Jobs = v.Jobs,
+						Jobs = json.decode(v.Jobs),
 						SID = v.SID,
 						GangChain = v.GangChain,
 						Preview = pedData[1]?.Ped or false
@@ -102,7 +94,7 @@ function RegisterCallbacks()
 			Phone = pNumber,
 			Gender = tonumber(data.gender),
 			Bio = data.bio,
-			Origin = data.origin,
+			Origin = json.encode(data.origin),
 			DOB = data.dob,
 			LastPlayed = -1,
 			Jobs = {},
@@ -143,15 +135,10 @@ function RegisterCallbacks()
 			end
 		end
 
-		Database.Game:insertOne({
-			collection = 'characters',
-			document = doc,
-		}, function(success, result, insertedIds)
-			if not success then
-				cb(nil)
-				return nil
-			end
-			doc.ID = insertedIds[1]
+		MySQL.insert('INSERT INTO characters (User, First, Last, Phone, Gender, Bio, Origin, DOB, LastPlayed, Jobs, SID, Cash, New, Licenses) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+			doc.User, doc.First, doc.Last, doc.Phone, doc.Gender, doc.Bio, doc.Origin, doc.DOB, doc.LastPlayed, json.encode(doc.Jobs), doc.SID, doc.Cash, doc.New, json.encode(doc.Licenses)
+		}, function(insertedId)
+			doc.ID = insertedId
 			TriggerEvent('Characters:Server:CharacterCreated', doc)
 			Middleware:TriggerEvent('Characters:Created', source, doc)
 			cb(doc)
@@ -177,30 +164,13 @@ function RegisterCallbacks()
 
 	Callbacks:RegisterServerCallback('Characters:DeleteCharacter', function(source, data, cb)
 		local player = Fetch:Source(source)
-		Database.Game:findOne({
-			collection = 'characters',
-			query = {
-				User = player:GetData('AccountID'),
-				_id = data,
-			},
-		}, function(success, results)
-			if not success or not #results then
+		MySQL.query('SELECT * FROM characters WHERE User = ? AND ID = ? LIMIT 1', { player:GetData('AccountID'), data }, function(results)
+			if not results or not results[1] then
 				cb(nil)
 				return
 			end
 			local deletingChar = results[1]
-			Database.Game:updateOne({
-				collection = 'characters',
-				query = {
-					User = player:GetData('AccountID'),
-					_id = data,
-				},
-				update = {
-					['$set'] = {
-						Deleted = true,
-					},
-				},
-			}, function(success, results)
+			MySQL.update('UPDATE characters SET Deleted = 1 WHERE User = ? AND ID = ?', { player:GetData('AccountID'), data }, function(success)
 				TriggerEvent('Characters:Server:CharacterDeleted', data)
 				cb(success)
 
@@ -231,24 +201,8 @@ function RegisterCallbacks()
 
 	Callbacks:RegisterServerCallback('Characters:GetSpawnPoints', function(source, data, cb)
 		local player = Fetch:Source(source)
-		Database.Game:findOne({
-			collection = 'characters',
-			query = {
-				User = player:GetData('AccountID'),
-				_id = data,
-			},
-			options = {
-				projection = {
-					SID = 1,
-					New = 1,
-					Jailed = 1,
-					ICU = 1,
-					Apartment = 1,
-					Jobs = 1,
-				},
-			},
-		}, function(success, results)
-			if not success or not #results then
+		MySQL.query('SELECT SID, New, Jailed, ICU, Apartment, Jobs FROM characters WHERE User = ? AND ID = ? LIMIT 1', { player:GetData('AccountID'), data }, function(results)
+			if not results or not results[1] then
 				cb(nil)
 				return
 			end
@@ -273,21 +227,15 @@ function RegisterCallbacks()
 
 	Callbacks:RegisterServerCallback('Characters:GetCharacterData', function(source, data, cb)
 		local player = Fetch:Source(source)
-		Database.Game:findOne({
-			collection = 'characters',
-			query = {
-				User = player:GetData('AccountID'),
-				_id = data,
-			},
-		}, function(success, results)
-			if not success or not #results then
+		MySQL.query('SELECT * FROM characters WHERE User = ? AND ID = ? LIMIT 1', { player:GetData('AccountID'), data }, function(results)
+			if not results or not results[1] then
 				cb(nil)
 				return
 			end
 
 			local cData = results[1]
 			cData.Source = source
-			cData.ID = results[1]._id
+			cData.ID = results[1].ID
 			cData._id = nil
 
 			local store = DataStore:CreateStore(source, 'Character', cData)
@@ -352,8 +300,10 @@ function RegisterMiddleware()
 	end, 100000)
 	Middleware:Add('Characters:Logout', function(source)
 		local player = Fetch:Source(source)
+		print(player)
 		if player ~= nil then
 			local char = player:GetData('Character')
+			print(char)
 			if char ~= nil then
 				StoreData(source)
 			end
@@ -408,13 +358,8 @@ end
 
 function IsNumberInUse(number)
 	local var = nil
-	Database.Game:findOne({
-		collection = 'characters',
-		query = {
-			phone = number,
-		},
-	}, function(success, results)
-		if not success then
+	MySQL.query('SELECT * FROM characters WHERE phone = ? LIMIT 1', { number }, function(results)
+		if not results then
 			var = true
 			return
 		end

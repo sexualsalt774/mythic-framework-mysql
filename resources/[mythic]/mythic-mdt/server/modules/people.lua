@@ -24,52 +24,8 @@ _MDT.People = {
 	Search = {
 		People = function(self, term)
 			local p = promise.new()
-			Database.Game:find({
-				collection = 'characters',
-				query = {
-					["$and"] = {
-						{
-							["$or"] = {
-								{
-									["$expr"] = {
-										["$regexMatch"] = {
-											input = {
-												["$concat"] = { "$First", " ", "$Last" },
-											},
-											regex = term,
-											options = "i",
-										},
-									},
-								},
-								{
-									["$expr"] = {
-										["$regexMatch"] = {
-											input = {
-												["$toString"] = "$SID",
-											},
-											regex = term,
-											options = "i",
-										},
-									},
-								},
-							},
-						},
-						{
-							["$or"] = {
-								{ Deleted = false },
-								{ Deleted = {
-									["$exists"] = false,
-								} },
-							},
-						},
-					},
-				},
-				options = {
-					projection = requiredCharacterData,
-					limit = 12,
-				},
-			}, function(success, results)
-				if not success then
+			MySQL.query('SELECT * FROM characters WHERE (Deleted = false OR Deleted IS NULL) AND (First LIKE ? OR Last LIKE ? OR SID LIKE ?) LIMIT 12', { '%'..term..'%', '%'..term..'%', '%'..term..'%' }, function(results)
+				if not results then
 					p:resolve(false)
 					return
 				end
@@ -80,22 +36,8 @@ _MDT.People = {
 		end,
 		Government = function(self)
 			local p = promise.new()
-			Database.Game:find({
-				collection = 'characters',
-				query = {
-					Jobs = {
-						["$elemMatch"] = {
-							Id = {
-								["$in"] = _governmentJobs,
-							},
-						},
-					},
-				},
-				options = {
-					projection = requiredCharacterData,
-				},
-			}, function(success, results)
-				if not success then
+			MySQL.query('SELECT * FROM characters WHERE Jobs LIKE ? AND Jobs IS NOT NULL', { '%"Id":%'.._governmentJobs[1]..'%' }, function(results)
+				if not results then
 					p:resolve(false)
 					return
 				end
@@ -105,24 +47,8 @@ _MDT.People = {
 		end,
 		NotGovernment = function(self)
 			local p = promise.new()
-			Database.Game:find({
-				collection = 'characters',
-				query = {
-					Jobs = {
-						["$not"] = {
-							["$elemMatch"] = {
-								Id = {
-									["$in"] = _governmentJobs,
-								},
-							},
-						},
-					},
-				},
-				options = {
-					projection = requiredCharacterData,
-				},
-			}, function(success, results)
-				if not success then
+			MySQL.query('SELECT * FROM characters WHERE Jobs NOT LIKE ? AND Jobs IS NOT NULL', { '%"Id":%'.._governmentJobs[1]..'%' }, function(results)
+				if not results then
 					p:resolve(false)
 					return
 				end
@@ -181,15 +107,8 @@ _MDT.People = {
 				}
 			end
 
-			Database.Game:find({
-				collection = 'characters',
-				query = qry,
-				options = {
-					projection = requiredCharacterData,
-					limit = term and 12 or nil,
-				},
-			}, function(success, results)
-				if not success then
+			MySQL.query('SELECT * FROM characters WHERE Jobs LIKE ? AND Jobs IS NOT NULL', { qry }, function(results)
+				if not results then
 					p:resolve(false)
 					return
 				end
@@ -199,22 +118,8 @@ _MDT.People = {
 		end,
 		NotJob = function(self, job)
 			local p = promise.new()
-			Database.Game:find({
-				collection = 'characters',
-				query = {
-					Jobs = {
-						["$not"] = {
-							["$elemMatch"] = {
-								Id = job,
-							},
-						},
-					},
-				},
-				options = {
-					projection = requiredCharacterData,
-				},
-			}, function(success, results)
-				if not success then
+			MySQL.query('SELECT * FROM characters WHERE Jobs NOT LIKE ? AND Jobs IS NOT NULL', { '%"Id":%'..job..'%' }, function(results)
+				if not results then
 					p:resolve(false)
 					return
 				end
@@ -226,40 +131,21 @@ _MDT.People = {
 	View = function(self, id, requireAllData)
 		local SID = tonumber(id)
 		local p = promise.new()
-		Database.Game:findOne({
-			collection = 'characters',
-			query = {
-				SID = SID,
-			},
-			options = {
-				projection = requiredCharacterData,
-			},
-		}, function(success, character)
-			if not success or #character < 0 then
+		MySQL.query('SELECT * FROM characters WHERE SID = ? LIMIT 1', { SID }, function(character)
+			if not character or #character < 0 then
 				p:resolve(false)
 				return
 			end
 
 			if requireAllData then
-				Database.Game:findOne({
-					collection = 'character_convictions',
-					query = {
-						SID = SID,
-					},
-				}, function(success2, convictions)
-					if not success2 then
+				MySQL.query('SELECT * FROM character_convictions WHERE SID = ? LIMIT 1', { SID }, function(convictions)
+					if not convictions then
 						p:resolve(false)
 						return
 					end
 
-					Database.Game:find({
-						collection = 'vehicles',
-						query = {
-							["Owner.Type"] = 0,
-							["Owner.Id"] = SID,
-						},
-					}, function(success, vehicles)
-						if not success2 then
+					MySQL.query('SELECT * FROM vehicles WHERE Owner.Type = 0 AND Owner.Id = ?', { SID }, function(success, vehicles)
+						if not success then
 							p:resolve(false)
 							return
 						end
@@ -296,42 +182,32 @@ _MDT.People = {
 			logVal = json.encode(value)
 		end
 
-		local update = {
-			["$set"] = {
-				[key] = value,
-			},
-		}
+		-- Build the update set
+		local setParts = { key .. ' = ?' }
+		local params = { type(value) == 'table' and json.encode(value) or value }
 
+		-- Build the MDTHistory push
+		local mdtHistoryEntry
 		if requester == -1 then
-			update["$push"] = {
-				MDTHistory = {
-					Time = (os.time() * 1000),
-					Char = -1,
-					Log = string.format("System Updated Profile, Set %s To %s", key, logVal),
-				},
-			}
+			mdtHistoryEntry = json.encode({
+				Time = (os.time() * 1000),
+				Char = -1,
+				Log = string.format("System Updated Profile, Set %s To %s", key, logVal),
+			})
 		else
-			update["$push"] = {
-				MDTHistory = {
-					Time = (os.time() * 1000),
-					Char = requester:GetData("SID"),
-					Log = string.format(
-						"%s Updated Profile, Set %s To %s",
-						requester:GetData("First") .. " " .. requester:GetData("Last"),
-						key,
-						logVal
-					),
-				},
-			}
+			mdtHistoryEntry = json.encode({
+				Time = (os.time() * 1000),
+				Char = requester:GetData("SID"),
+				Log = string.format("%s Updated Profile, Set %s To %s", requester:GetData("First") .. " " .. requester:GetData("Last"), key, logVal),
+			})
 		end
 
-		Database.Game:updateOne({
-			collection = 'characters',
-			query = {
-				SID = id,
-			},
-			update = update,
-		}, function(success, results)
+		-- SQL for updating the field and appending to MDTHistory JSON array
+		local sql = 'UPDATE characters SET ' .. key .. ' = ?, MDTHistory = JSON_ARRAY_APPEND(COALESCE(MDTHistory, JSON_ARRAY()), "$", ?) WHERE SID = ?'
+		table.insert(params, mdtHistoryEntry)
+		table.insert(params, id)
+
+		MySQL.update(sql, params, function(success, results)
 			if success then
 				local target = Fetch:SID(id)
 				if target then
@@ -396,12 +272,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 
 	Callbacks:RegisterServerCallback("MDT:CheckCallsign", function(source, data, cb)
 		if CheckMDTPermissions(source, false) then
-			Database.Game:findOne({
-				collection = 'characters',
-				query = {
-					Callsign = data,
-				},
-			}, function(success, results)
+			MySQL.query('SELECT * FROM characters WHERE Callsign = ?', { data }, function(results)
 				cb(#results == 0)
 			end)
 		else
@@ -411,18 +282,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 
 	Callbacks:RegisterServerCallback("MDT:CheckParole", function(source, data, cb)
 		if CheckMDTPermissions(source, false) then
-			Database.Game:findOne({
-				collection = 'characters',
-				query = {
-					SID = data,
-				},
-				options = {
-					projection = {
-						SID = -1,
-						Parole = 1,
-					},
-				},
-			}, function(success, results)
+			MySQL.query('SELECT * FROM characters WHERE SID = ? AND Parole IS NOT NULL', { data }, function(results)
 				if results[1].Parole ~= nil then
 					cb(results[1].Parole)
 				else

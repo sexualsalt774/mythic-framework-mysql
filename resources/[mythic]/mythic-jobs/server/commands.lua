@@ -1,13 +1,8 @@
 function FetchCharacterJobsFromDB(stateId)
     local p = promise.new()
 
-    Database.Game:findOne({
-        collection = 'characters',
-        query = {
-            SID = stateId,
-        }
-    }, function(success, results)
-        if success and #results > 0 then
+    MySQL.query('SELECT Jobs FROM characters WHERE SID = ? LIMIT 1', { stateId }, function(results)
+        if results and #results > 0 then
             p:resolve(results[1].Jobs or {})
         else
             p:resolve(false)

@@ -66,7 +66,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 	Callbacks:RegisterServerCallback("Phone:IRC:SendMessage", function(source, data, cb)
 		local src = source
 		local char = Fetch:Source(src):GetData("Character")
-		local alias = char:GetData("Alias").irc
+		local alias = (char:GetData("Alias") or {}).irc
 		_cachedMessages[data.channel] = _cachedMessages[data.channel] or {}
 
 		local data2 = {

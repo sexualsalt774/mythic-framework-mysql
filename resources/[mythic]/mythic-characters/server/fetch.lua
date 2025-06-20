@@ -43,21 +43,11 @@ FETCH = {
 	end,
 	GetOfflineData = function(self, stateId, key)
 		local p = promise.new()
-		Database.Game:findOne({
-			collection = 'characters',
-			query = {
-				SID = stateId,
-			},
-			options = {
-				projection = {
-					[key] = true,
-				},
-			},
-		}, function(success, results)
-			if not success then
+		MySQL.query('SELECT ?? FROM characters WHERE SID = ? LIMIT 1', { key, stateId }, function(results)
+			if not results then
 				return p:resolve(nil)
 			end
-			return p:resolve(results[1][key])
+			return p:resolve(results[1] and results[1][key])
 		end)
 		return Citizen.Await(p)
 	end,

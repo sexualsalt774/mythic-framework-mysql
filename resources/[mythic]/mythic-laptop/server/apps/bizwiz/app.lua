@@ -56,56 +56,8 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
   Callbacks:RegisterServerCallback("Laptop:BizWiz:EmployeeSearch", function(source, data, cb)
     local job = CheckBusinessPermissions(source)
 		if job then
-			Database.Game:find({
-				collection = 'characters',
-				query = {
-					["$and"] = {
-						{
-							["$or"] = {
-								{
-									["$expr"] = {
-										["$regexMatch"] = {
-											input = {
-												["$concat"] = { "$First", " ", "$Last" },
-											},
-											regex = data.term or "",
-											options = "i",
-										},
-									},
-								},
-								{
-									["$expr"] = {
-										["$regexMatch"] = {
-											input = {
-												["$toString"] = "$SID",
-											},
-											regex = data.term or "",
-											options = "i",
-										},
-									},
-								},
-							},
-						},
-						{
-							Jobs = {
-								["$elemMatch"] = {
-									Id = job,
-								},
-							},
-						},
-					}
-				},
-				options = {
-					projection = {
-						_id = 0,
-						SID = 1,
-						First = 1,
-						Last = 1,
-					},
-					limit = 4,
-				},
-			}, function(success, results)
-				if not success then
+			MySQL.query('SELECT SID, First, Last FROM characters WHERE Jobs LIKE ? AND (First LIKE ? OR Last LIKE ? OR SID LIKE ?) LIMIT 4', { '%"Id":'..job..'%','%'..(data.term or '')..'%','%'..(data.term or '')..'%','%'..(data.term or '')..'%' }, function(results)
+				if not results then
 					cb({})
 					return
 				end

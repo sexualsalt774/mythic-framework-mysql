@@ -2369,7 +2369,17 @@ function UpdateCharacterItemStates(source, inventory, adding)
 		return
 	end
 	local changedState = false
-	local playerStates = char:GetData("States") or {}
+	local playerStates = char:GetData("States")
+	if type(playerStates) == "string" then
+		local ok, decoded = pcall(json.decode, playerStates)
+		if ok and type(decoded) == "table" then
+			playerStates = decoded
+		else
+			playerStates = {}
+		end
+	elseif type(playerStates) ~= "table" then
+		playerStates = {}
+	end
 
 	local allInventoryStates = {}
 	for k, v in ipairs(inventory) do

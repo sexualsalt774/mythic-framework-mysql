@@ -97,32 +97,13 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
             local perm = char:GetData("LaptopPermissions")
 
             if perm["lsunderground"] and perm["lsunderground"]["admin"] then
-                Database.Game:find({
-                    collection = 'characters',
-                    query = {
-                        LSUNDGBan = {
-                            ["$exists"] = true,
-                        }
-                    },
-                    options = {
-                        projection = {
-                            SID = 1,
-                            First = 1,
-                            Last = 1,
-                            Alias = 1,
-                            LSUNDGBan = 1,
-                        }
-                    }
-
-                }, function(success, results)
-                    if success and results then
+                MySQL.query('SELECT SID, First, Last, Alias, LSUNDGBan FROM characters WHERE LSUNDGBan IS NOT NULL', {}, function(results)
+                    if results then
                         local cunts = {}
                         for k, v in ipairs(results) do
-                            v.RacingAlias = v.Alias?.redline
-
+                            v.RacingAlias = v.Alias and v.Alias.redline or nil
                             table.insert(cunts, v)
                         end
-
                         cb(cunts)
                     else
                         cb(false)
@@ -142,25 +123,13 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
             local perm = char:GetData("LaptopPermissions")
 
             if perm["lsunderground"] and perm["lsunderground"]["admin"] then
-                Database.Game:updateOne({
-                    collection = 'characters',
-                    query = {
-                        SID = data.SID,
-                    },
-                    update = {
-                        ["$push"] = {
-                            LSUNDGBan = "Boosting",
-                        }
-                    }
-                }, function(success, result)
+                MySQL.update('UPDATE characters SET LSUNDGBan = JSON_ARRAY_APPEND(COALESCE(LSUNDGBan, JSON_ARRAY()), "$", ?) WHERE SID = ?', { "Boosting", data.SID }, function(success, result)
                     if success and result > 0 then
                         local target = Fetch:SID(data.SID)
                         if target then
                             local targetChar = target:GetData("Character")
                             if targetChar then
-                                targetChar:SetData("LSUNDGBan", {
-                                    "Boosting",
-                                })
+                                targetChar:SetData("LSUNDGBan", { "Boosting" })
                             end
                         end
                         cb(true)
@@ -182,17 +151,7 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
             local perm = char:GetData("LaptopPermissions")
 
             if perm["lsunderground"] and perm["lsunderground"]["admin"] then
-                Database.Game:updateOne({
-                    collection = 'characters',
-                    query = {
-                        SID = data.SID,
-                    },
-                    update = {
-                        ["$unset"] = {
-                            LSUNDGBan = true,
-                        }
-                    }
-                }, function(success, result)
+                MySQL.update('UPDATE characters SET LSUNDGBan = NULL WHERE SID = ?', { data.SID }, function(success, result)
                     if success and result > 0 then
                         local target = Fetch:SID(data.SID)
                         if target then
@@ -201,7 +160,6 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
                                 targetChar:SetData("LSUNDGBan", nil)
                             end
                         end
-
                         cb(true)
                     else
                         cb(false)
@@ -226,7 +184,7 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
 
         if char and team and team.ID and not char:GetData("LSUNDGBan") then
             local perm = char:GetData("LaptopPermissions")
-            local alias = char:GetData("Alias").redline
+            local alias = (char:GetData("Alias") or {}).redline
 
             if alias and #team.Members >= 2 or (perm["lsunderground"] and perm["lsunderground"]["admin"]) then
                 local data = {
@@ -840,7 +798,7 @@ LAPTOP.LSUnderground.Boosting = {
         end
 
         if char then
-            local alias = char:GetData("Alias").redline
+            local alias = (char:GetData("Alias") or {}).redline
             local contracts = char:GetData("BoostingContracts") or {}
 
             _boostingIds += 1

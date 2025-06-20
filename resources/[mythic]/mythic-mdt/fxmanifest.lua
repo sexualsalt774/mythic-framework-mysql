@@ -10,7 +10,7 @@ client_script "@mythic-pwnzor/client/check.lua"
 
 client_scripts {'shared/*.lua', 'client/**/*.lua'}
 
-server_scripts {'shared/*.lua', 'server/**/*.lua'}
+server_scripts {'@oxmysql/lib/MySQL.lua', 'shared/*.lua', 'server/**/*.lua'}
 
 ui_page 'ui/dist/index.html'
 

@@ -104,13 +104,8 @@ function DoesCryptoWalletExist(wallet)
 	end
 
 	local p = promise.new()
-	Database.Game:find({
-		collection = 'characters',
-		query = {
-			CryptoWallet = wallet,
-		},
-	}, function(success, results)
-		if success and #results > 0 then
+	MySQL.query('SELECT * FROM characters WHERE CryptoWallet = ? LIMIT 1', { wallet }, function(results)
+		if results and #results > 0 then
 			p:resolve(true)
 		else
 			p:resolve(false)

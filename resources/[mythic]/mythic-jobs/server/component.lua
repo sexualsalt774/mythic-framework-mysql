@@ -111,13 +111,8 @@ _JOBS = {
 			return true
 		else
 			local p = promise.new()
-			Database.Game:findOne({
-				collection = 'characters',
-				query = {
-					SID = stateId,
-				}
-			}, function(success, results)
-				if success and #results > 0 then
+			MySQL.query('SELECT * FROM characters WHERE SID = ? LIMIT 1', { stateId }, function(results)
+				if results and #results > 0 then
 					local charData = results[1]
 					local charJobData = charData.Jobs
 					if not charJobData then charJobData = {}; end
@@ -135,17 +130,7 @@ _JOBS = {
 
 					table.insert(charJobData, newJob)
 
-					Database.Game:updateOne({
-						collection = 'characters',
-						query = {
-							SID = stateId,
-						},
-						update = {
-							['$set'] = {
-								Jobs = charJobData,
-							}
-						}
-					}, function(success, updated)
+					MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(charJobData), stateId }, function(success, updated)
 						if success and updated > 0 then
 							p:resolve(true)
 						else
@@ -200,13 +185,8 @@ _JOBS = {
 			end
 		else
 			local p = promise.new()
-			Database.Game:findOne({
-				collection = 'characters',
-				query = {
-					SID = stateId,
-				}
-			}, function(success, results)
-				if success and #results > 0 then
+			MySQL.query('SELECT * FROM characters WHERE SID = ? LIMIT 1', { stateId }, function(results)
+				if results and #results > 0 then
 					local charData = results[1]
 					local charJobData = charData.Jobs
 					if charJobData then
@@ -218,17 +198,7 @@ _JOBS = {
 						end
 
 						if found then
-							Database.Game:updateOne({
-								collection = 'characters',
-								query = {
-									SID = stateId,
-								},
-								update = {
-									['$set'] = {
-										Jobs = charJobData,
-									}
-								}
-							}, function(success, updated)
+							MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(charJobData), stateId }, function(success, updated)
 								if success and updated > 0 then
 									p:resolve(true)
 								else
@@ -617,10 +587,7 @@ _JOBS = {
 						},
 					}
 
-					Database.Game:insertOne({
-						collection = 'jobs',
-						document = document,
-					}, function(success, inserted)
+					MySQL.insert('jobs', document, function(success, inserted)
 						if success and inserted > 0 then
 							RefreshAllJobData(document.Id)
 
@@ -671,14 +638,10 @@ _JOBS = {
 				end
 
 				local p = promise.new()
-				Database.Game:updateOne({
-					collection = 'jobs',
-					query = {
-						Id = jobId,
-					},
-					update = {
-						['$set'] = actualSettingData,
-					},
+				MySQL.update('jobs', {
+					['$set'] = actualSettingData,
+				}, {
+					Id = jobId,
 				}, function(success, res)
 					if success then
 						RefreshAllJobData(jobId)
@@ -709,23 +672,12 @@ _JOBS = {
 			Edit = function(self, jobId, workplaceId, newWorkplaceName)
 				if Jobs:DoesExist(jobId, workplaceId) then
 					local p = promise.new()
-					Database.Game:updateOne({
-						collection = 'jobs',
-						query = {
-							Type = 'Government',
-							Id = jobId,
-							['Workplaces.Id'] = workplaceId,
-						},
-						update = {
-							['$set'] = {
-								['Workplaces.$[workplace].Name'] = newWorkplaceName,
-							},
-						},
-						options = {
-							arrayFilters = { 
-								{ ['workplace.Id'] = workplaceId }
-							},
-						},
+					MySQL.update('jobs', {
+						['Workplaces.$[workplace].Name'] = newWorkplaceName,
+					}, {
+						Type = 'Government',
+						Id = jobId,
+						['Workplaces.Id'] = workplaceId,
 					}, function(success, res)
 						if success then
 							RefreshAllJobData(jobId)
@@ -811,12 +763,7 @@ _JOBS = {
 							}
 						end
 	
-						Database.Game:updateOne({
-							collection = 'jobs',
-							query = query,
-							update = update,
-							options = options,
-						}, function(success, updated)
+						MySQL.update('jobs', update, query, options, function(success, updated)
 							if success then
 								RefreshAllJobData(jobId)
 	
@@ -903,12 +850,7 @@ _JOBS = {
 						}
 					end
 
-					Database.Game:updateOne({
-						collection = 'jobs',
-						query = query,
-						update = update,
-						options = options,
-					}, function(success, updated)
+					MySQL.update('jobs', update, query, options, function(success, updated)
 						if success then
 							RefreshAllJobData(jobId)
 							Jobs.Management.Employees:UpdateAllGrade(jobId, workplaceId, gradeId, settingData)
@@ -982,12 +924,7 @@ _JOBS = {
 							}
 						end
 
-						Database.Game:updateOne({
-							collection = 'jobs',
-							query = query,
-							update = update,
-							options = options,
-						}, function(success, updated)
+						MySQL.update('jobs', update, query, options, function(success, updated)
 							if success then
 								RefreshAllJobData(jobId)
 
@@ -1063,10 +1000,7 @@ _JOBS = {
 					query.Jobs['$elemMatch']['Grade.Id'] = gradeId
 				end
 
-				Database.Game:find({
-					collection = 'characters',
-					query = query,
-				}, function(success, results)
+				MySQL.find('characters', query, function(success, results)
 					if success then
 						for _, c in ipairs(results) do
 							if c.Jobs and #c.Jobs > 0 then
@@ -1140,12 +1074,7 @@ _JOBS = {
 					},
 				}
 
-				Database.Game:update({
-					collection = 'characters',
-					query = query,
-					update = update,
-					options = options,
-				}, function(success, updated)
+				MySQL.update('characters', update, query, options, function(success, updated)
 					if success then
 						p:resolve(updated)
 					else
@@ -1178,31 +1107,18 @@ _JOBS = {
 					end
 				end
 
-				Database.Game:update({
-					collection = 'characters',
-					query = {
-						SID = {
-							['$nin'] = onlineCharacters,
-						},
-						Jobs = {
-							['$elemMatch'] = {
-								Type = 'Government',
-								Id = jobId,
-								['Workplace.Id'] = workplaceId
-							}
-						}
+				MySQL.update('characters', {
+					['Jobs.$[job].Workplace.Name'] = newWorkplaceName,
+				}, {
+					SID = {
+						['$nin'] = onlineCharacters,
 					},
-					update = {
-						['$set'] = {
-							['Jobs.$[job].Workplace.Name'] = newWorkplaceName,
+					Jobs = {
+						['$elemMatch'] = {
+							Type = 'Government',
+							Id = jobId,
+							['Workplace.Id'] = workplaceId
 						}
-					},
-					options = {
-						arrayFilters = { 
-							{
-								['job.Id'] = jobId,
-							},
-						},
 					}
 				}, function(success, updated)
 					if success then
@@ -1295,12 +1211,7 @@ _JOBS = {
 						},
 					}
 
-					Database.Game:update({
-						collection = 'characters',
-						query = query,
-						update = update,
-						options = options,
-					}, function(success, updated)
+					MySQL.update('characters', update, query, options, function(success, updated)
 						if success then
 							p:resolve(updated)
 						else
@@ -1318,16 +1229,10 @@ _JOBS = {
 		Set = function(self, jobId, key, val)
 			if Jobs:DoesExist(jobId) and key then
 				local p = promise.new()
-				Database.Game:updateOne({
-					collection = 'jobs',
-					query = {
-						Id = jobId,
-					},
-					update = {
-						["$set"] = {
-							[string.format("Data.%s", key)] = val,
-						},
-					},
+				MySQL.update('jobs', {
+					[string.format("Data.%s", key)] = val,
+				}, {
+					Id = jobId,
 				}, function(success, res)
 					if success then
 						RefreshAllJobData(jobId)

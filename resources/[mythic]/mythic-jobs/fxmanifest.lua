@@ -6,6 +6,7 @@ client_script "@mythic-base/components/cl_error.lua"
 client_script "@mythic-pwnzor/client/check.lua"
 
 server_scripts {
+    '@oxmysql/lib/MySQL.lua',
     'server/**/*.lua',
 }
 

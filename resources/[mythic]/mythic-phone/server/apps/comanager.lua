@@ -324,40 +324,12 @@ PHONE.CoManager = {
 			query.Jobs["$elemMatch"]["Grade.Id"] = gradeId
 		end
 
-		Database.Game:find({
-			collection = 'characters',
-			query = query,
-			options = {
-				projection = {
-					SID = 1,
-					First = 1,
-					Last = 1,
-					Phone = 1,
-					Jobs = 1,
-				}
-			}
-		}, function(success, results)
-			if success then
-				for _, c in ipairs(results) do
-					if c.Jobs and #c.Jobs > 0 then
-						for k, v in ipairs(c.Jobs) do
-							if fetchingJobs[v.Id] then
-								table.insert(fetchedRosterData[v.Id], {
-									Source = false,
-									SID = c.SID,
-									First = c.First,
-									Last = c.Last,
-									Phone = c.Phone,
-									JobData = v,
-								})
-							end
-						end
-					end
-				end
-				p:resolve(true)
-			else
-				p:resolve(false)
+		MySQL.query('SELECT * FROM characters WHERE Jobs LIKE ? AND Jobs IS NOT NULL', { '%"Id":%'..job..'%' }, function(results)
+			if not results then
+				cb({})
+				return
 			end
+			cb(results)
 		end)
 
 		local res = Citizen.Await(p)
@@ -409,37 +381,12 @@ PHONE.CoManager = {
 				}
 			}
 	
-			Database.Game:find({
-				collection = 'characters',
-				query = query,
-				options = {
-					projection = {
-						SID = 1,
-						First = 1,
-						Last = 1,
-						Phone = 1,
-						--Jobs = 1,
-						LastClockOn = 1,
-						TimeClockedOn = 1,
-					}
-				}
-			}, function(success, results)
-				if success then
-					for _, c in ipairs(results) do
-						table.insert(onlineShit, {
-							Source = false,
-							SID = c.SID,
-							First = c.First,
-							Last = c.Last,
-							Phone = c.Phone,
-							LastClockOn = c.LastClockOn,
-							TimeClockedOn = c.TimeClockedOn,
-						})
-					end
-					p:resolve(true)
-				else
-					p:resolve(false)
+			MySQL.query('SELECT * FROM characters WHERE Jobs LIKE ? AND Jobs IS NOT NULL', { '%"Id":%'..job..'%' }, function(results)
+				if not results then
+					cb({})
+					return
 				end
+				cb(results)
 			end)
 
 			local res = Citizen.Await(p)
@@ -455,17 +402,12 @@ PHONE.CoManager = {
 
 function GetOfflineCharacter(stateId)
 	local p = promise.new()
-	Database.Game:findOne({
-		collection = 'characters',
-		query = {
-			SID = stateId,
-		}
-	}, function(success, results)
-		if success and #results > 0 then
-			p:resolve(results[1])
-		else
-			p:resolve(false)
+	MySQL.query('SELECT * FROM characters WHERE SID = ? LIMIT 1', { data.SID }, function(results)
+		if not results or not results[1] then
+			cb(false)
+			return
 		end
+		cb(results[1])
 	end)
 
 	local res = Citizen.Await(p)

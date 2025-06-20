@@ -102,28 +102,14 @@ function RegisterCallbacks()
                     end
                 end
 
-                Database.Game:find({
-                    collection = 'characters',
-                    query = {
-                        SID = {
-                            ['$in'] = charsToFetch
-                        }
-                    },
-                    options = {
-                        projection = {
-                            SID = 1,
-                            First = 1,
-                            Last = 1,
-                            Phone = 1,
-                        }
-                    }
-                }, function(success, results)
-                    if success and #results > 0 then
+                local placeholders = table.concat({"?", string.rep(",?", #charsToFetch-1)})
+                local sql = "SELECT * FROM characters WHERE SID IN (" .. placeholders .. ")"
+                MySQL.query(sql, charsToFetch, function(results)
+                    if results and #results > 0 then
                         local dumbShit = {}
                         for k, v in ipairs(results) do
                             dumbShit[v.SID] = v
                         end
-
                         cb(vehicles, {
                             current = Vehicles.Owned.Properties:GetCount(storageId),
                             max = maxParking or 0

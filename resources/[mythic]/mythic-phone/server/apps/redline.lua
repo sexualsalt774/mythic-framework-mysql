@@ -112,7 +112,7 @@ function LeaveAnyRace(source)
 	if plyr ~= nil then
 		char = plyr:GetData("Character")
 		if char ~= nil then
-			local alias = char:GetData("Alias").redline
+			local alias = (char:GetData("Alias") or {}).redline
 			for k, v in ipairs(_races) do
 				if v.state == 0 then
 					if v.host_id == char:GetData("ID") then
@@ -317,7 +317,7 @@ end
 RegisterServerEvent("Phone:Redline:FinishRace", function(nId, data, laps, plate, vehName)
 	local src = source
 	local char = Fetch:Source(src):GetData("Character")
-	local alias = char:GetData("Alias").redline
+	local alias = (char:GetData("Alias") or {}).redline
 
 	local vehEnt = Entity(NetworkGetEntityFromNetworkId(nId)).state
 	_races[tonumber(data)].racers[alias] = {
@@ -369,7 +369,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 
 	Callbacks:RegisterServerCallback("Phone:Redline:SaveTrack", function(src, data, cb)
 		local char = Fetch:Source(src):GetData("Character")
-		local alias = char:GetData("Alias").redline
+		local alias = (char:GetData("Alias") or {}).redline
 
 		if alias ~= nil then
 			Database.Game:insertOne({
@@ -421,7 +421,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 
 	Callbacks:RegisterServerCallback("Phone:Redline:DeleteTrack", function(src, data, cb)
 		local char = Fetch:Source(src):GetData("Character")
-		local alias = char:GetData("Alias").redline
+		local alias = (char:GetData("Alias") or {}).redline
 		if alias ~= nil then
 			Database.Game:deleteOne({
 				collection = 'tracks',
@@ -445,7 +445,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 
 	Callbacks:RegisterServerCallback("Phone:Redline:ResetTrackHistory", function(src, data, cb)
 		local char = Fetch:Source(src):GetData("Character")
-		local alias = char:GetData("Alias").redline
+		local alias = (char:GetData("Alias") or {}).redline
 		if alias ~= nil then
 			Database.Game:updateOne({
 				collection = 'tracks',
@@ -483,7 +483,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 			data.host_src = src
 			data.time = os.time() * 1000
 			data.racers = {
-				[char:GetData("Alias").redline] = {
+				[(char:GetData("Alias") or {}).redline] = {
 					source = src,
 					sid = char:GetData("SID"),
 				},
@@ -512,7 +512,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 							Phone.Notification:Add(
 								v:GetData("Source"),
 								string.format("New Event: %s", data.name),
-								string.format("%s created an event", char:GetData("Alias").redline),
+								string.format("%s created an event", (char:GetData("Alias") or {}).redline),
 								os.time() * 1000,
 								10000,
 								"redline",
@@ -610,7 +610,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 
 	Callbacks:RegisterServerCallback("Phone:Redline:JoinRace", function(src, data, cb)
 		local char = Fetch:Source(src):GetData("Character")
-		local alias = char:GetData("Alias").redline
+		local alias = (char:GetData("Alias") or {}).redline
 
 		for k, v in ipairs(_races) do
 			if v.state == 0 then
@@ -633,7 +633,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 
 	Callbacks:RegisterServerCallback("Phone:Redline:LeaveRace", function(src, data, cb)
 		local char = Fetch:Source(src):GetData("Character")
-		local alias = char:GetData("Alias").redline
+		local alias = (char:GetData("Alias") or {}).redline
 
 		if alias ~= nil and _races[tonumber(data)].state == 0 then
 			_races[tonumber(data)].racers[alias] = nil

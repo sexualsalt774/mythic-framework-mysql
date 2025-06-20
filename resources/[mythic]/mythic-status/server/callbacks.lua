@@ -4,7 +4,14 @@ function RegisterCallbacks()
         local char = player:GetData('Character')
         if char ~= nil then
             local status = char:GetData('Status')
-            if status == nil then
+            if type(status) == 'string' then
+                local ok, decoded = pcall(json.decode, status)
+                if ok and type(decoded) == 'table' then
+                    status = decoded
+                else
+                    status = {}
+                end
+            elseif type(status) ~= 'table' then
                 status = {}
             end
             if status[data.name] ~= nil then

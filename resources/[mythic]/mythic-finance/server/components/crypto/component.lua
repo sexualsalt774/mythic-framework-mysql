@@ -237,17 +237,8 @@ _CRYPTO = {
 				return true
 			else
 				local p = promise.new()
-				Database.Game:updateOne({
-					collection = 'characters',
-					query = {
-						CryptoWallet = target,
-					},
-					update = {
-						["$inc"] = {
-							[string.format("Crypto.%s", coin)] = amount,
-						},
-					},
-				}, function(success, res)
+				-- below is line 40
+				MySQL.update('UPDATE characters SET Crypto = JSON_SET(COALESCE(Crypto, \'{}\'), ?, COALESCE(JSON_EXTRACT(Crypto, ?), 0) + ?) WHERE CryptoWallet = ?', { string.format('$.%s', coin), string.format('$.%s', coin), amount, target }, function(success, res)
 					p:resolve(success)
 				end)
 
@@ -286,28 +277,14 @@ _CRYPTO = {
 					p:resolve(false)
 				end
 			else
-				Database.Game:findOne({
-					collection = 'characters',
-					query = {
-						CryptoWallet = target,
-					},
-				}, function(success, res)
-					if #res == 0 then
+				MySQL.query('SELECT Crypto FROM characters WHERE CryptoWallet = ? LIMIT 1', { target }, function(res)
+					if not res or #res == 0 then
 						p:resolve(false)
 						return
 					else
-						if res[1].Crypto[coin] >= amount then
-							Database.Game:updateOne({
-								collection = 'characters',
-								query = {
-									CryptoWallet = target,
-								},
-								update = {
-									["$inc"] = {
-										[string.format("Crypto.%s", coin)] = amount,
-									},
-								},
-							}, function(success, res)
+						local crypto = res[1].Crypto and json.decode(res[1].Crypto) or {}
+						if (crypto[coin] or 0) >= amount then
+							MySQL.update('UPDATE characters SET Crypto = JSON_SET(COALESCE(Crypto, \'{}\'), ?, COALESCE(JSON_EXTRACT(Crypto, ?), 0) - ?) WHERE CryptoWallet = ?', { string.format('$.%s', coin), string.format('$.%s', coin), amount, target }, function(success, res2)
 								p:resolve(success)
 							end)
 						else

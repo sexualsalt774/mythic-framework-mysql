@@ -57,13 +57,8 @@ function RegisterChatCommands()
 	Chat:RegisterStaffCommand("twitteraccount", function(source, args, rawCommand)
 		local twitterName = args[1]
 
-		Database.Game:findOne({
-			collection = 'characters',
-			query = {
-				["Alias.twitter.name"] = twitterName,
-			},
-		}, function(success, results)
-			if success and #results > 0 then
+		MySQL.query('SELECT * FROM characters WHERE Alias->"$.twitter.name" = ? LIMIT 1', { twitterName }, function(results)
+			if results and #results > 0 then
 				local char = results[1]
 				Chat.Send.System:Single(
 					source,

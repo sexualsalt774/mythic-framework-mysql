@@ -1,6 +1,19 @@
-local _noUpdate = { 'Source', 'User', '_id', 'ID', 'First', 'Last', 'Phone', 'DOB', 'Gender', 'TempJob', 'Ped', 'MDTHistory', 'Parole', 'Preview', 'Team', 'LSUNDGBan' }
+local _noUpdate = { 'Source', 'User', 'ID', 'First', 'Last', 'Phone', 'DOB', 'Gender', 'TempJob', 'Ped', 'MDTHistory', 'Parole', 'Preview', 'Team', 'LSUNDGBan' }
 
 local _saving = {}
+
+function buildUpdateQuery(data)
+	local setParts = {}
+	local values = {}
+	for k, v in pairs(data) do
+		if type(v) == 'table' then
+			v = json.encode(v)
+		end
+		table.insert(setParts, k .. ' = ?')
+		table.insert(values, v)
+	end
+	return table.concat(setParts, ', '), values
+end
 
 function StoreData(source)
 	if _saving[source] then
@@ -34,16 +47,10 @@ function StoreData(source)
 	data.LastPlayed = os.time() * 1000
 
 	Logger:Trace('Characters', string.format('Saving Character %s', cId), { console = true })
-	Database.Game:updateOne({
-		collection = 'characters',
-		query = {
-			User = plyr:GetData('AccountID'),
-			_id = cId,
-		},
-		update = {
-			['$set'] = data,
-		},
-	}, function()
+	local setStr, values = buildUpdateQuery(data)
+	table.insert(values, plyr:GetData('AccountID'))
+	table.insert(values, cId)
+	MySQL.update('UPDATE characters SET ' .. setStr .. ' WHERE User = ? AND ID = ?', values, function()
 		_saving[source] = false
 	end)
 end

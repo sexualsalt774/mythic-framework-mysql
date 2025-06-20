@@ -4,7 +4,7 @@ AddEventHandler("Phone:Server:AliasUpdated", function(src)
 	local cid = char:GetData("ID")
 	for k, v in ipairs(_tweets) do
 		if v.cid == cid then
-			v.author = char:GetData("Alias").twitter
+			v.author = (char:GetData("Alias") or {}).twitter
 		end
 	end
 	TriggerClientEvent("Phone:Client:SetData", -1, "tweets", _tweets)
@@ -54,7 +54,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		data._id = #_tweets + 1
 		data.SID = char:GetData("SID")
 		data.cid = char:GetData("ID")
-		data.author = char:GetData("Alias").twitter
+		data.author = (char:GetData("Alias") or {}).twitter
 		data.time = os.time() * 1000
 		table.insert(_tweets, data)
 		TriggerClientEvent("Phone:Client:Twitter:Notify", -1, data)

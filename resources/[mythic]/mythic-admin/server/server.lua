@@ -104,12 +104,7 @@ function RegisterChatCommands()
 					)
 				)
 			else
-				Database.Game:findOne({
-					collection = 'characters',
-					query = {
-						SID = tonumber(args[1]),
-					},
-				}, function(success, tChar)
+				MySQL.query('SELECT * FROM characters WHERE SID = ? LIMIT 1', { tonumber(args[1]) }, function(tChar)
 					if #tChar == 0 then
 						Chat.Send.System:Single(source, "Invalid State ID")
 					else

@@ -296,17 +296,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 						local p = promise.new()
 	
 						if data.parole ~= nil then
-							Database.Game:updateOne({
-								collection = 'characters',
-								query = {
-									SID = data.data.suspect.SID,
-								},
-								update = {
-									["$set"] = {
-										Parole = data.parole,
-									},
-								},
-							}, function(success)
+							MySQL.update('UPDATE characters SET Parole = ? WHERE SID = ?', { data.parole, data.data.suspect.SID }, function(success)
 								p:resolve(success)
 							end)
 						end
@@ -339,29 +329,18 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 	
 							if needsUpdate then
 								local p2 = promise.new()
-								Database.Game:findOneAndUpdate({
-									collection = 'characters',
-									query = {
-										SID = data.data.suspect.SID,
-									},
-									update = licenseUpdate,
-									options = {
-										returnDocument = 'after',
-									}
-								}, function(success, results)
-									if success and results and results.SID then
-										if results and results.Licenses then
-											local plyr = Fetch:SID(results.SID)
-											if plyr then
-												local char = plyr:GetData('Character')
-												if char then
-													char:SetData('Licenses', results.Licenses)
-												end
+								MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ? RETURNING *', { json.encode(licenseUpdate['$set']), data.data.suspect.SID }, function(success, results)
+									if success and results and results[1] then
+										local plyr = Fetch:SID(results[1].SID)
+										if plyr then
+											local char = plyr:GetData('Character')
+											if char then
+												char:SetData('Licenses', results[1].Licenses)
 											end
 										end
 									end
 	
-									p:resolve(success)
+									p2:resolve(success)
 								end)
 	
 								Citizen.Await(p2)
@@ -422,25 +401,16 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 					},
 				}
 
-				Database.Game:findOneAndUpdate({
-					collection = 'characters',
-					query = {
-						SID = data.SID,
-					},
-					update = licenseUpdate,
-					options = {
-						returnDocument = 'after',
-					}
-				}, function(success, results)
-					if success and results and results.SID and results.Licenses then
-						local plyr = Fetch:SID(results.SID)
+				MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ? RETURNING *', { json.encode(licenseUpdate['$set']), data.SID }, function(success, results)
+					if success and results and results[1] then
+						local plyr = Fetch:SID(results[1].SID)
 						if plyr then
 							local char = plyr:GetData('Character')
 							if char then
-								char:SetData('Licenses', results.Licenses)
+								char:SetData('Licenses', results[1].Licenses)
 							end
 						end
-						cb(results.Licenses)
+						cb(results[1].Licenses)
 					else
 						cb(false)
 					end

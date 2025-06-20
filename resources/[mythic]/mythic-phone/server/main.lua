@@ -152,11 +152,24 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 		local char = Fetch:Source(source):GetData("Character")
 		local myPerms = char:GetData("PhonePermissions")
 		local modified = false
-		for app, perms in pairs(defaultPermissions) do
-			if myPerms[app] == nil then
-				myPerms[app] = perms
-				modified = true
-			else
+		
+		if type(myPerms) ~= "table" then
+			-- Only deep copy if missing
+			myPerms = {}
+			for app, perms in pairs(defaultPermissions) do
+				myPerms[app] = {}
+				for perm, state in pairs(perms) do
+					myPerms[app][perm] = state
+				end
+			end
+			modified = true
+		else
+			-- Only fill in missing apps/perms
+			for app, perms in pairs(defaultPermissions) do
+				if type(myPerms[app]) ~= "table" then
+					myPerms[app] = {}
+					modified = true
+				end
 				for perm, state in pairs(perms) do
 					if myPerms[app][perm] == nil then
 						myPerms[app][perm] = state
@@ -165,10 +178,35 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 				end
 			end
 		end
-
+		
 		if modified then
 			char:SetData("PhonePermissions", myPerms)
 		end
+
+
+		-- Phone:UpdateJobData(source)
+		-- TriggerClientEvent("Phone:Client:SetApps", source, PHONE_APPS)
+
+		-- local char = Fetch:Source(source):GetData("Character")
+		-- local myPerms = char:GetData("PhonePermissions")
+		-- local modified = false
+		-- for app, perms in pairs(defaultPermissions) do
+		-- 	if myPerms[app] == nil then
+		-- 		myPerms[app] = perms
+		-- 		modified = true
+		-- 	else
+		-- 		for perm, state in pairs(perms) do
+		-- 			if myPerms[app][perm] == nil then
+		-- 				myPerms[app][perm] = state
+		-- 				modified = true
+		-- 			end
+		-- 		end
+		-- 	end
+		-- end
+
+		-- if modified then
+		-- 	char:SetData("PhonePermissions", myPerms)
+		-- end
 	end, 1)
 	Middleware:Add("Phone:UIReset", function(source)
 		Phone:UpdateJobData(source)
@@ -270,41 +308,20 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 					},
 				}
 			end
-			Database.Game:find({
-				collection = 'characters',
-				query = query,
-			}, function(success, results)
+			MySQL.query('SELECT * FROM characters WHERE ' .. buildWhereClause(query), buildWhereParams(query), function(results)
 				if #results > 0 then
 					cb(false)
 				else
 					local upd = {
 						["Alias." .. data.app] = data.alias,
 					}
-
 					if data?.alias?.name ~= nil then
 						upd = {
 							["Alias." .. data.app .. ".name"] = data.alias.name,
 						}
 					end
-
-					Database.Game:updateOne({
-						collection = 'characters',
-						query = {
-							_id = char:GetData('ID'),
-						},
-						update = {
-							["$set"] = upd,
-						},
-					}, function(success, updated)
-						if success then
-							alias[data.app] = data.alias
-							char:SetData("Alias", alias)
-							cb(true)
-		
-							TriggerEvent("Phone:Server:AliasUpdated", src)
-						else
-							cb(false)
-						end
+					MySQL.update('UPDATE characters SET Alias = ? WHERE ID = ?', { json.encode(upd), char:GetData('ID') }, function(success)
+						cb(success)
 					end)
 				end
 			end)

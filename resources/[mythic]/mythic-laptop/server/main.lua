@@ -173,13 +173,29 @@ AddEventHandler("Laptop:Server:RegisterMiddleware", function()
 		TriggerClientEvent("Laptop:Client:SetApps", source, LAPTOP_APPS)
 
 		local char = Fetch:Source(source):GetData("Character")
-		local myPerms = char:GetData("LaptopPermissions") or {}
+		local myPerms = char:GetData("LaptopPermissions")
+
+		local char = Fetch:Source(source):GetData("Character")
+		local myPerms = char:GetData("LaptopPermissions")
 		local modified = false
-		for app, perms in pairs(defaultPermissions) do
-			if myPerms[app] == nil then
-				myPerms[app] = perms
-				modified = true
-			else
+		
+		if type(myPerms) ~= "table" then
+			-- Only deep copy if missing
+			myPerms = {}
+			for app, perms in pairs(defaultPermissions) do
+				myPerms[app] = {}
+				for perm, state in pairs(perms) do
+					myPerms[app][perm] = state
+				end
+			end
+			modified = true
+		else
+			-- Only fill in missing apps/perms
+			for app, perms in pairs(defaultPermissions) do
+				if type(myPerms[app]) ~= "table" then
+					myPerms[app] = {}
+					modified = true
+				end
 				for perm, state in pairs(perms) do
 					if myPerms[app][perm] == nil then
 						myPerms[app][perm] = state
@@ -188,10 +204,29 @@ AddEventHandler("Laptop:Server:RegisterMiddleware", function()
 				end
 			end
 		end
-
+		
 		if modified then
 			char:SetData("LaptopPermissions", myPerms)
 		end
+
+		-- local modified = false
+		-- for app, perms in pairs(defaultPermissions) do
+		-- 	if myPerms[app] == nil then
+		-- 		myPerms[app] = perms
+		-- 		modified = true
+		-- 	else
+		-- 		for perm, state in pairs(perms) do
+		-- 			if myPerms[app][perm] == nil then
+		-- 				myPerms[app][perm] = state
+		-- 				modified = true
+		-- 			end
+		-- 		end
+		-- 	end
+		-- end
+
+		-- if modified then
+		-- 	char:SetData("LaptopPermissions", myPerms)
+		-- end
 
 		if not char:GetData("LaptopSettings") then
 			char:SetData("LaptopSettings", defaultSettings())

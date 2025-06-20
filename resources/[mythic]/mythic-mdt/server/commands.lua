@@ -34,26 +34,8 @@ function RegisterChatCommands()
 	}, 2)
 
 	Chat:RegisterAdminCommand("reclaimcallsign", function(source, args, rawCommand)
-		Database.Game:findOneAndUpdate({
-			collection = 'characters',
-			query = {
-				Callsign = args[1],
-			},
-			update = {
-				['$set'] = {
-					Callsign = false,
-				},
-			},
-			options = {
-				projection = {
-					SID = 1,
-					User = 1,
-					First = 1,
-					Last = 1,
-				},
-			},
-		}, function(success, results)
-			if success and results then
+		MySQL.update('UPDATE characters SET Callsign = false WHERE Callsign = ? LIMIT 1', { args[1] }, function(success, results)
+			if success then
 				local plyr = Fetch:SID(results.SID)
 				if plyr then
 					local char = plyr:GetData("Character")
@@ -61,7 +43,6 @@ function RegisterChatCommands()
 						char:SetData("Callsign", false)
 					end
 				end
-
 				Chat.Send.System:Single(source, string.format("Callsign Reclaimed From %s %s (%s)", results.First, results.Last, results.SID))
 			else
 				Chat.Send.System:Single(source, "Nobody With That Callsign")

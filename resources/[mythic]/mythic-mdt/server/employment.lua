@@ -13,25 +13,11 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 			cb(added)
 
 			if added then
-				Database.Game:updateOne({
-					collection = 'characters',
-					query = {
-						SID = data.SID,
-					},
-					update = {
-						["$push"] = {
-							MDTHistory = {
-								Time = (os.time() * 1000),
-								Char = char:GetData("SID"),
-								Log = string.format(
-									"%s Hired Them To %s",
-									char:GetData("First") .. " " .. char:GetData("Last"),
-									json.encode(data)
-								),
-							},
-						},
-					},
-				})
+				MySQL.update('UPDATE characters SET MDTHistory = JSON_ARRAY_APPEND(COALESCE(MDTHistory, JSON_ARRAY()), "$", ?) WHERE SID = ?', { json.encode({
+					Time = (os.time() * 1000),
+					Char = char:GetData("SID"),
+					Log = string.format("%s Hired Them To %s", char:GetData("First") .. " " .. char:GetData("Last"), json.encode(data)),
+				}), data.SID }, function(success, results) end)
 			end
 		else
 			cb(false)
@@ -70,33 +56,11 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 					cb(removed)
 
 					if removed then
-						local update = {
-							["$push"] = {
-								MDTHistory = {
-									Time = (os.time() * 1000),
-									Char = char:GetData("SID"),
-									Log = string.format(
-										"%s Fired Them From Job %s",
-										char:GetData("First") .. " " .. char:GetData("Last"),
-										data.JobId
-									),
-								},
-							},
-						}
-
-						if (data.JobId == "police" or data.JobId == "ems") then
-							update["$set"] = {
-								Callsign = false,
-							}
-						end
-
-						Database.Game:updateOne({
-							collection = 'characters',
-							query = {
-								SID = data.SID,
-							},
-							update = update,
-						}, function(success, results)
+						MySQL.update('UPDATE characters SET MDTHistory = JSON_ARRAY_APPEND(COALESCE(MDTHistory, JSON_ARRAY()), "$", ?) WHERE SID = ?', { json.encode({
+							Time = (os.time() * 1000),
+							Char = char:GetData("SID"),
+							Log = string.format("%s Fired Them From Job %s", char:GetData("First") .. " " .. char:GetData("Last"), data.JobId),
+						}), data.SID }, function(success, results)
 							if success then
 								if (data.JobId == "police" or data.JobId == "ems") then
 									local plyr = Fetch:SID(data.SID)
@@ -154,25 +118,11 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 					cb(updated)
 
 					if updated then
-						Database.Game:updateOne({
-							collection = 'characters',
-							query = {
-								SID = data.SID,
-							},
-							update = {
-								["$push"] = {
-									MDTHistory = {
-										Time = (os.time() * 1000),
-										Char = char:GetData("SID"),
-										Log = string.format(
-											"%s Promoted Them To %s",
-											char:GetData("First") .. " " .. char:GetData("Last"),
-											json.encode(newJobData)
-										),
-									},
-								},
-							},
-						})
+						MySQL.update('UPDATE characters SET MDTHistory = JSON_ARRAY_APPEND(COALESCE(MDTHistory, JSON_ARRAY()), "$", ?) WHERE SID = ?', { json.encode({
+							Time = (os.time() * 1000),
+							Char = char:GetData("SID"),
+							Log = string.format("%s Promoted Them To %s", char:GetData("First") .. " " .. char:GetData("Last"), json.encode(newJobData)),
+						}), data.SID }, function(success, results) end)
 					end
 				else
 					cb(false)

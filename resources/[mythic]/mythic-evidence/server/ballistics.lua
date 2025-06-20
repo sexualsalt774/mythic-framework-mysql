@@ -223,13 +223,8 @@ end
 function GetCharacter(stateId)
 	local p = promise.new()
 
-	Database.Game:findOne({
-		collection = 'characters',
-		query = {
-			SID = stateId,
-		}
-	}, function(success, results)
-		if success and #results > 0 then
+	MySQL.query('SELECT * FROM characters WHERE SID = ? LIMIT 1', { stateId }, function(results)
+		if results and #results > 0 then
 			local char = results[1]
 			if char and char.SID and char.First and char.Last then
 				p:resolve({
