@@ -1,7 +1,7 @@
 PHONE.Messages = {
 	Read = function(self, owner, number)
 		Database.Game:update({
-			collection = "phone_messages",
+			collection = 'phone_messages',
 			query = {
 				owner = owner,
 				number = number,
@@ -15,7 +15,7 @@ PHONE.Messages = {
 	end,
 	Delete = function(self, owner, number)
 		Database.Game:update({
-			collection = "phone_messages",
+			collection = 'phone_messages',
 			query = {
 				owner = owner,
 				number = number,
@@ -33,7 +33,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find({
-			collection = "phone_messages",
+			collection = 'phone_messages',
 			query = {
 				owner = char:GetData("Phone"),
 				deleted = {
@@ -47,7 +47,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find({
-			collection = "phone_messages",
+			collection = 'phone_messages',
 			query = {
 				owner = char:GetData("Phone"),
 				deleted = {
@@ -74,7 +74,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 			unread = true,
 		}
 		Database.Game:insert({
-			collection = "phone_messages",
+			collection = 'phone_messages',
 			documents = { data, data2 },
 		}, function(success, result, insertedIds)
 			if not success then

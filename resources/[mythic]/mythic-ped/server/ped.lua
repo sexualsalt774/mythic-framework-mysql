@@ -410,7 +410,7 @@ PED = {
 		end
 
 		Database.Game:updateOne({
-			collection = "peds",
+			collection = 'peds',
 			query = {
 				Char = char:GetData("ID"),
 			},
@@ -777,7 +777,7 @@ function RegisterCallbacks()
 		local player = exports["mythic-base"]:FetchComponent("Fetch"):Source(source)
 		local char = player:GetData("Character")
 		Database.Game:findOne({
-			collection = "peds",
+			collection = 'peds',
 			query = {
 				Char = char:GetData("ID"),
 			},

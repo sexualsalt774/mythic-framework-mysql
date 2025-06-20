@@ -238,7 +238,7 @@ _CRYPTO = {
 			else
 				local p = promise.new()
 				Database.Game:updateOne({
-					collection = "characters",
+					collection = 'characters',
 					query = {
 						CryptoWallet = target,
 					},
@@ -287,7 +287,7 @@ _CRYPTO = {
 				end
 			else
 				Database.Game:findOne({
-					collection = "characters",
+					collection = 'characters',
 					query = {
 						CryptoWallet = target,
 					},
@@ -298,7 +298,7 @@ _CRYPTO = {
 					else
 						if res[1].Crypto[coin] >= amount then
 							Database.Game:updateOne({
-								collection = "characters",
+								collection = 'characters',
 								query = {
 									CryptoWallet = target,
 								},

@@ -2,7 +2,7 @@ _MDT.Vehicles = {
 	Search = function(self, term)
 		local p = promise.new()
 		Database.Game:find({
-			collection = "vehicles",
+			collection = 'vehicles',
 			query = {
 				["$or"] = {
 					{
@@ -58,7 +58,7 @@ _MDT.Vehicles = {
 	View = function(self, VIN)
 		local p = promise.new()
 		Database.Game:findOne({
-			collection = "vehicles",
+			collection = 'vehicles',
 			query = {
 				VIN = VIN,
 			},
@@ -95,7 +95,7 @@ _MDT.Vehicles = {
 		Add = function(self, VIN, data, plate)
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "vehicles",
+				collection = 'vehicles',
 				query = {
 					VIN = VIN,
 				},
@@ -115,7 +115,7 @@ _MDT.Vehicles = {
 		Remove = function(self, VIN, flag)
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "vehicles",
+				collection = 'vehicles',
 				query = {
 					VIN = VIN,
 				},
@@ -135,7 +135,7 @@ _MDT.Vehicles = {
 	UpdateStrikes = function(self, VIN, strikes)
 		local p = promise.new()
 		Database.Game:updateOne({
-			collection = "vehicles",
+			collection = 'vehicles',
 			query = {
 				VIN = VIN,
 			},
@@ -152,7 +152,7 @@ _MDT.Vehicles = {
 	GetStrikes = function(self, VIN)
 		local p = promise.new()
 		Database.Game:findOne({
-			collection = "vehicles",
+			collection = 'vehicles',
 			query = {
 				VIN = VIN,
 			},

@@ -137,7 +137,7 @@ function PlayerClass(identifier, player, deferrals)
 			local p = promise.new()
 
 			Database.Auth:find({
-				collection = "bans",
+				collection = 'bans',
 				query = {
 					tokens = {
 						["$in"] = tkns,
@@ -192,7 +192,7 @@ function FetchDatabaseUser(identifier, player)
 	local p = promise.new()
 
 	Database.Auth:findOne({
-		collection = "users",
+		collection = 'users',
 		query = {
 			identifier = identifier,
 		},
@@ -226,7 +226,7 @@ function FetchDatabaseUser(identifier, player)
 				priority = 0,
 			}
 			Database.Auth:insertOne({
-				collection = "users",
+				collection = 'users',
 				document = doc
 			}, function()
 				p:resolve(doc)

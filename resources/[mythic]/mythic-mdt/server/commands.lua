@@ -35,7 +35,7 @@ function RegisterChatCommands()
 
 	Chat:RegisterAdminCommand("reclaimcallsign", function(source, args, rawCommand)
 		Database.Game:findOneAndUpdate({
-			collection = "characters",
+			collection = 'characters',
 			query = {
 				Callsign = args[1],
 			},

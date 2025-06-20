@@ -13,7 +13,7 @@ function Startup()
 	RegisterTasks()
 
 	Database.Game:update({
-		collection = "mdt_warrants",
+		collection = 'mdt_warrants',
 		query = {
 			expires = {
 				["$lte"] = (os.time() * 1000),
@@ -30,7 +30,7 @@ function Startup()
 		end
 
 		Database.Game:find({
-			collection = "mdt_warrants",
+			collection = 'mdt_warrants',
 			query = {
 				state = "active",
 			}
@@ -45,7 +45,7 @@ function Startup()
 	end)
 
 	Database.Game:find({
-		collection = "mdt_charges",
+		collection = 'mdt_charges',
 		query = {}
 	}, function(success, results)
 		if not success then
@@ -57,7 +57,7 @@ function Startup()
 	end)
 
 	Database.Game:find({
-		collection = "mdt_tags",
+		collection = 'mdt_tags',
 		query = {}
 	}, function(success, results)
 		if not success then
@@ -69,7 +69,7 @@ function Startup()
 	end)
 
 	Database.Game:find({
-		collection = "mdt_notices",
+		collection = 'mdt_notices',
 		query = {}
 	}, function(success, results)
 		if not success then
@@ -81,7 +81,7 @@ function Startup()
 	end)
 
 	Database.Game:find({
-		collection = "vehicles",
+		collection = 'vehicles',
 		query = {
 			Flags = {
 				['$elemMatch'] = {

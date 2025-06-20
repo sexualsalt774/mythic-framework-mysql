@@ -83,7 +83,7 @@ _MDT.Reports = {
         })
 
 		Database.Game:aggregate({
-            collection = "mdt_reports",
+            collection = 'mdt_reports',
             aggregate = aggregation,
         }, function(success, results)
             if not success then
@@ -162,7 +162,7 @@ _MDT.Reports = {
         })
 
 		Database.Game:aggregate({
-            collection = "mdt_reports",
+            collection = 'mdt_reports',
             aggregate = aggregation,
         }, function(success, results)
             if not success then
@@ -177,7 +177,7 @@ _MDT.Reports = {
 	Mine = function(self, char)
 		local p = promise.new()
         Database.Game:find({
-            collection = "mdt_reports",
+            collection = 'mdt_reports',
             query = {
                 ["$or"] = {
                     { primaries = char:GetData("Callsign") },
@@ -197,7 +197,7 @@ _MDT.Reports = {
 	View = function(self, id)
 		local p = promise.new()
         Database.Game:findOne({
-            collection = "mdt_reports",
+            collection = 'mdt_reports',
             query = {
                 _id = id,
             },
@@ -214,7 +214,7 @@ _MDT.Reports = {
 		local p = promise.new()
         data.ID = Sequence:Get('Report')
 		Database.Game:insertOne({
-			collection = "mdt_reports",
+			collection = 'mdt_reports',
 			document = data,
 		}, function(success, result, insertId)
 			if not success then
@@ -232,7 +232,7 @@ _MDT.Reports = {
 	Update = function(self, id, char, report)
 		local p = promise.new()
 		Database.Game:updateOne({
-			collection = "mdt_reports",
+			collection = 'mdt_reports',
 			query = {
 				_id = id,
 			},
@@ -258,7 +258,7 @@ _MDT.Reports = {
         local p = promise.new()
 
         Database.Game:deleteOne({
-			collection = "mdt_reports",
+			collection = 'mdt_reports',
 			query = {
 				_id = id,
 			},

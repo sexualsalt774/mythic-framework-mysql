@@ -439,7 +439,7 @@ POLICE = {
 	end,
 	RunPlate = function(self, source, plate, wasEntity)
 		Database.Game:find({
-			collection = "vehicles",
+			collection = 'vehicles',
 			query = {
 				["$or"] = {
 					{

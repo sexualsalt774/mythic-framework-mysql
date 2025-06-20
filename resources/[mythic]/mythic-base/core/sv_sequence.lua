@@ -14,7 +14,7 @@ COMPONENTS.Sequence = {
             _loadingPromises[key] = p
 
             COMPONENTS.Database.Game:findOne({
-                collection = "sequence",
+                collection = 'sequence',
                 query = { key = key },
             }, function(success, results)
                 local currentValue = 1
@@ -29,7 +29,7 @@ COMPONENTS.Sequence = {
                 }
 
                 COMPONENTS.Database.Game:updateOne({
-                    collection = "sequence",
+                    collection = 'sequence',
                     query = { key = key },
                     update = { ["$set"] = { current = currentValue } },
                     options = { upsert = true }
@@ -53,7 +53,7 @@ COMPONENTS.Sequence = {
             if v.dirty then
                 local p = promise.new()
                 COMPONENTS.Database.Game:updateOne({
-                    collection = "sequence",
+                    collection = 'sequence',
                     query = { key = k },
                     update = { ["$set"] = { current = v.value } },
                     options = { upsert = true }

@@ -1,6 +1,6 @@
 AddEventHandler("Laptop:Server:RegisterCallbacks", function()
 	Database.Game:find({
-		collection = "business_notices",
+		collection = 'business_notices',
 		query = {},
 	}, function(success, results)
 		if not success then
@@ -45,7 +45,7 @@ LAPTOP.BizWiz.Notices = {
 			}
 
 			Database.Game:insertOne({
-				collection = "business_notices",
+				collection = 'business_notices',
 				document = data,
 			}, function(success, result, insertIds)
 				if not success then
@@ -72,7 +72,7 @@ LAPTOP.BizWiz.Notices = {
 	Delete = function(self, job, id)
 		local p = promise.new()
 		Database.Game:deleteOne({
-			collection = "business_notices",
+			collection = 'business_notices',
 			query = {
 				_id = id,
 				job = job,

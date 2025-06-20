@@ -47,7 +47,7 @@ AddEventHandler("Core:Shared:Ready", function()
     })
 
 	COMPONENTS.Database.Auth:find({
-		collection = "roles",
+		collection = 'roles',
 		query = {},
 	}, function(success, results)
 		if not success or #results <= 0 then

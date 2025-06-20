@@ -36,7 +36,7 @@ LAPTOP.BizWiz.Documents = {
         })
 
 		Database.Game:aggregate({
-            collection = "business_documents",
+            collection = 'business_documents',
             aggregate = aggregation,
         }, function(success, results)
             if not success then
@@ -50,7 +50,7 @@ LAPTOP.BizWiz.Documents = {
 	View = function(self, jobId, id)
 		local p = promise.new()
         Database.Game:findOne({
-            collection = "business_documents",
+            collection = 'business_documents',
             query = {
                 job = jobId,
                 _id = id,
@@ -68,7 +68,7 @@ LAPTOP.BizWiz.Documents = {
 		local p = promise.new()
         data.job = jobId
 		Database.Game:insertOne({
-			collection = "business_documents",
+			collection = 'business_documents',
 			document = data,
 		}, function(success, result, insertId)
 			if not success then
@@ -85,7 +85,7 @@ LAPTOP.BizWiz.Documents = {
 	Update = function(self, jobId, id, char, report)
 		local p = promise.new()
 		Database.Game:updateOne({
-			collection = "business_documents",
+			collection = 'business_documents',
 			query = {
 				_id = id,
                 job = jobId,
@@ -112,7 +112,7 @@ LAPTOP.BizWiz.Documents = {
         local p = promise.new()
 
         Database.Game:deleteOne({
-			collection = "business_documents",
+			collection = 'business_documents',
 			query = {
 				_id = id,
                 job = jobId,

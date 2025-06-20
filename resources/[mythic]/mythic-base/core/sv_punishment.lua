@@ -6,7 +6,7 @@ COMPONENTS.Punishment = {
 
 		local p = promise.new()
 		COMPONENTS.Database.Auth:findOne({
-			collection = "bans",
+			collection = 'bans',
 			query = {
 				[key] = value,
 				active = true,
@@ -25,7 +25,7 @@ COMPONENTS.Punishment = {
 				for k, v in ipairs(results) do
 					if v.expires < os.time() and v.expires ~= -1 then
 						COMPONENTS.Database.Auth:updateOne({
-							collection = "bans",
+							collection = 'bans',
 							query = { _id = v._id },
 							update = { ["$set"] = { active = false } },
 						})
@@ -142,7 +142,7 @@ COMPONENTS.Punishment.Unban = {
 			local iPlayer = COMPONENTS.Fetch:Source(issuer)
 
 			COMPONENTS.Database.Auth:find({
-				collection = "bans",
+				collection = 'bans',
 				query = {
 					_id = id,
 					active = true,
@@ -170,7 +170,7 @@ COMPONENTS.Punishment.Unban = {
 			local iPlayer = COMPONENTS.Fetch:Source(issuer)
 
 			COMPONENTS.Database.Auth:find({
-				collection = "bans",
+				collection = 'bans',
 				query = {
 					account = aId,
 					active = true,
@@ -209,7 +209,7 @@ COMPONENTS.Punishment.Unban = {
 			local iPlayer = COMPONENTS.Fetch:Source(issuer)
 
 			COMPONENTS.Database.Auth:find({
-				collection = "bans",
+				collection = 'bans',
 				query = {
 					identifier = identifier,
 					active = true,
@@ -709,7 +709,7 @@ COMPONENTS.Punishment.Actions = {
 		local p = promise.new()
 
 		COMPONENTS.Database.Auth:findOneAndUpdate({
-			collection = "bans",
+			collection = 'bans',
 			query = {
 				active = true,
 				["$or"] = orStatement,
@@ -790,7 +790,7 @@ COMPONENTS.Punishment.Actions = {
 		local _ids = {}
 		for k, v in ipairs(ids) do
 			COMPONENTS.Database.Auth:updateOne({
-				collection = "bans",
+				collection = 'bans',
 				query = { _id = v._id, active = true },
 				update = {
 					["$set"] = { active = false, unbanned = { issuer = issuer:GetData("Name"), date = os.time() } },

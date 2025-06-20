@@ -256,7 +256,7 @@ CRAFTING = {
 			if _types[bench] ~= nil and _schematics[item] ~= nil then
 				if not Crafting.Schematics:Has(bench, item) then
 					Database.Game:insertOne({
-						collection = "schematics",
+						collection = 'schematics',
 						document = {
 							bench = bench,
 							item = item,

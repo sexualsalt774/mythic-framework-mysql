@@ -57,7 +57,7 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
     local job = CheckBusinessPermissions(source)
 		if job then
 			Database.Game:find({
-				collection = "characters",
+				collection = 'characters',
 				query = {
 					["$and"] = {
 						{

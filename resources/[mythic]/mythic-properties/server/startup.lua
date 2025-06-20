@@ -26,7 +26,7 @@ function Startup()
 	end
 
 	Database.Game:find({
-		collection = "properties",
+		collection = 'properties',
 	}, function(success, results)
 		if not success then
 			return
@@ -45,7 +45,7 @@ end
 
 RegisterNetEvent("Properties:RefreshProperties", function()
     Database.Game:find({
-        collection = "properties",
+        collection = 'properties',
     }, function(success, results)
         if not success then
             return

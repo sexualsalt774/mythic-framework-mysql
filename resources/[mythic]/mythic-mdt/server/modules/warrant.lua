@@ -2,7 +2,7 @@ _MDT.Warrants = {
 	Search = function(self, term)
 		local p = promise.new()
 		Database.Game:find({
-			collection = "mdt_warrants",
+			collection = 'mdt_warrants',
 			query = {},
 		}, function(success, results)
 			if not success then
@@ -18,7 +18,7 @@ _MDT.Warrants = {
 	View = function(self, id)
 		local p = promise.new()
 		Database.Game:findOne({
-			collection = "mdt_warrants",
+			collection = 'mdt_warrants',
 			query = {
 				_id = data,
 			},
@@ -34,7 +34,7 @@ _MDT.Warrants = {
 	Create = function(self, data)
 		local p = promise.new()
 		Database.Game:insertOne({
-			collection = "mdt_warrants",
+			collection = 'mdt_warrants',
 			document = data,
 		}, function(success, result, insertId)
 			if not success then
@@ -57,7 +57,7 @@ _MDT.Warrants = {
 	Update = function(self, id, state, updater)
 		local p = promise.new()
 		Database.Game:updateOne({
-			collection = "mdt_warrants",
+			collection = 'mdt_warrants',
 			query = {
 				_id = id,
 			},
@@ -97,7 +97,7 @@ _MDT.Warrants = {
 	-- Delete = function(self, id)
 	-- 	local p = promise.new()
 	-- 	Database.Game:updateOne({
-	-- 		collection = "mdt_warrants",
+	-- 		collection = 'mdt_warrants',
 	-- 		query = {
 	-- 			_id = id,
 	-- 		},

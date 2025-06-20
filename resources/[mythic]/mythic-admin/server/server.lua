@@ -105,7 +105,7 @@ function RegisterChatCommands()
 				)
 			else
 				Database.Game:findOne({
-					collection = "characters",
+					collection = 'characters',
 					query = {
 						SID = tonumber(args[1]),
 					},

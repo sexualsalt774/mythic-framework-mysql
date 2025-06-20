@@ -2,7 +2,7 @@ PHONE.Contacts = {
 	IsContact = function(self, myId, targetNumber)
 		local p = promise.new()
 		Database.Game:findOne({
-			collection = "phone_contacts",
+			collection = 'phone_contacts',
 			query = {
 				character = myId,
 				number = targetNumber,
@@ -21,7 +21,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find({
-			collection = "phone_contacts",
+			collection = 'phone_contacts',
 			query = {
 				character = char:GetData("ID"),
 			},
@@ -32,7 +32,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find({
-			collection = "phone_contacts",
+			collection = 'phone_contacts',
 			query = {
 				character = char:GetData("ID"),
 			},
@@ -49,7 +49,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		if char then
 			data.character = char:GetData("ID")
 			Database.Game:insertOne({
-				collection = "phone_contacts",
+				collection = 'phone_contacts',
 				document = data,
 			}, function(success, result, insertedIds)
 				if not success then
@@ -72,7 +72,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		if char then
 			data.character = char:GetData("ID")
 			Database.Game:updateOne({
-				collection = "phone_contacts",
+				collection = 'phone_contacts',
 				query = {
 					character = char:GetData("ID"),
 					_id = data.id,
@@ -102,7 +102,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local char = Fetch:Source(src):GetData("Character")
 		if char and data then
 			Database.Game:deleteOne({
-				collection = "phone_contacts",
+				collection = 'phone_contacts',
 				query = {
 					character = char:GetData("ID"),
 					_id = tostring(data),

@@ -153,7 +153,7 @@ COMPONENTS.Player = {
 				table.insert(existing, k)
 			end
 			COMPONENTS.Database.Auth:updateOne({
-				collection = "users",
+				collection = 'users',
 				query = {
 					_id = accountId,
 				},
@@ -172,7 +172,7 @@ COMPONENTS.Player = {
 			end
 
 			COMPONENTS.Database.Auth:updateOne({
-				collection = "users",
+				collection = 'users',
 				query = {
 					_id = accountId,
 				},

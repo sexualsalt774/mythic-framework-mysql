@@ -325,7 +325,7 @@ PHONE.CoManager = {
 		end
 
 		Database.Game:find({
-			collection = "characters",
+			collection = 'characters',
 			query = query,
 			options = {
 				projection = {
@@ -410,7 +410,7 @@ PHONE.CoManager = {
 			}
 	
 			Database.Game:find({
-				collection = "characters",
+				collection = 'characters',
 				query = query,
 				options = {
 					projection = {
@@ -456,7 +456,7 @@ PHONE.CoManager = {
 function GetOfflineCharacter(stateId)
 	local p = promise.new()
 	Database.Game:findOne({
-		collection = "characters",
+		collection = 'characters',
 		query = {
 			SID = stateId,
 		}

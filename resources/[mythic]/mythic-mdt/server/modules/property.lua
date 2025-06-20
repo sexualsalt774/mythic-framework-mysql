@@ -2,7 +2,7 @@ _MDT.Properties = {
 	Search = function(self, term)
 		local p = promise.new()
 		Database.Game:find({
-			collection = "properties",
+			collection = 'properties',
 			query = {
                 type = {
                     ['$nin'] = {
@@ -56,7 +56,7 @@ _MDT.Properties = {
 	-- View = function(self, VIN)
 	-- 	local p = promise.new()
 	-- 	Database.Game:findOne({
-	-- 		collection = "vehicles",
+	-- 		collection = 'vehicles',
 	-- 		query = {
 	-- 			VIN = VIN,
 	-- 		},

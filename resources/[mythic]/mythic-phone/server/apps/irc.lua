@@ -4,7 +4,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find(
-			{ collection = "irc_channels", query = { character = char:GetData("ID") } },
+			{ collection = 'irc_channels', query = { character = char:GetData("ID") } },
 			function(success, channels)
 				_channels[char:GetData("ID")] = channels
 				TriggerClientEvent("Phone:Client:SetData", source, "ircChannels", channels)
@@ -14,7 +14,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find(
-			{ collection = "irc_channels", query = { character = char:GetData("ID") } },
+			{ collection = 'irc_channels', query = { character = char:GetData("ID") } },
 			function(success, channels)
 				_channels[char:GetData("ID")] = channels
 				TriggerClientEvent("Phone:Client:SetData", source, "ircChannels", channels)
@@ -45,7 +45,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 
 		local v = -1
 		if _cachedMessages[data] == nil then
-			Database.Game:find({ collection = "irc_messages", query = { channel = data } }, function(success, messages)
+			Database.Game:find({ collection = 'irc_messages', query = { channel = data } }, function(success, messages)
 				if not success then
 					_cachedMessages[data] = {}
 				else
@@ -76,7 +76,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 			time = data.time,
 		}
 		Database.Game:insertOne(
-			{ collection = "irc_messages", document = data2 },
+			{ collection = 'irc_messages', document = data2 },
 			function(success, result, insertedIds)
 				if not success then
 					cb(nil)
@@ -129,7 +129,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		end
 
 		Database.Game:insertOne(
-			{ collection = "irc_channels", document = data2 },
+			{ collection = 'irc_channels', document = data2 },
 			function(success, result, insertedIds)
 				if not success then
 					cb(false)
@@ -148,7 +148,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local src = source
 		local char = Fetch:Source(src):GetData("Character")
 		Database.Game:deleteOne(
-			{ collection = "irc_channels", query = { character = char:GetData("ID"), slug = data } },
+			{ collection = 'irc_channels', query = { character = char:GetData("ID"), slug = data } },
 			function(success, result, insertedIds)
 				if not success then
 					cb(false)

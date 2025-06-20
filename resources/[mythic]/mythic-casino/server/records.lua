@@ -27,7 +27,7 @@ function UpdateCharacterCasinoStats(source, statType, isWin, amount)
             end
 
             Database.Game:findOneAndUpdate({
-                collection = "casino_statistics",
+                collection = 'casino_statistics',
                 query = {
                     SID = char:GetData("SID"),
                 },

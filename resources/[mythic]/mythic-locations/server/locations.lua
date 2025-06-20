@@ -78,7 +78,7 @@ LOCATIONS = {
 			Name = name,
 		}
 		Database.Game:insertOne({
-			collection = "locations",
+			collection = 'locations',
 			document = doc,
 		}, function(success, results)
 			if not success then
@@ -93,7 +93,7 @@ LOCATIONS = {
 	end,
 	GetAll = function(self, type, cb)
 		Database.Game:find({
-			collection = "locations",
+			collection = 'locations',
 			query = {
 				Type = type,
 			},

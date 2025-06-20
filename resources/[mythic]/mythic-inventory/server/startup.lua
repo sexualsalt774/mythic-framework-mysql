@@ -13,7 +13,7 @@ _started = false
 
 function LoadSchematics()
 	Database.Game:find({
-		collection = "schematics",
+		collection = 'schematics',
 		query = {},
 	}, function(success, schems)
 		if success then
@@ -317,7 +317,7 @@ function LoadShops()
 		end
 
 		Database.Game:find({
-			collection = "store_bank_accounts",
+			collection = 'store_bank_accounts',
 		}, function(success, results)
 			if success and #results > 0 then
 				for k, v in ipairs(results) do
@@ -333,7 +333,7 @@ end
 function RegisterCommands()
 	Chat:RegisterAdminCommand("storebank", function(source, args, rawCommand)
 		Database.Game:updateOne({
-			collection = "store_bank_accounts",
+			collection = 'store_bank_accounts',
 			update = {
 				["$set"] = {
 					Shop = tonumber(args[1]),

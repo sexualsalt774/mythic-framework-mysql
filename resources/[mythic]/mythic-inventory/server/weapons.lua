@@ -103,7 +103,7 @@ WEAPONS = {
 					end
 	
 					Database.Game:insertOne({
-						collection = "firearms",
+						collection = 'firearms',
 						document = {
 							Serial = sn,
 							Item = item.name,
@@ -149,7 +149,7 @@ WEAPONS = {
 			end
 
 			Database.Game:insertOne({
-				collection = "firearms",
+				collection = 'firearms',
 				document = {
 					Serial = sn,
 					Item = item.name,

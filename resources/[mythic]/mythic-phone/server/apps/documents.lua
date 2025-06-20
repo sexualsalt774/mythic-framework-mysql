@@ -8,7 +8,7 @@ PHONE.Documents = {
             doc.time = os.time()
 
 			Database.Game:insertOne({
-				collection = "character_documents",
+				collection = 'character_documents',
 				document = doc,
 			}, function(success, res, insertedIds)
                 if success then
@@ -29,7 +29,7 @@ PHONE.Documents = {
             local p = promise.new()
 
 			Database.Game:findOneAndUpdate({
-				collection = "character_documents",
+				collection = 'character_documents',
                 query = {
                     owner = char:GetData("ID"),
                     _id = id,
@@ -69,7 +69,7 @@ PHONE.Documents = {
             local p = promise.new()
 
             Database.Game:findOne({
-                collection = "character_documents",
+                collection = 'character_documents',
                 query = {
                     _id = id,
                 }
@@ -79,7 +79,7 @@ PHONE.Documents = {
                     if doc then
                         if doc.owner == char:GetData("ID") then
                             Database.Game:deleteOne({
-                                collection = "character_documents",
+                                collection = 'character_documents',
                                 query = {
                                     _id = id,
                                 },
@@ -101,7 +101,7 @@ PHONE.Documents = {
                             end)
                         else
                             Database.Game:updateOne({
-                                collection = "character_documents",
+                                collection = 'character_documents',
                                 query = {
                                     _id = id,
                                 },
@@ -132,7 +132,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find({
-			collection = "character_documents",
+			collection = 'character_documents',
 			query = {
                 ['$or'] = {
                     {
@@ -150,7 +150,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find({
-			collection = "character_documents",
+			collection = 'character_documents',
 			query = {
                 ['$or'] = {
                     {
@@ -183,7 +183,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
     Callbacks:RegisterServerCallback("Phone:Documents:Refresh", function(source, data, cb)
         local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find({
-			collection = "character_documents",
+			collection = 'character_documents',
 			query = {
 				owner = char:GetData("ID"),
                 ['sharedWith.ID'] = char:GetData("ID"),
@@ -290,7 +290,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
                 local char = Fetch:Source(source):GetData("Character")
                 if char then
                     Database.Game:findOneAndUpdate({
-                        collection = "character_documents",
+                        collection = 'character_documents',
                         query = {
                             _id = data.document._id,
                             owner = { ['$ne'] = char:GetData("ID") },
@@ -334,7 +334,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
         local char = Fetch:Source(source):GetData("Character")
         if char then
             Database.Game:findOneAndUpdate({
-                collection = "character_documents",
+                collection = 'character_documents',
                 query = {
                     _id = data,
                     owner = { ['$ne'] = char:GetData("ID") },

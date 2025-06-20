@@ -1,7 +1,7 @@
 PHONE.Email = {
 	Read = function(self, charId, id)
 		Database.Game:update({
-			collection = "character_emails",
+			collection = 'character_emails',
 			query = {
 				owner = owner,
 				_id = id,
@@ -30,7 +30,7 @@ PHONE.Email = {
 					flags = flags,
 				}
 				Database.Game:insertOne({
-					collection = "character_emails",
+					collection = 'character_emails',
 					document = doc,
 				}, function(success, res, insertedIds)
 					if not success then
@@ -44,7 +44,7 @@ PHONE.Email = {
 	end,
 	Delete = function(self, charId, id)
 		Database.Game:deleteOne({
-			collection = "character_emails",
+			collection = 'character_emails',
 			query = {
 				owner = charId,
 				_id = id,
@@ -64,7 +64,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find({
-			collection = "character_emails",
+			collection = 'character_emails',
 			query = {
 				owner = char:GetData("ID"),
 			},
@@ -75,7 +75,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:find({
-			collection = "character_emails",
+			collection = 'character_emails',
 			query = {
 				owner = char:GetData("ID"),
 			},
@@ -143,7 +143,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 			local char = plyr:GetData("Character")
 			if char ~= nil then
 				Database.Game:find({
-					collection = "character_emails",
+					collection = 'character_emails',
 					query = {
 						owner = char:GetData("ID"),
 						["flags.expires"] = {
@@ -152,7 +152,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 					},
 				}, function(success, res)
 					Database.Game:delete({
-						collection = "character_emails",
+						collection = 'character_emails',
 						query = {
 							owner = char:GetData("ID"),
 							["flags.expires"] = {

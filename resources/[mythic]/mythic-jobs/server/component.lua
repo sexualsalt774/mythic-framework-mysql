@@ -1319,7 +1319,7 @@ _JOBS = {
 			if Jobs:DoesExist(jobId) and key then
 				local p = promise.new()
 				Database.Game:updateOne({
-					collection = "jobs",
+					collection = 'jobs',
 					query = {
 						Id = jobId,
 					},

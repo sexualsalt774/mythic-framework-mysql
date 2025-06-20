@@ -232,7 +232,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 
 			if data.data.suspect.SID and not sentencedSuspects[data.report][data.data.suspect.SID] then
 				Database.Game:updateOne({
-					collection = "mdt_reports",
+					collection = 'mdt_reports',
 					query = {
 						ID = data.report,
 					}, 
@@ -270,7 +270,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 						sentencedSuspects[data.report][data.data.suspect.SID] = true
 
 						Database.Game:updateOne({
-							collection = "character_convictions",
+							collection = 'character_convictions',
 							query = {
 								SID = data.data.suspect.SID,
 							},
@@ -297,7 +297,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 	
 						if data.parole ~= nil then
 							Database.Game:updateOne({
-								collection = "characters",
+								collection = 'characters',
 								query = {
 									SID = data.data.suspect.SID,
 								},
@@ -340,7 +340,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 							if needsUpdate then
 								local p2 = promise.new()
 								Database.Game:findOneAndUpdate({
-									collection = "characters",
+									collection = 'characters',
 									query = {
 										SID = data.data.suspect.SID,
 									},
@@ -423,7 +423,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 				}
 
 				Database.Game:findOneAndUpdate({
-					collection = "characters",
+					collection = 'characters',
 					query = {
 						SID = data.SID,
 					},
@@ -458,7 +458,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 
 		if char and CheckMDTPermissions(source, true) then
 			Database.Game:findOne({
-				collection = "character_convictions",
+				collection = 'character_convictions',
 				query = {
 					SID = data.SID,
 				},
@@ -471,12 +471,12 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 					old.ClearedBy = char:GetData("SID")
 
 					Database.Game:insertOne({
-						collection = "character_convictions_expunged",
+						collection = 'character_convictions_expunged',
 						document = old,
 					}, function(success, result, insertId)
 						if success then
 							Database.Game:deleteOne({
-								collection = "character_convictions",
+								collection = 'character_convictions',
 								query = {
 									SID = data.SID,
 								},

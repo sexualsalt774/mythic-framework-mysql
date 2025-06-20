@@ -58,7 +58,7 @@ function RegisterChatCommands()
 		local twitterName = args[1]
 
 		Database.Game:findOne({
-			collection = "characters",
+			collection = 'characters',
 			query = {
 				["Alias.twitter.name"] = twitterName,
 			},

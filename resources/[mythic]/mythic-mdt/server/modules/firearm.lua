@@ -2,7 +2,7 @@ _MDT.Firearm = {
 	Search = function(self, term)
 		local p = promise.new()
 		Database.Game:find({
-			collection = "firearms",
+			collection = 'firearms',
 			query = {
 				["$and"] = {
 					{
@@ -55,7 +55,7 @@ _MDT.Firearm = {
 	View = function(self, id)
 		local p = promise.new()
 		Database.Game:findOne({
-			collection = "firearms",
+			collection = 'firearms',
 			query = {
 				_id = id,
 			},
@@ -72,7 +72,7 @@ _MDT.Firearm = {
 		Add = function(self, id, data)
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "firearms",
+				collection = 'firearms',
 				query = {
 					_id = id,
 				},
@@ -89,7 +89,7 @@ _MDT.Firearm = {
 		Remove = function(self, id, flag)
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "firearms",
+				collection = 'firearms',
 				query = {
 					_id = id,
 				},

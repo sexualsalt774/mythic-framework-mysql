@@ -27,7 +27,7 @@ function RegisterMiddleware()
 		local p = promise.new()
 
 		Database.Game:find({
-			collection = "properties",
+			collection = 'properties',
 			query = {
 				[string.format("keys.%s", charId)] = {
 					["$exists"] = true,

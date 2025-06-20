@@ -141,7 +141,7 @@ function GetPropertyFurniture(pId, pInt)
 
     local p = promise.new()
     Database.Game:findOne({
-        collection = "properties_furniture",
+        collection = 'properties_furniture',
         query = { property = pId },
     }, function(success, results)
         if success and #results > 0 and results[1] and results[1].furniture then
@@ -167,7 +167,7 @@ function SetPropertyFurniture(pId, newFurniture, updater)
     local p = promise.new()
 
     Database.Game:updateOne({
-        collection = "properties_furniture",
+        collection = 'properties_furniture',
         query = { property = pId },
         update = {
             ["$set"] = {
@@ -197,7 +197,7 @@ function DeletePropertyFurniture(pId)
     local p = promise.new()
 
     Database.Game:deleteOne({
-        collection = "properties_furniture",
+        collection = 'properties_furniture',
         query = { property = pId },
     }, function(success)
         p:resolve(success)

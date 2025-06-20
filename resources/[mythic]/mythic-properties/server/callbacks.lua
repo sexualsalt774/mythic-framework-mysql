@@ -348,7 +348,7 @@ function RegisterCallbacks()
 			end
 
 			Database.Game:aggregate({
-				collection = "properties",
+				collection = 'properties',
 				aggregate = {
 					{
 						["$match"] = {

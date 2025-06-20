@@ -271,7 +271,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 				}
 			end
 			Database.Game:find({
-				collection = "characters",
+				collection = 'characters',
 				query = query,
 			}, function(success, results)
 				if #results > 0 then
@@ -288,7 +288,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 					end
 
 					Database.Game:updateOne({
-						collection = "characters",
+						collection = 'characters',
 						query = {
 							_id = char:GetData('ID'),
 						},

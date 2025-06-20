@@ -66,7 +66,7 @@ local function doLog(level, component, log, flags, data)
 		if COMPONENTS.Proxy.DatabaseReady then
 			if GlobalState.IsProduction and flags.database then
 				COMPONENTS.Database.Game:insertOne({
-					collection = "logs",
+					collection = 'logs',
 					document = {
 						date = os.time(),
 						--server = COMPONENTS.Config.Server.ID,

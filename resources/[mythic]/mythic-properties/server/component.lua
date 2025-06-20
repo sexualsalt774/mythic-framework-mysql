@@ -81,7 +81,7 @@ PROPERTIES = {
 					}
 	
 					Database.Game:insertOne({
-						collection = "properties",
+						collection = 'properties',
 						document = doc,
 					}, function(success, result, insertedIds)
 						if success then
@@ -121,7 +121,7 @@ PROPERTIES = {
 
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -150,7 +150,7 @@ PROPERTIES = {
 
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -179,7 +179,7 @@ PROPERTIES = {
 
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -208,7 +208,7 @@ PROPERTIES = {
 
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -237,7 +237,7 @@ PROPERTIES = {
 
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -266,7 +266,7 @@ PROPERTIES = {
 
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -292,7 +292,7 @@ PROPERTIES = {
 		Delete = function(self, id)
 			local p = promise.new()
 			Database.Game:deleteOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -324,7 +324,7 @@ PROPERTIES = {
 
 					local p = promise.new()
 					Database.Game:updateOne({
-						collection = "properties",
+						collection = 'properties',
 						query = {
 							_id = id,
 						},
@@ -386,7 +386,7 @@ PROPERTIES = {
 				if intData and intData.type == property.type then
 					local p = promise.new()
 					Database.Game:updateOne({
-						collection = "properties",
+						collection = 'properties',
 						query = {
 							_id = id,
 						},
@@ -416,7 +416,7 @@ PROPERTIES = {
 		Sell = function(self, id)
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -458,7 +458,7 @@ PROPERTIES = {
 		Buy = function(self, id, owner, payment)
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -496,7 +496,7 @@ PROPERTIES = {
 
 			local p = promise.new()
 			Database.Game:updateOne({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -559,7 +559,7 @@ PROPERTIES = {
 			local p = promise.new()
 
 			Database.Game:findOneAndUpdate({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},
@@ -609,7 +609,7 @@ PROPERTIES = {
 			local p = promise.new()
 
 			Database.Game:findOneAndUpdate({
-				collection = "properties",
+				collection = 'properties',
 				query = {
 					_id = id,
 				},

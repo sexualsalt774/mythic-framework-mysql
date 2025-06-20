@@ -5,7 +5,7 @@ _MDT.Metrics = {
 	Get = function(self, key)
 		local p = promise.new()
 		Database.Game:findOne({
-			collection = "mdt_metrics",
+			collection = 'mdt_metrics',
 			query = {
 				date = key,
 			},

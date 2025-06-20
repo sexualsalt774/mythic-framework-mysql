@@ -108,7 +108,7 @@ _BANKING = {
 		AddPersonalSavingsJointOwner = function(self, accountId, jointOwnerSID)
 			local p = promise.new()
 			Database.Game:findOneAndUpdate({
-				collection = "bank_accounts",
+				collection = 'bank_accounts',
 				query = {
 					Account = accountId,
 				},
@@ -135,7 +135,7 @@ _BANKING = {
 		RemovePersonalSavingsJointOwner = function(self, accountId, jointOwnerSID)
 			local p = promise.new()
 			Database.Game:findOneAndUpdate({
-				collection = "bank_accounts",
+				collection = 'bank_accounts',
 				query = {
 					Account = accountId,
 				},
@@ -370,7 +370,7 @@ _BANKING = {
 			}
 
 			Database.Game:insertOne({
-				collection = "bank_accounts_transactions",
+				collection = 'bank_accounts_transactions',
 				document = doc,
 			})
 			return doc
@@ -378,7 +378,7 @@ _BANKING = {
 		Get = function(self, accountNumber)
 			local p = promise.new()
 			Database.Game:find({
-				collection = "bank_accounts_transactions",
+				collection = 'bank_accounts_transactions',
 				query = {
 					Account = accountNumber,
 				},

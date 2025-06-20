@@ -36,13 +36,13 @@ PHONE.Call = {
 	end,
 	CreateRecord = function(self, record)
 		Database.Game:insertOne({
-			collection = "phone_calls",
+			collection = 'phone_calls',
 			document = record,
 		})
 	end,
 	Decrypt = function(self, owner, number)
 		Database.Game:update({
-			collection = "phone_calls",
+			collection = 'phone_calls',
 			document = {
 				owner = owner,
 				number = number,
@@ -57,7 +57,7 @@ PHONE.Call = {
 	end,
 	Read = function(self, owner)
 		Database.Game:update({
-			collection = "phone_calls",
+			collection = 'phone_calls',
 			query = {
 				owner = owner,
 			},
@@ -74,7 +74,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:aggregate({
-			collection = "phone_calls",
+			collection = 'phone_calls',
 			aggregate = {
 				{
 					["$match"] = {
@@ -98,7 +98,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
 		Database.Game:aggregate({
-			collection = "phone_calls",
+			collection = 'phone_calls',
 			aggregate = {
 				{
 					["$match"] = {

@@ -51,7 +51,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 
 		if _tracks == nil then
 			Database.Game:find({
-				collection = "tracks",
+				collection = 'tracks',
 			}, function(success, tracks)
 				_tracks = tracks
 				TriggerClientEvent("Phone:Client:Redline:StoreTracks", source, _tracks)
@@ -71,7 +71,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 
 		if _tracks == nil then
 			Database.Game:find({
-				collection = "tracks",
+				collection = 'tracks',
 			}, function(success, tracks)
 				_tracks = tracks
 				TriggerClientEvent("Phone:Client:Redline:StoreTracks", source, _tracks)
@@ -99,7 +99,7 @@ end)
 
 function ReloadRaceTracks()
 	Database.Game:find({
-		collection = "tracks",
+		collection = 'tracks',
 	}, function(success, tracks)
 		_tracks = tracks
 		TriggerClientEvent("Phone:Client:Redline:StoreTracks", -1, _tracks)
@@ -294,7 +294,7 @@ function UpdateFastest(track, fastest)
 	local p = promise.new()
 
 	Database.Game:updateOne({
-		collection = "tracks",
+		collection = 'tracks',
 		query = {
 			_id = track,
 		},
@@ -373,7 +373,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 
 		if alias ~= nil then
 			Database.Game:insertOne({
-				collection = "tracks",
+				collection = 'tracks',
 				document = data,
 			}, function(success, result, insertedIds)
 				if not success then
@@ -391,7 +391,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 
 	Callbacks:RegisterServerCallback("Phone:Redline:SaveLaptimes", function(src, data, cb)
 		Database.Game:update({
-			collection = "tracks",
+			collection = 'tracks',
 			query = {
 				_id = data.track,
 			},
@@ -424,7 +424,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local alias = char:GetData("Alias").redline
 		if alias ~= nil then
 			Database.Game:deleteOne({
-				collection = "tracks",
+				collection = 'tracks',
 				query = {
 					_id = data,
 				},
@@ -448,7 +448,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local alias = char:GetData("Alias").redline
 		if alias ~= nil then
 			Database.Game:updateOne({
-				collection = "tracks",
+				collection = 'tracks',
 				query = {
 					_id = data,
 				},

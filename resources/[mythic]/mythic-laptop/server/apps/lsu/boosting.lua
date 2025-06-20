@@ -98,7 +98,7 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
 
             if perm["lsunderground"] and perm["lsunderground"]["admin"] then
                 Database.Game:find({
-                    collection = "characters",
+                    collection = 'characters',
                     query = {
                         LSUNDGBan = {
                             ["$exists"] = true,
@@ -143,7 +143,7 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
 
             if perm["lsunderground"] and perm["lsunderground"]["admin"] then
                 Database.Game:updateOne({
-                    collection = "characters",
+                    collection = 'characters',
                     query = {
                         SID = data.SID,
                     },
@@ -183,7 +183,7 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
 
             if perm["lsunderground"] and perm["lsunderground"]["admin"] then
                 Database.Game:updateOne({
-                    collection = "characters",
+                    collection = 'characters',
                     query = {
                         SID = data.SID,
                     },

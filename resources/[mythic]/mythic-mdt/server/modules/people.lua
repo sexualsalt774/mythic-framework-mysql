@@ -25,7 +25,7 @@ _MDT.People = {
 		People = function(self, term)
 			local p = promise.new()
 			Database.Game:find({
-				collection = "characters",
+				collection = 'characters',
 				query = {
 					["$and"] = {
 						{
@@ -81,7 +81,7 @@ _MDT.People = {
 		Government = function(self)
 			local p = promise.new()
 			Database.Game:find({
-				collection = "characters",
+				collection = 'characters',
 				query = {
 					Jobs = {
 						["$elemMatch"] = {
@@ -106,7 +106,7 @@ _MDT.People = {
 		NotGovernment = function(self)
 			local p = promise.new()
 			Database.Game:find({
-				collection = "characters",
+				collection = 'characters',
 				query = {
 					Jobs = {
 						["$not"] = {
@@ -182,7 +182,7 @@ _MDT.People = {
 			end
 
 			Database.Game:find({
-				collection = "characters",
+				collection = 'characters',
 				query = qry,
 				options = {
 					projection = requiredCharacterData,
@@ -200,7 +200,7 @@ _MDT.People = {
 		NotJob = function(self, job)
 			local p = promise.new()
 			Database.Game:find({
-				collection = "characters",
+				collection = 'characters',
 				query = {
 					Jobs = {
 						["$not"] = {
@@ -227,7 +227,7 @@ _MDT.People = {
 		local SID = tonumber(id)
 		local p = promise.new()
 		Database.Game:findOne({
-			collection = "characters",
+			collection = 'characters',
 			query = {
 				SID = SID,
 			},
@@ -242,7 +242,7 @@ _MDT.People = {
 
 			if requireAllData then
 				Database.Game:findOne({
-					collection = "character_convictions",
+					collection = 'character_convictions',
 					query = {
 						SID = SID,
 					},
@@ -253,7 +253,7 @@ _MDT.People = {
 					end
 
 					Database.Game:find({
-						collection = "vehicles",
+						collection = 'vehicles',
 						query = {
 							["Owner.Type"] = 0,
 							["Owner.Id"] = SID,
@@ -326,7 +326,7 @@ _MDT.People = {
 		end
 
 		Database.Game:updateOne({
-			collection = "characters",
+			collection = 'characters',
 			query = {
 				SID = id,
 			},
@@ -397,7 +397,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 	Callbacks:RegisterServerCallback("MDT:CheckCallsign", function(source, data, cb)
 		if CheckMDTPermissions(source, false) then
 			Database.Game:findOne({
-				collection = "characters",
+				collection = 'characters',
 				query = {
 					Callsign = data,
 				},
@@ -412,7 +412,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 	Callbacks:RegisterServerCallback("MDT:CheckParole", function(source, data, cb)
 		if CheckMDTPermissions(source, false) then
 			Database.Game:findOne({
-				collection = "characters",
+				collection = 'characters',
 				query = {
 					SID = data,
 				},

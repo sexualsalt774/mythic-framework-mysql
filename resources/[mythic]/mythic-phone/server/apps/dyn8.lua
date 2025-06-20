@@ -27,7 +27,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 			end
 
 			Database.Game:aggregate({
-				collection = "properties",
+				collection = 'properties',
 				aggregate = {
 					{
 						["$match"] = {

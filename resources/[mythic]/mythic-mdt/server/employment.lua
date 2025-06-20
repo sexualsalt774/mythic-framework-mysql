@@ -14,7 +14,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 
 			if added then
 				Database.Game:updateOne({
-					collection = "characters",
+					collection = 'characters',
 					query = {
 						SID = data.SID,
 					},
@@ -91,7 +91,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 						end
 
 						Database.Game:updateOne({
-							collection = "characters",
+							collection = 'characters',
 							query = {
 								SID = data.SID,
 							},
@@ -155,7 +155,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 
 					if updated then
 						Database.Game:updateOne({
-							collection = "characters",
+							collection = 'characters',
 							query = {
 								SID = data.SID,
 							},

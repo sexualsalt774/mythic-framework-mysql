@@ -224,7 +224,7 @@ function StorageUnitStartup()
         _ran = true
 
         Database.Game:find({
-            collection = "storage_units",
+            collection = 'storage_units',
             query = {},
         }, function(success, results)
             if not success then
@@ -269,7 +269,7 @@ _STORAGEUNITS = {
         }
 
         Database.Game:insertOne({
-            collection = "storage_units",
+            collection = 'storage_units',
             document = doc,
         }, function(success, result, insertedIds)
             if success then
@@ -299,7 +299,7 @@ _STORAGEUNITS = {
 
         local p = promise.new()
         Database.Game:updateOne({
-            collection = "storage_units",
+            collection = 'storage_units',
             query = {
                 _id = id,
             },
@@ -328,7 +328,7 @@ _STORAGEUNITS = {
     Delete = function(self, id)
         local p = promise.new()
         Database.Game:deleteOne({
-            collection = "storage_units",
+            collection = 'storage_units',
             query = {
                 _id = id,
             },
@@ -352,7 +352,7 @@ _STORAGEUNITS = {
     Sell = function(self, id, owner, seller)
         local p = promise.new()
         Database.Game:updateOne({
-            collection = "storage_units",
+            collection = 'storage_units',
             query = {
                 _id = id,
             },
@@ -445,7 +445,7 @@ end
 function SaveStorageUnitLastAccess()
     for k, v in pairs(unitLastAccessed) do
         Database.Game:updateOne({
-            collection = "storage_units",
+            collection = 'storage_units',
             query = {
                 _id = k,
             },
