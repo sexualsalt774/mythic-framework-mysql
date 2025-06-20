@@ -8,6 +8,7 @@
 
 - `mythic-weed`
 - `mythic-billboards`
+- `mythic-scenes`
 
 ---
 
@@ -42,7 +43,6 @@
 - `mythic-locations`
 - `mythic-menu`
 - `mythic-sync`
-- `mythic-scenes`
 - `mythic-status`
 - `mythic-damage`
 - `mythic-escort`
