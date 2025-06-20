@@ -2,7 +2,6 @@ _plants = {}
 
 AddEventHandler("Weed:Shared:DependencyUpdate", RetrieveComponents)
 function RetrieveComponents()
-	Database = exports["mythic-base"]:FetchComponent("Database")
 	Callbacks = exports["mythic-base"]:FetchComponent("Callbacks")
 	Logger = exports["mythic-base"]:FetchComponent("Logger")
 	Middleware = exports["mythic-base"]:FetchComponent("Middleware")
@@ -26,7 +25,6 @@ end
 
 AddEventHandler("Core:Shared:Ready", function()
 	exports["mythic-base"]:RequestDependencies("Weed", {
-		"Database",
 		"Callbacks",
 		"Logger",
 		"Middleware",
