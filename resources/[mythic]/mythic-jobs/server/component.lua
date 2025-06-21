@@ -1,4 +1,42 @@
-_characterDuty = {}
+local _payPeriod = GetConvar('mythic_paycheck_payPeriod', 30)
+local JOB_CACHE = {}
+
+local function RefreshAllJobData(jobId)
+	MySQL.query('SELECT * FROM jobs WHERE Id = ?', { jobId }, function(results)
+		if results and results[1] then
+			local jobData = results[1]
+			jobData.Grades = json.decode(jobData.Grades)
+			jobData.Workplaces = json.decode(jobData.Workplaces)
+			jobData.Data = json.decode(jobData.Data)
+			JOB_CACHE[jobId] = jobData
+		end
+	end)
+end
+
+local function RefreshJobCache()
+	MySQL.query('SELECT * FROM jobs', {}, function(results)
+		if results then
+			for _, jobData in ipairs(results) do
+				jobData.Grades = json.decode(jobData.Grades or '[]')
+				jobData.Workplaces = json.decode(jobData.Workplaces or '[]')
+				jobData.Data = json.decode(jobData.Data or '{}')
+				JOB_CACHE[jobData.Id] = jobData
+			end
+			-- Wait for cache to be populated on first load
+			if not _initialLoad then
+				_initialLoad = true
+			end
+		end
+	end)
+end
+
+AddEventHandler('onResourceStart', function(resourceName)
+	if resourceName == GetCurrentResourceName() then
+		RefreshJobCache()
+	end
+end)
+
+local _characterDuty = {}
 _dutyData = {}
 
 _JOBS = {
@@ -130,8 +168,8 @@ _JOBS = {
 
 					table.insert(charJobData, newJob)
 
-					MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(charJobData), stateId }, function(success, updated)
-						if success and updated > 0 then
+					MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(charJobData), stateId }, function(updated)
+						if updated and updated > 0 then
 							p:resolve(true)
 						else
 							p:resolve(false)
@@ -198,8 +236,8 @@ _JOBS = {
 						end
 
 						if found then
-							MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(charJobData), stateId }, function(success, updated)
-								if success and updated > 0 then
+							MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(charJobData), stateId }, function(updated)
+								if updated and updated > 0 then
 									p:resolve(true)
 								else
 									p:resolve(false)
@@ -509,7 +547,6 @@ _JOBS = {
 			end
 			return false
 		end,
-		-- Gets the permissions the character has in a job they have
 		GetPermissionsFromJob = function(self, source, jobId, workplaceId)
 			local jobData = Jobs.Permissions:HasJob(source, jobId, workplaceId)
 			if jobData then
@@ -520,7 +557,6 @@ _JOBS = {
 			end
 			return false
 		end,
-		-- Checks if character has a permission in a specific job they have
 		HasPermissionInJob = function(self, source, jobId, permissionKey)
 			local permissionsInJob = Jobs.Permissions:GetPermissionsFromJob(source, jobId)
 			if permissionsInJob then
@@ -530,7 +566,6 @@ _JOBS = {
 			end
 			return false
 		end,
-		-- Gets permissions from all jobs
 		GetAllPermissions = function(self, source)
 			local allPermissions = {}
 			local jobs = Jobs.Permissions:GetJobs(source)
@@ -548,7 +583,6 @@ _JOBS = {
 			end
 			return allPermissions
 		end,
-		-- Checks if character has a permission in any of their jobs
 		HasPermission = function(self, source, permissionKey)
 			local allPermissions = Jobs.Permissions:GetAllPermissions(source)
 			return allPermissions[permissionKey]
@@ -629,37 +663,41 @@ _JOBS = {
 		end,
 		Edit = function(self, jobId, settingData)
 			if Jobs:DoesExist(jobId) then
-				local actualSettingData = {}
+				local p = promise.new()
 
+				-- Flatten the settingData for the SQL query
+				local updates = {}
+				local values = {}
 				for k, v in pairs(settingData) do
 					if k ~= 'Grades' and k ~= 'Workplaces' and k ~= 'Id' and v ~= nil then
-						actualSettingData[k] = v
+						table.insert(updates, string.format('`%s` = ?', k))
+						table.insert(values, v)
 					end
 				end
 
-				local p = promise.new()
-				MySQL.update('jobs', {
-					['$set'] = actualSettingData,
-				}, {
-					Id = jobId,
-				}, function(success, res)
-					if success then
-						RefreshAllJobData(jobId)
+				if #updates == 0 then
+					p:resolve(false)
+				else
+					table.insert(values, jobId)
+					local queryString = string.format('UPDATE jobs SET %s WHERE Id = ?', table.concat(updates, ', '))
 
-						if actualSettingData.Name then
-							Jobs.Management.Employees:UpdateAllJob(jobId, actualSettingData.Name)
+					MySQL.update(queryString, values, function(affectedRows)
+						if affectedRows > 0 then
+							RefreshAllJobData(jobId)
+							if settingData.Name then
+								Jobs.Management.Employees:UpdateAllJob(jobId, settingData.Name)
+							end
+							p:resolve(true)
+						else
+							p:resolve(false)
 						end
-
-						p:resolve(true)
-					else
-						p:resolve(false)
-					end
-				end)
+					end)
+				end
 
 				local res = Citizen.Await(p)
 				return {
 					success = res,
-					code = 'ERROR',
+					code = res and 'SUCCESS' or 'ERROR',
 				}
 			else
 				return {
@@ -672,22 +710,34 @@ _JOBS = {
 			Edit = function(self, jobId, workplaceId, newWorkplaceName)
 				if Jobs:DoesExist(jobId, workplaceId) then
 					local p = promise.new()
-					MySQL.update('jobs', {
-						['Workplaces.$[workplace].Name'] = newWorkplaceName,
-					}, {
-						Type = 'Government',
-						Id = jobId,
-						['Workplaces.Id'] = workplaceId,
-					}, function(success, res)
-						if success then
-							RefreshAllJobData(jobId)
-							Jobs.Management.Employees:UpdateAllWorkplace(jobId, workplaceId, newWorkplaceName)
+					local job = Jobs:Get(jobId)
+					
+					if not job or not job.Workplaces then
+						p:resolve(false)
+					else
+						local updated = false
+						for i, workplace in ipairs(job.Workplaces) do
+							if workplace.Id == workplaceId then
+								job.Workplaces[i].Name = newWorkplaceName
+								updated = true
+								break
+							end
+						end
 
-							p:resolve(true)
+						if updated then
+							MySQL.update('UPDATE jobs SET Workplaces = ? WHERE Id = ?', { json.encode(job.Workplaces), jobId }, function(affectedRows)
+								if affectedRows > 0 then
+									RefreshAllJobData(jobId)
+									Jobs.Management.Employees:UpdateAllWorkplace(jobId, workplaceId, newWorkplaceName)
+									p:resolve(true)
+								else
+									p:resolve(false)
+								end
+							end)
 						else
 							p:resolve(false)
 						end
-					end)
+					end
 
 					local res = Citizen.Await(p)
 					return {
@@ -706,84 +756,75 @@ _JOBS = {
 			Create = function(self, jobId, workplaceId, gradeName, gradeLevel, gradePermissions)
 				if Jobs:DoesExist(jobId, workplaceId) then
 					local p = promise.new()
-					local gradeId
-					if workplaceId then
-						gradeId = string.format("Grade_%s", Sequence:Get(string.format("Company:%s:%s:Grades", jobId, workplaceId)))
+					local job = Jobs:Get(jobId)
+					if not job then
+						p:resolve(false)
 					else
-						gradeId = string.format("Grade_%s", Sequence:Get(string.format("Company:%s:Grades", jobId)))
-					end
+						local gradeId
+						if workplaceId then
+							gradeId = string.format('Grade_%s', Sequence:Get(string.format('Company:%s:%s:Grades', jobId, workplaceId)))
+						else
+							gradeId = string.format('Grade_%s', Sequence:Get(string.format('Company:%s:Grades', jobId)))
+						end
 
-					if not Jobs:DoesExist(jobId, workplaceId, gradeId) then
-						local query = {}
-						local update = {}
-						local options = {}
-						
 						local gradeData = {
 							Id = gradeId,
 							Name = gradeName,
 							Level = gradeLevel,
 							Permissions = gradePermissions or {},
 						}
-	
+						
+						local updated = false
 						if workplaceId then
-							query = {
-								Type = 'Government',
-								Id = jobId,
-								['Workplaces.Id'] = workplaceId,
-							}
-	
-							update = {
-								['$push'] = {
-									['Workplaces.$[workplace].Grades'] = gradeData,
-								}
-							}
-	
-							options = {
-								arrayFilters = {
-									{
-										['workplace.Id'] = workplaceId,
-									},
-								},
-								multi = true,
-							}
-						else
-							query = {
-								Type = 'Company',
-								Id = jobId,
-							}
-	
-							update = {
-								['$push'] = {
-									Grades = gradeData,
-								}
-							}
-	
-							options = {
-								multi = true
-							}
-						end
-	
-						MySQL.update('jobs', update, query, options, function(success, updated)
-							if success then
-								RefreshAllJobData(jobId)
-	
-								p:resolve(true)
-							else
-								p:resolve(false)
+							if job.Workplaces then
+								for i, workplace in ipairs(job.Workplaces) do
+									if workplace.Id == workplaceId then
+										if not job.Workplaces[i].Grades then
+											job.Workplaces[i].Grades = {}
+										end
+										table.insert(job.Workplaces[i].Grades, gradeData)
+										updated = true
+										break
+									end
+								end
 							end
-						end)
-	
-						local res = Citizen.Await(p)
-						return {
-							success = res,
-							code = 'ERROR',
-						}
-					else
-						return {
-							success = false,
-							code = 'ERROR',
-						}
+						else
+							if not job.Grades then
+								job.Grades = {}
+							end
+							table.insert(job.Grades, gradeData)
+							updated = true
+						end
+
+						if updated then
+							local query
+							local params
+							if workplaceId then
+								query = 'UPDATE jobs SET Workplaces = ? WHERE Id = ?'
+								params = { json.encode(job.Workplaces), jobId }
+							else
+								query = 'UPDATE jobs SET Grades = ? WHERE Id = ?'
+								params = { json.encode(job.Grades), jobId }
+							end
+							
+							MySQL.update(query, params, function(affectedRows)
+								if affectedRows > 0 then
+									RefreshAllJobData(jobId)
+									p:resolve(true)
+								else
+									p:resolve(false)
+								end
+							end)
+						else
+							p:resolve(false)
+						end
 					end
+
+					local res = Citizen.Await(p)
+					return {
+						success = res,
+						code = 'ERROR',
+					}
 				else
 					return {
 						success = false,
@@ -794,72 +835,70 @@ _JOBS = {
 			Edit = function(self, jobId, workplaceId, gradeId, settingData)
 				if Jobs:DoesExist(jobId, workplaceId, gradeId) then
 					local p = promise.new()
-					local query = {}
-					local update = {}
-					local options = {}
-
-					if workplaceId then
-						query = {
-							Type = 'Government',
-							Id = jobId,
-							['Workplaces.Id'] = workplaceId,
-							["Workplaces.Grades.Id"] = gradeId,
-						}
-
-						update = {
-							['$set'] = {}
-						}
-
-						for k, v in pairs(settingData) do
-							if k ~= 'Id' then
-								local updateKey = string.format('Workplaces.$[workplace].Grades.$[grade].%s', k)
-								update['$set'][updateKey] = v
-							end
-						end
-
-						options = {
-							arrayFilters = {
-								{
-									['workplace.Id'] = workplaceId,
-								},
-								{
-									["grade.Id"] = gradeId,
-								}
-							},
-						}
+					local job = Jobs:Get(jobId)
+					if not job then
+						p:resolve(false)
 					else
-						query = {
-							Type = 'Company',
-							Id = jobId,
-							['Grades.Id'] = gradeId,
-						}
-
-						update = {
-							['$set'] = {}
-						}
-
-						for k, v in pairs(settingData) do
-							if k ~= 'Id' then
-								local updateKey = string.format('Grades.$[grade].%s', k)
-								update['$set'][updateKey] = v
+						local updated = false
+						if workplaceId then
+							if job.Workplaces then
+								for i, workplace in ipairs(job.Workplaces) do
+									if workplace.Id == workplaceId and workplace.Grades then
+										for j, grade in ipairs(workplace.Grades) do
+											if grade.Id == gradeId then
+												for k, v in pairs(settingData) do
+													if k ~= 'Id' then
+														job.Workplaces[i].Grades[j][k] = v
+													end
+												end
+												updated = true
+												break
+											end
+										end
+									end
+									if updated then break end
+								end
+							end
+						else
+							if job.Grades then
+								for i, grade in ipairs(job.Grades) do
+									if grade.Id == gradeId then
+										for k, v in pairs(settingData) do
+											if k ~= 'Id' then
+												job.Grades[i][k] = v
+											end
+										end
+										updated = true
+										break
+									end
+								end
 							end
 						end
 
-						options = {
-							arrayFilters = { { ['grade.Id'] = gradeId } },
-						}
-					end
+						if updated then
+							local query
+							local params
+							if workplaceId then
+								query = 'UPDATE jobs SET Workplaces = ? WHERE Id = ?'
+								params = { json.encode(job.Workplaces), jobId }
+							else
+								query = 'UPDATE jobs SET Grades = ? WHERE Id = ?'
+								params = { json.encode(job.Grades), jobId }
+							end
 
-					MySQL.update('jobs', update, query, options, function(success, updated)
-						if success then
-							RefreshAllJobData(jobId)
-							Jobs.Management.Employees:UpdateAllGrade(jobId, workplaceId, gradeId, settingData)
-
-							p:resolve(true)
+							MySQL.update(query, params, function(affectedRows)
+								if affectedRows > 0 then
+									RefreshAllJobData(jobId)
+									Jobs.Management.Employees:UpdateAllGrade(jobId, workplaceId, gradeId, settingData)
+									p:resolve(true)
+								else
+									p:resolve(false)
+								end
+							end)
 						else
 							p:resolve(false)
 						end
-					end)
+					end
 
 					local res = Citizen.Await(p)
 					return {
@@ -878,62 +917,62 @@ _JOBS = {
 				if #peopleWithJobGrade <= 0 then
 					if Jobs:DoesExist(jobId, workplaceId, gradeId) then
 						local p = promise.new()
-						local query = {}
-						local update = {}
-						local options = {}
-
-						if workplaceId then
-							query = {
-								Type = 'Government',
-								Id = jobId,
-								['Workplaces.Id'] = workplaceId,
-							}
-
-							update = {
-								['$pull'] = {
-									['Workplaces.$[workplace].Grades'] = {
-										Id = gradeId,
-									}
-								}
-							}
-
-							options = {
-								arrayFilters = {
-									{
-										['workplace.Id'] = workplaceId,
-									},
-								},
-								multi = true,
-							}
+						local job = Jobs:Get(jobId)
+						if not job then
+							p:resolve(false)
 						else
-							query = {
-								Type = 'Company',
-								Id = jobId,
-							}
+							local updated = false
+							if workplaceId then
+								if job.Workplaces then
+									for i, workplace in ipairs(job.Workplaces) do
+										if workplace.Id == workplaceId and workplace.Grades then
+											for j, grade in ipairs(workplace.Grades) do
+												if grade.Id == gradeId then
+													table.remove(job.Workplaces[i].Grades, j)
+													updated = true
+													break
+												end
+											end
+										end
+										if updated then break end
+									end
+								end
+							else
+								if job.Grades then
+									for i, grade in ipairs(job.Grades) do
+										if grade.Id == gradeId then
+											table.remove(job.Grades, i)
+											updated = true
+											break
+										end
+									end
+								end
+							end
 
-							update = {
-								['$pull'] = {
-									Grades = {
-										Id = gradeId,
-									}
-								}
-							}
+							if updated then
+								local query
+								local params
+								if workplaceId then
+									query = 'UPDATE jobs SET Workplaces = ? WHERE Id = ?'
+									params = { json.encode(job.Workplaces), jobId }
+								else
+									query = 'UPDATE jobs SET Grades = ? WHERE Id = ?'
+									params = { json.encode(job.Grades), jobId }
+								end
 
-							options = {
-								multi = true
-							}
-						end
-
-						MySQL.update('jobs', update, query, options, function(success, updated)
-							if success then
-								RefreshAllJobData(jobId)
-
-								p:resolve(true)
+								MySQL.update(query, params, function(affectedRows)
+									if affectedRows > 0 then
+										RefreshAllJobData(jobId)
+										p:resolve(true)
+									else
+										p:resolve(false)
+									end
+								end)
 							else
 								p:resolve(false)
 							end
-						end)
-
+						end
+						
 						local res = Citizen.Await(p)
 						return {
 							success = res,
@@ -956,272 +995,258 @@ _JOBS = {
 		Employees = {
 			GetAll = function(self, jobId, workplaceId, gradeId)
 				local jobCharacters = {}
-				local onlineCharacters = {}
-				for k, v in pairs(Fetch:All()) do
-					local char = v:GetData('Character')
+				local onlineSIDs = {}
+
+				for _, player in pairs(Fetch:All()) do
+					local char = player:GetData('Character')
 					if char then
-						table.insert(onlineCharacters, char:GetData('SID'))
-						local jobs = char:GetData('Jobs')
-						if jobs and #jobs > 0 then
-							for k, v in ipairs(jobs) do
-								if v.Id == jobId and (not workplaceId or (workplaceId and (v.Workplace and v.Workplace.Id == workplaceId))) and (not gradeId or (v.Grade.Id == gradeId)) then
-									table.insert(jobCharacters, {
-										Source = char:GetData('Source'),
-										SID = char:GetData('SID'),
-										First = char:GetData('First'),
-										Last = char:GetData('Last'),
-										Phone = char:GetData('Phone'),
-										JobData = v,
-									})
-								end
+						local sid = char:GetData('SID')
+						table.insert(onlineSIDs, sid)
+						local jobs = char:GetData('Jobs') or {}
+						for _, job in ipairs(jobs) do
+							if job.Id == jobId and (not workplaceId or (job.Workplace and job.Workplace.Id == workplaceId)) and (not gradeId or (job.Grade.Id == gradeId)) then
+								table.insert(jobCharacters, {
+									Source = char:GetData('Source'),
+									SID = sid,
+									First = char:GetData('First'),
+									Last = char:GetData('Last'),
+									Phone = char:GetData('Phone'),
+									JobData = job,
+								})
+								break
 							end
 						end
 					end
 				end
 
 				local p = promise.new()
+				local query = 'SELECT SID, First, Last, Phone, Jobs FROM characters WHERE JSON_SEARCH(Jobs, "one", ?, NULL, "$[*].Id") IS NOT NULL'
+				local params = { jobId }
 
-				local query = {
-					SID = {
-						['$nin'] = onlineCharacters,
-					},
-					Jobs = {
-						['$elemMatch'] = {
-							Id = jobId
-						}
-					}
-				}
-
-				if workplaceId then
-					query.Jobs['$elemMatch']['Workplace.Id'] = workplaceId
+				if #onlineSIDs > 0 then
+					query = query .. ' AND SID NOT IN (?)'
+					table.insert(params, {onlineSIDs})
 				end
 
-				if gradeId then
-					query.Jobs['$elemMatch']['Grade.Id'] = gradeId
-				end
-
-				MySQL.find('characters', query, function(success, results)
-					if success then
+				MySQL.query(query, params, function(results)
+					if results then
 						for _, c in ipairs(results) do
-							if c.Jobs and #c.Jobs > 0 then
-								for k, v in ipairs(c.Jobs) do
-									if v.Id == jobId and (not workplaceId or (workplaceId and (v.Workplace and v.Workplace.Id == workplaceId))) and (not gradeId or (v.Grade.Id == gradeId)) then
-										table.insert(jobCharacters, {
-											Source = false,
-											SID = c.SID,
-											First = c.First,
-											Last = c.Last,
-											Phone = c.Phone,
-											JobData = v,
-										})
+							local jobs = json.decode(c.Jobs or '[]')
+							for _, job in ipairs(jobs) do
+								if job.Id == jobId and (not workplaceId or (job.Workplace and job.Workplace.Id == workplaceId)) and (not gradeId or (job.Grade.Id == gradeId)) then
+									table.insert(jobCharacters, {
+										Source = false,
+										SID = c.SID,
+										First = c.First,
+										Last = c.Last,
+										Phone = c.Phone,
+										JobData = job,
+									})
+									break
+								end
+							end
+						end
+					end
+					p:resolve(true)
+				end)
+
+				Citizen.Await(p)
+				return jobCharacters
+			end,
+			UpdateAllJob = function(self, jobId, newJobName)
+                local onlineSIDs = {}
+				for _, player in pairs(Fetch:All()) do
+					local char = player:GetData('Character')
+					if char then
+                        table.insert(onlineSIDs, char:GetData('SID'))
+						local jobs = char:GetData('Jobs') or {}
+						local modified = false
+						for i, job in ipairs(jobs) do
+							if job.Id == jobId then
+								jobs[i].Name = newJobName
+								modified = true
+							end
+						end
+						if modified then
+							char:SetData('Jobs', jobs)
+							Phone:UpdateJobData(char:GetData('Source'))
+						end
+					end
+				end
+
+				local p = promise.new()
+				local query = 'SELECT SID, Jobs FROM characters WHERE JSON_SEARCH(Jobs, "one", ?, NULL, "$[*].Id") IS NOT NULL'
+                local params = { jobId }
+                
+				if #onlineSIDs > 0 then
+					query = query .. ' AND SID NOT IN (?)'
+					table.insert(params, {onlineSIDs})
+				end
+
+				MySQL.query(query, params, function(results)
+					if results then
+						local updatePromises = {}
+						for _, c in ipairs(results) do
+							local jobs = json.decode(c.Jobs or '[]')
+							local modified = false
+							for i, job in ipairs(jobs) do
+								if job.Id == jobId then
+									jobs[i].Name = newJobName
+									modified = true
+								end
+							end
+							if modified then
+								local innerP = promise.new()
+								MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(jobs), c.SID }, function(affectedRows)
+									innerP:resolve(affectedRows > 0)
+								end)
+								table.insert(updatePromises, innerP)
+							end
+						end
+						if #updatePromises > 0 then
+							Citizen.Await(promise.all(updatePromises))
+						end
+					end
+					p:resolve(true)
+				end)
+
+				return Citizen.Await(p)
+			end,
+			UpdateAllWorkplace = function(self, jobId, workplaceId, newWorkplaceName)
+				local onlineSIDs = {}
+				for _, player in pairs(Fetch:All()) do
+					local char = player:GetData('Character')
+					if char then
+						table.insert(onlineSIDs, char:GetData('SID'))
+						local jobs = char:GetData('Jobs') or {}
+						local modified = false
+						for i, job in ipairs(jobs) do
+							if job.Id == jobId and job.Workplace and job.Workplace.Id == workplaceId then
+								jobs[i].Workplace.Name = newWorkplaceName
+								modified = true
+							end
+						end
+						if modified then
+							char:SetData('Jobs', jobs)
+							Phone:UpdateJobData(char:GetData('Source'))
+						end
+					end
+				end
+                
+                local p = promise.new()
+				local query = 'SELECT SID, Jobs FROM characters WHERE JSON_SEARCH(Jobs, "one", ?, NULL, "$[*].Id") IS NOT NULL AND JSON_SEARCH(Jobs, "one", ?, NULL, "$[*].Workplace.Id") IS NOT NULL'
+				local params = { jobId, workplaceId }
+
+				if #onlineSIDs > 0 then
+					query = query .. ' AND SID NOT IN (?)'
+					table.insert(params, {onlineSIDs})
+                end
+                
+				MySQL.query(query, params, function(results)
+					if results then
+						local updatePromises = {}
+						for _, c in ipairs(results) do
+							local jobs = json.decode(c.Jobs or '[]')
+							local modified = false
+							for i, job in ipairs(jobs) do
+								if job.Id == jobId and job.Workplace and job.Workplace.Id == workplaceId then
+									jobs[i].Workplace.Name = newWorkplaceName
+									modified = true
+								end
+							end
+							if modified then
+								local innerP = promise.new()
+								MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(jobs), c.SID }, function(affectedRows)
+									innerP:resolve(affectedRows > 0)
+								end)
+								table.insert(updatePromises, innerP)
+							end
+						end
+						if #updatePromises > 0 then
+							Citizen.Await(promise.all(updatePromises))
+						end
+					end
+					p:resolve(true)
+				end)
+				return Citizen.Await(p)
+			end,
+			UpdateAllGrade = function(self, jobId, workplaceId, gradeId, settingData)
+				local onlineSIDs = {}
+				if settingData.Name or settingData.Level then
+					for _, player in pairs(Fetch:All()) do
+						local char = player:GetData('Character')
+						if char then
+							table.insert(onlineSIDs, char:GetData('SID'))
+							local jobs = char:GetData('Jobs') or {}
+							local modified = false
+							for i, job in ipairs(jobs) do
+								if job.Id == jobId and (not workplaceId or (job.Workplace and job.Workplace.Id == workplaceId)) and job.Grade.Id == gradeId then
+									if settingData.Name then
+										jobs[i].Grade.Name = settingData.Name
+									end
+									if settingData.Level then
+										jobs[i].Grade.Level = settingData.Level
+									end
+									modified = true
+								end
+							end
+							if modified then
+								char:SetData('Jobs', jobs)
+								Phone:UpdateJobData(char:GetData('Source'))
+							end
+						end
+					end
+
+					local p = promise.new()
+					local query
+					local params
+					if workplaceId then
+						query = 'SELECT SID, Jobs FROM characters WHERE JSON_SEARCH(Jobs, "one", ?, NULL, "$[*].Id") IS NOT NULL AND JSON_SEARCH(Jobs, "one", ?, NULL, "$[*].Workplace.Id") IS NOT NULL AND JSON_SEARCH(Jobs, "one", ?, NULL, "$[*].Grade.Id") IS NOT NULL'
+						params = { jobId, workplaceId, gradeId }
+					else
+						query = 'SELECT SID, Jobs FROM characters WHERE JSON_SEARCH(Jobs, "one", ?, NULL, "$[*].Id") IS NOT NULL AND JSON_SEARCH(Jobs, "one", ?, NULL, "$[*].Grade.Id") IS NOT NULL'
+						params = { jobId, gradeId }
+					end
+
+					if #onlineSIDs > 0 then
+						query = query .. ' AND SID NOT IN (?)'
+						table.insert(params, {onlineSIDs})
+					end
+
+					MySQL.query(query, params, function(results)
+						if results then
+							local updatePromises = {}
+							for _, c in ipairs(results) do
+								local jobs = json.decode(c.Jobs or '[]')
+								local modified = false
+								for i, job in ipairs(jobs) do
+									if job.Id == jobId and (not workplaceId or (job.Workplace and job.Workplace.Id == workplaceId)) and job.Grade.Id == gradeId then
+										if settingData.Name then
+											jobs[i].Grade.Name = settingData.Name
+										end
+										if settingData.Level then
+											jobs[i].Grade.Level = settingData.Level
+										end
+										modified = true
 									end
 								end
+								if modified then
+									local innerP = promise.new()
+									MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(jobs), c.SID }, function(affectedRows)
+										innerP:resolve(affectedRows > 0)
+									end)
+									table.insert(updatePromises, innerP)
+								end
+							end
+							if #updatePromises > 0 then
+								Citizen.Await(promise.all(updatePromises))
 							end
 						end
 						p:resolve(true)
-					else
-						p:resolve(false)
-					end
-				end)
-
-				local res = Citizen.Await(p)
-				if res then
-					return jobCharacters
-				else
-					return false
-				end
-			end,
-			UpdateAllJob = function(self, jobId, newJobName)
-				for k, v in pairs(Fetch:All()) do
-					local char = v:GetData('Character')
-					if char then
-						table.insert(onlineCharacters, char:GetData('SID'))
-						local jobs = char:GetData('Jobs')
-						if jobs and #jobs > 0 then
-							for k, v in ipairs(jobs) do
-								if v.Id == jobId then
-									v.Name = newJobName
-									char:SetData('Jobs', jobs)
-									Phone:UpdateJobData(char:GetData('Source'))
-								end
-							end
-						end
-					end
-				end
-
-				local query = {
-					SID = {
-						['$nin'] = onlineCharacters,
-					},
-					Jobs = {
-						['$elemMatch'] = {
-							Id = jobId,
-						}
-					}
-				}
-
-				local update = {
-					['$set'] = {
-						['Jobs.$[job].Name'] = newJobName
-					}
-				}
-
-				local options = {
-					arrayFilters = { 
-						{
-							['job.Id'] = jobId,
-						},
-					},
-				}
-
-				MySQL.update('characters', update, query, options, function(success, updated)
-					if success then
-						p:resolve(updated)
-					else
-						p:resolve(false)
-					end
-				end)
-
-				local res = Citizen.Await(p)
-				return res
-			end,
-			UpdateAllWorkplace = function(self, jobId, workplaceId, newWorkplaceName)
-				local p = promise.new()
-
-				local jobCharacters = {}
-				local onlineCharacters = {}
-				for k, v in pairs(Fetch:All()) do
-					local char = v:GetData('Character')
-					if char then
-						table.insert(onlineCharacters, char:GetData('SID'))
-						local jobs = char:GetData('Jobs')
-						if jobs and #jobs > 0 then
-							for k, v in ipairs(jobs) do
-								if v.Id == jobId and (v.Workplace and (v.Workplace.Id == workplaceId)) then
-									v.Workplace.Name = newWorkplaceName
-									char:SetData('Jobs', jobs)
-									Phone:UpdateJobData(char:GetData('Source'))
-								end
-							end
-						end
-					end
-				end
-
-				MySQL.update('characters', {
-					['Jobs.$[job].Workplace.Name'] = newWorkplaceName,
-				}, {
-					SID = {
-						['$nin'] = onlineCharacters,
-					},
-					Jobs = {
-						['$elemMatch'] = {
-							Type = 'Government',
-							Id = jobId,
-							['Workplace.Id'] = workplaceId
-						}
-					}
-				}, function(success, updated)
-					if success then
-						p:resolve(updated)
-					else
-						p:resolve(false)
-					end
-				end)
-
-				local res = Citizen.Await(p)
-				return res
-			end,
-			UpdateAllGrade = function(self, jobId, workplaceId, gradeId, settingData)
-				local jobCharacters = {}
-				local onlineCharacters = {}
-
-				if settingData.Name or settingData.Level then
-					local p = promise.new()
-					for k, v in pairs(Fetch:All()) do
-						local char = v:GetData('Character')
-						if char then
-							table.insert(onlineCharacters, char:GetData('SID'))
-							local jobs = char:GetData('Jobs')
-							if jobs and #jobs > 0 then
-								for k, v in ipairs(jobs) do
-									if v.Id == jobId and (not workplaceId or (workplaceId and v.Workplace and (v.Workplace.Id == workplaceId))) and v.Grade.Id == gradeId then
-
-										if settingData.Name then
-											v.Grade.Name = settingData.Name
-										end
-
-										if settingData.Level then
-											v.Grade.Level = settingData.Level
-										end
-	
-										char:SetData('Jobs', jobs)
-										Phone:UpdateJobData(char:GetData('Source'))
-									end
-								end
-							end
-						end
-					end
-
-					local query = {}
-					local update = {}
-					local options = {}
-
-					if workplaceId then
-						query = {
-							SID = {
-								['$nin'] = onlineCharacters,
-							},
-							Jobs = {
-								['$elemMatch'] = {
-									Id = jobId,
-									['Workplace.Id'] = workplaceId,
-									['Grade.Id'] = gradeId,
-								}
-							}
-						}
-					else
-						query = {
-							SID = {
-								['$nin'] = onlineCharacters,
-							},
-							Jobs = {
-								['$elemMatch'] = {
-									Id = jobId,
-									['Grade.Id'] = gradeId,
-								}
-							}
-						}
-					end
-
-					update = { ['$set'] = {} }
-
-					if settingData.Name then
-						update['$set']['Jobs.$[job].Grade.Name'] = settingData.Name
-					end
-
-					if settingData.Level then
-						update['$set']['Jobs.$[job].Grade.Level'] = settingData.Level
-					end
-
-					options = {
-						arrayFilters = { 
-							{
-								['job.Id'] = jobId,
-							},
-						},
-					}
-
-					MySQL.update('characters', update, query, options, function(success, updated)
-						if success then
-							p:resolve(updated)
-						else
-							p:resolve(false)
-						end
 					end)
-
-					local res = Citizen.Await(p)
-					return res
+					return Citizen.Await(p)
 				end
+				return false
 			end,
 		}
 	},
@@ -1229,29 +1254,33 @@ _JOBS = {
 		Set = function(self, jobId, key, val)
 			if Jobs:DoesExist(jobId) and key then
 				local p = promise.new()
-				MySQL.update('jobs', {
-					[string.format("Data.%s", key)] = val,
-				}, {
-					Id = jobId,
-				}, function(success, res)
-					if success then
-						RefreshAllJobData(jobId)
-
-						p:resolve(true)
-					else
-						p:resolve(false)
+				local job = Jobs:Get(jobId)
+				if not job then
+					p:resolve(false)
+				else
+					if not job.Data then
+						job.Data = {}
 					end
-				end)
+					job.Data[key] = val
+					MySQL.update('UPDATE jobs SET Data = ? WHERE Id = ?', { json.encode(job.Data), jobId }, function(affectedRows)
+						if affectedRows > 0 then
+							RefreshAllJobData(jobId)
+							p:resolve(true)
+						else
+							p:resolve(false)
+						end
+					end)
+				end
 
 				local res = Citizen.Await(p)
 				return {
 					success = res,
-					code = "ERROR",
+					code = 'ERROR',
 				}
 			else
 				return {
 					success = false,
-					code = "MISSING_JOB",
+					code = 'MISSING_JOB',
 				}
 			end
 		end,

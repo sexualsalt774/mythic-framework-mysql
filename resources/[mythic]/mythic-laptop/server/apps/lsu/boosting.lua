@@ -123,8 +123,8 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
             local perm = char:GetData("LaptopPermissions")
 
             if perm["lsunderground"] and perm["lsunderground"]["admin"] then
-                MySQL.update('UPDATE characters SET LSUNDGBan = JSON_ARRAY_APPEND(COALESCE(LSUNDGBan, JSON_ARRAY()), "$", ?) WHERE SID = ?', { "Boosting", data.SID }, function(success, result)
-                    if success and result > 0 then
+                MySQL.update('UPDATE characters SET LSUNDGBan = JSON_ARRAY_APPEND(COALESCE(LSUNDGBan, JSON_ARRAY()), "$", ?) WHERE SID = ?', { "Boosting", data.SID }, function(result)
+                    if result and result > 0 then
                         local target = Fetch:SID(data.SID)
                         if target then
                             local targetChar = target:GetData("Character")
@@ -151,8 +151,8 @@ AddEventHandler("Laptop:Server:RegisterCallbacks", function()
             local perm = char:GetData("LaptopPermissions")
 
             if perm["lsunderground"] and perm["lsunderground"]["admin"] then
-                MySQL.update('UPDATE characters SET LSUNDGBan = NULL WHERE SID = ?', { data.SID }, function(success, result)
-                    if success and result > 0 then
+                MySQL.update('UPDATE characters SET LSUNDGBan = NULL WHERE SID = ?', { data.SID }, function(result)
+                    if result > 0 then
                         local target = Fetch:SID(data.SID)
                         if target then
                             local targetChar = target:GetData("Character")

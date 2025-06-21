@@ -15,8 +15,8 @@ _MDT.Properties = {
 		]]
 		
 		local searchTerm = '%' .. term .. '%'
-		MySQL.query(query, {searchTerm, searchTerm, searchTerm}, function(success, results)
-			if not success then
+		MySQL.query(query, {searchTerm, searchTerm, searchTerm}, function(results)
+			if not results then
 				p:resolve(false)
 				return
 			end
@@ -47,8 +47,8 @@ _MDT.Properties = {
 	end,
 	-- View = function(self, VIN)
 	-- 	local p = promise.new()
-	-- 	MySQL.query('SELECT * FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
-	-- 		if not success or #results <= 0 then
+	-- 	MySQL.query('SELECT * FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(results)
+	-- 		if not results or #results <= 0 then
 	-- 			p:resolve(false)
 	-- 			return
 	-- 		end

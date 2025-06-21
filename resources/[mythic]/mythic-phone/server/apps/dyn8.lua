@@ -19,8 +19,8 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 				whereClause = whereClause .. " AND sold = 0"
 			end
 
-			MySQL.query('SELECT * FROM properties WHERE ' .. whereClause .. ' LIMIT 80', params, function(success, results)
-				if not success then
+			MySQL.query('SELECT * FROM properties WHERE ' .. whereClause .. ' LIMIT 80', params, function(results)
+				if not results then
 					cb(false)
 					return
 				end

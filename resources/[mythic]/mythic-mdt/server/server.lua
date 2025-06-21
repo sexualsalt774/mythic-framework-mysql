@@ -329,8 +329,8 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 	
 							if needsUpdate then
 								local p2 = promise.new()
-								MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ? RETURNING *', { json.encode(licenseUpdate['$set']), data.data.suspect.SID }, function(success, results)
-									if success and results and results[1] then
+								MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ? RETURNING *', { json.encode(licenseUpdate['$set']), data.data.suspect.SID }, function(results)
+									if results and results[1] then
 										local plyr = Fetch:SID(results[1].SID)
 										if plyr then
 											local char = plyr:GetData('Character')
@@ -340,7 +340,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 										end
 									end
 	
-									p2:resolve(success)
+									p2:resolve(results)
 								end)
 	
 								Citizen.Await(p2)
@@ -401,8 +401,8 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 					},
 				}
 
-				MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ? RETURNING *', { json.encode(licenseUpdate['$set']), data.SID }, function(success, results)
-					if success and results and results[1] then
+				MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ? RETURNING *', { json.encode(licenseUpdate['$set']), data.SID }, function(results)
+					if results and results[1] then
 						local plyr = Fetch:SID(results[1].SID)
 						if plyr then
 							local char = plyr:GetData('Character')

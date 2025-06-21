@@ -6,8 +6,8 @@ function UpdateCharacterCasinoStats(source, statType, isWin, amount)
             local p = promise.new()
 
             -- Get current stats first
-            MySQL.query('SELECT * FROM casino_statistics WHERE SID = ?', {char:GetData("SID")}, function(success, results)
-                if success then
+            MySQL.query('SELECT * FROM casino_statistics WHERE SID = ?', {char:GetData("SID")}, function(results)
+                if results then
                     local currentStats = results[1] or {}
                     local stats = currentStats.stats or {}
                     
@@ -86,8 +86,8 @@ function SaveCasinoBigWin(source, machine, prize, data)
                 }),
                 prize,
                 json.encode(data or {})
-            }, function(success, result)
-                if success then
+            }, function(result)
+                if result then
                     p:resolve(true)
                 else
                     Logger:Error("Casino", "Failed to save casino big win", { console = true })

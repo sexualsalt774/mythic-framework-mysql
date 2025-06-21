@@ -206,12 +206,16 @@ function SaveVehicle(VIN)
         table.insert(values, VIN)
         local query = 'UPDATE vehicles SET ' .. table.concat(setClause, ', ') .. ' WHERE VIN = ?'
 
-        MySQL.update(query, values, function(success, res)
-            p:resolve(success)
+        MySQL.update(query, values, function(result)
+            if result and result.affectedRows > 0 then
+                p:resolve(true)
+            else
+                Logger:Error("Vehicles", "Failed to save vehicle", { console = true })
+                p:resolve(false)
+            end
         end)
 
-        local success = Citizen.Await(p)
-        return success
+        return Citizen.Await(p)
     else
         return false
     end
@@ -399,8 +403,8 @@ VEHICLE = {
                     doc.RegistrationDate,
                     doc.Mileage,
                     doc.DirtLevel
-                }, function(success, result)
-                    if success then
+                }, function(result)
+                    if result and result.insertId then
                         doc.id = result.insertId
                         cb(true, doc)
                     else
@@ -421,8 +425,8 @@ VEHICLE = {
         end,
 
         GetVIN = function(self, VIN, cb)
-            MySQL.query('SELECT * FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
-                if success and #results > 0 then
+            MySQL.query('SELECT * FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(results)
+                if results and #results > 0 then
                     local vehicle = results[1]
                     -- Decode JSON fields if they're strings
                     if vehicle.Owner and type(vehicle.Owner) == "string" then
@@ -476,8 +480,8 @@ VEHICLE = {
 
             local query = "SELECT * FROM vehicles WHERE " .. whereClause
 
-            MySQL.query(query, params, function(success, results)
-                if success then
+            MySQL.query(query, params, function(results)
+                if results then
                     local vehicles = {}
                     for k, v in ipairs(results) do
                         if not ignoreSpawned or (ignoreSpawned and not Vehicles.Owned:GetActive(v.VIN)) then
@@ -744,8 +748,8 @@ VEHICLE = {
 
                 local query = "SELECT COUNT(*) as count FROM vehicles WHERE " .. whereClause
 
-                MySQL.query(query, params, function(success, results)
-                    if success and #results > 0 then
+                MySQL.query(query, params, function(results)
+                    if results and #results > 0 then
                         p:resolve(results[1].count)
                     else
                         Logger:Error("Vehicles", "Failed to count vehicles", { console = true })
@@ -791,8 +795,8 @@ VEHICLE = {
                             seizeState and os.time() or false,
                             json.encode(updatingStorage),
                             VIN
-                        }, function(success, updated)
-                            if success and updated > 0 then
+                        }, function(result)
+                            if result and result.affectedRows > 0 then
                                 p:resolve(true)
                             else
                                 Logger:Error("Vehicles", "Failed to seize vehicle", { console = true })

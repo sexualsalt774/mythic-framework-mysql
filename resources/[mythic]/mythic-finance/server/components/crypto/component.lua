@@ -238,8 +238,8 @@ _CRYPTO = {
 			else
 				local p = promise.new()
 				-- below is line 40
-				MySQL.update('UPDATE characters SET Crypto = JSON_SET(COALESCE(Crypto, \'{}\'), ?, COALESCE(JSON_EXTRACT(Crypto, ?), 0) + ?) WHERE CryptoWallet = ?', { string.format('$.%s', coin), string.format('$.%s', coin), amount, target }, function(success, res)
-					p:resolve(success)
+				MySQL.update('UPDATE characters SET Crypto = JSON_SET(COALESCE(Crypto, \'{}\'), ?, COALESCE(JSON_EXTRACT(Crypto, ?), 0) + ?) WHERE CryptoWallet = ?', { string.format('$.%s', coin), string.format('$.%s', coin), amount, target }, function(res)
+					p:resolve(res)
 				end)
 
 				return Citizen.Await(p)
@@ -284,8 +284,8 @@ _CRYPTO = {
 					else
 						local crypto = res[1].Crypto and json.decode(res[1].Crypto) or {}
 						if (crypto[coin] or 0) >= amount then
-							MySQL.update('UPDATE characters SET Crypto = JSON_SET(COALESCE(Crypto, \'{}\'), ?, COALESCE(JSON_EXTRACT(Crypto, ?), 0) - ?) WHERE CryptoWallet = ?', { string.format('$.%s', coin), string.format('$.%s', coin), amount, target }, function(success, res2)
-								p:resolve(success)
+							MySQL.update('UPDATE characters SET Crypto = JSON_SET(COALESCE(Crypto, \'{}\'), ?, COALESCE(JSON_EXTRACT(Crypto, ?), 0) - ?) WHERE CryptoWallet = ?', { string.format('$.%s', coin), string.format('$.%s', coin), amount, target }, function(res2)
+								p:resolve(res2)
 							end)
 						else
 							p:resolve(false)

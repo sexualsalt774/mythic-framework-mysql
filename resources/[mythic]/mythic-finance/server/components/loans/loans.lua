@@ -4,8 +4,8 @@ function RunLoanStartup()
     if _ranStartup then return end
     _ranStartup = true
 
-    MySQL.query('SELECT COUNT(*) as count FROM loans WHERE Remaining > 0', {}, function(success, results)
-        if success and results and #results > 0 then
+    MySQL.query('SELECT COUNT(*) as count FROM loans WHERE Remaining > 0', {}, function(results)
+        if results and #results > 0 then
             Logger:Trace('Loans', 'Loaded ^2' .. results[1].count .. '^7 Active Loans')
         end
     end)
@@ -30,19 +30,19 @@ function CreateLoanTasks()
             _loanConfig.paymentInterval,
             _loanConfig.missedPayments.charge,
             TASK_RUN_TIMESTAMP
-        }, function(success, results)
-            if success then
+        }, function(result)
+            if result and result.affectedRows then
                 -- Get All the Loans that now need to be defaulted and notify/seize
-                MySQL.query('SELECT * FROM loans WHERE MissedPayments >= MissablePayments AND Defaulted = 0', {}, function(success, results)
-                    if success and #results > 0 then
+                MySQL.query('SELECT * FROM loans WHERE MissedPayments >= MissablePayments AND Defaulted = 0', {}, function(results)
+                    if results and #results > 0 then
                         local updatingAssets = {}
 
                         for k, v in ipairs(results) do
                             table.insert(updatingAssets, v.AssetIdentifier)
                         end
 
-                        MySQL.update('UPDATE loans SET Defaulted = 1 WHERE AssetIdentifier IN (' .. string.rep('?,', #updatingAssets - 1) .. '?)', updatingAssets, function(success, updated)
-                            if success then
+                        MySQL.update('UPDATE loans SET Defaulted = 1 WHERE AssetIdentifier IN (' .. string.rep('?,', #updatingAssets - 1) .. '?)', updatingAssets, function(result2)
+                            if result2 and result2.affectedRows then
                                 Logger:Info('Loans', '^2' .. #results .. '^7 Loans Have Just Been Defaulted')
                                 for k, v in ipairs(results) do
                                     if v.SID then
@@ -67,8 +67,8 @@ function CreateLoanTasks()
                 end)
 
                 -- Notify if someone just missed a payment.
-                MySQL.query('SELECT * FROM loans WHERE MissedPayments < MissablePayments AND Defaulted = 0 AND LastMissedPayment = ?', {TASK_RUN_TIMESTAMP}, function(success, results)
-                    if success and #results > 0 then
+                MySQL.query('SELECT * FROM loans WHERE MissedPayments < MissablePayments AND Defaulted = 0 AND LastMissedPayment = ?', {TASK_RUN_TIMESTAMP}, function(results)
+                    if results and #results > 0 then
                         Logger:Info('Loans', '^2' .. #results .. '^7 Loan Payments Were Just Missed')
                         for k, v in ipairs(results) do
                             if v.SID then
@@ -89,9 +89,9 @@ function CreateLoanTasks()
     Tasks:Register('loan_reminder', 120, function()
         local TASK_RUN_TIMESTAMP = os.time()
         -- Get All Loans That are Due Soon
-        MySQL.query('SELECT * FROM loans WHERE Remaining > 0 AND Defaulted = 0 AND (NextPayment > 0 AND NextPayment <= ? OR MissedPayments > 0)', {TASK_RUN_TIMESTAMP + (60 * 60 * 6)}, function(success, results)
+        MySQL.query('SELECT * FROM loans WHERE Remaining > 0 AND Defaulted = 0 AND (NextPayment > 0 AND NextPayment <= ? OR MissedPayments > 0)', {TASK_RUN_TIMESTAMP + (60 * 60 * 6)}, function(results)
             print("this might hitch the server (loan_reminder task)")
-            if success and #results > 0 then
+            if results and #results > 0 then
                 for k, v in ipairs(results) do
                     if v.SID then
                         local onlineChar = Fetch:SID(v.SID)

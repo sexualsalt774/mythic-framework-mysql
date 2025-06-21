@@ -789,11 +789,8 @@ function RegisterCallbacks()
 			return
 		end
 		
-		MySQL.query('SELECT * FROM peds WHERE `Char` = ? LIMIT 1', {charId}, function(success, results)
-			if not success then
-				Logger:Error("Ped", "Failed to check ped data", { console = true })
-				return
-			end
+		MySQL.query('SELECT * FROM peds WHERE `Char` = ? LIMIT 1', {charId}, function(results)
+			print(json.encode(results, {indent = true}))
 			if not results or #results == 0 then
 				local tmp = deepcopy(TemplateData)
 
@@ -917,5 +914,19 @@ function RegisterCallbacks()
 				end
 			end
 		end
+	end)
+
+	Callbacks:RegisterServerCallback('Ped:Outfit:SaveCode', function(source, data, cb) 
+		local p = promise.new()
+
+		MySQL.query('INSERT INTO outfit_codes (Code, Data) VALUES (?, ?)', { data.code, json.encode(data.outfit) }, function(results)
+			if results.affectedRows > 0 then
+				p:resolve(true)
+			else
+				p:resolve(false)
+			end
+		end)
+
+		cb(Citizen.Await(p))
 	end)
 end

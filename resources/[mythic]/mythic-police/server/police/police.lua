@@ -438,8 +438,8 @@ POLICE = {
 		return false
 	end,
 	RunPlate = function(self, source, plate, wasEntity)
-		MySQL.query('SELECT * FROM vehicles WHERE RegisteredPlate = ? OR FakePlate = ?', {plate, plate}, function(success, results)
-			if not success or #results == 0 then
+		MySQL.query('SELECT * FROM vehicles WHERE RegisteredPlate = ? OR FakePlate = ?', {plate, plate}, function(results)
+			if not results or #results == 0 then
 				local stolen = Radar:CheckPlate(plate)
 				if stolen then
 					if not _generatedNames[plate] then

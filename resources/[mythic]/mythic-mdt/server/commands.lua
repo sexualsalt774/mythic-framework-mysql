@@ -34,8 +34,8 @@ function RegisterChatCommands()
 	}, 2)
 
 	Chat:RegisterAdminCommand("reclaimcallsign", function(source, args, rawCommand)
-		MySQL.update('UPDATE characters SET Callsign = false WHERE Callsign = ? LIMIT 1', { args[1] }, function(success, results)
-			if success then
+		MySQL.update('UPDATE characters SET Callsign = false WHERE Callsign = ? LIMIT 1', { args[1] }, function(results)
+			if results then
 				local plyr = Fetch:SID(results.SID)
 				if plyr then
 					local char = plyr:GetData("Character")

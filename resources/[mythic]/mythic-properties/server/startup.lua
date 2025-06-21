@@ -4,7 +4,7 @@ _properties = {}
 _insideProperties = {}
 
 function doPropertyThings(property)
-	property.id = property._id
+	property.id = property.id
 	property.locked = property.locked or true
 
 	if property.location then
@@ -25,8 +25,8 @@ function Startup()
 		return
 	end
 
-	MySQL.query('SELECT * FROM properties', {}, function(success, results)
-		if not success or not results then
+	MySQL.query('SELECT * FROM properties', {}, function(results)
+		if not results then
 			return
 		end
 		Logger:Trace("Properties", "Loaded ^2" .. #results .. "^7 Properties", { console = true })
@@ -59,8 +59,8 @@ function Startup()
 end
 
 RegisterNetEvent("Properties:RefreshProperties", function()
-    MySQL.query('SELECT * FROM properties', {}, function(success, results)
-        if not success or not results then
+    MySQL.query('SELECT * FROM properties', {}, function(results)
+        if not results then
             return
         end
         Logger:Warn("Properties", "Loaded ^2" .. #results .. "^7 Properties", { console = true })

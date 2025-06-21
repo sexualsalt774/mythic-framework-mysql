@@ -21,7 +21,7 @@ Spawn = {
         SetNuiFocus(true, true)
         SendNUIMessage({ type = 'APP_SHOW' })
     end,
-    SpawnToWorld = function(self, data, cb)
+    SpawnToWorld = function(self, data, cb) -- this gets called when mythic-peds fails to load...
         DoScreenFadeOut(500)
         while not IsScreenFadedOut() do
             Wait(10)

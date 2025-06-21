@@ -25,11 +25,7 @@ _MDT.People = {
 		People = function(self, term)
 			local p = promise.new()
 			MySQL.query('SELECT * FROM characters WHERE (Deleted = false OR Deleted IS NULL) AND (First LIKE ? OR Last LIKE ? OR SID LIKE ?) LIMIT 12', { '%'..term..'%', '%'..term..'%', '%'..term..'%' }, function(results)
-				if not results then
-					p:resolve(false)
-					return
-				end
-				p:resolve(results)
+				p:resolve(results or false)
 			end)
 			GlobalState["MDT:Metric:Search"] = GlobalState["MDT:Metric:Search"] + 1
 			return Citizen.Await(p)
@@ -37,93 +33,36 @@ _MDT.People = {
 		Government = function(self)
 			local p = promise.new()
 			MySQL.query('SELECT * FROM characters WHERE Jobs LIKE ? AND Jobs IS NOT NULL', { '%"Id":%'.._governmentJobs[1]..'%' }, function(results)
-				if not results then
-					p:resolve(false)
-					return
-				end
-				p:resolve(results)
+				p:resolve(results or false)
 			end)
 			return Citizen.Await(p)
 		end,
 		NotGovernment = function(self)
 			local p = promise.new()
 			MySQL.query('SELECT * FROM characters WHERE Jobs NOT LIKE ? AND Jobs IS NOT NULL', { '%"Id":%'.._governmentJobs[1]..'%' }, function(results)
-				if not results then
-					p:resolve(false)
-					return
-				end
-				p:resolve(results)
+				p:resolve(results or false)
 			end)
 			return Citizen.Await(p)
 		end,
 		Job = function(self, job, term)
 			local p = promise.new()
-
-			local qry = {
-				Jobs = {
-					["$elemMatch"] = {
-						Id = job,
-					},
-				},
-			}
-
+			local where = 'JSON_CONTAINS(Jobs, ?, "$[*].Id")'
+			local params = { job }
 			if term then
-				qry = {
-					["$and"] = {
-						{
-							["$or"] = {
-								{
-									["$expr"] = {
-										["$regexMatch"] = {
-											input = {
-												["$concat"] = { "$First", " ", "$Last" },
-											},
-											regex = term,
-											options = "i",
-										},
-									},
-								},
-								{
-									["$expr"] = {
-										["$regexMatch"] = {
-											input = {
-												["$toString"] = "$SID",
-											},
-											regex = term,
-											options = "i",
-										},
-									},
-								},
-							},
-						},
-						{
-							Jobs = {
-								["$elemMatch"] = {
-									Id = job,
-								},
-							},
-						},
-					},
-				}
+				where = where .. ' AND (First LIKE ? OR Last LIKE ? OR SID LIKE ?)'
+				table.insert(params, '%'..term..'%')
+				table.insert(params, '%'..term..'%')
+				table.insert(params, '%'..term..'%')
 			end
-
-			MySQL.query('SELECT * FROM characters WHERE Jobs LIKE ? AND Jobs IS NOT NULL', { qry }, function(results)
-				if not results then
-					p:resolve(false)
-					return
-				end
-				p:resolve(results)
+			MySQL.query('SELECT * FROM characters WHERE ' .. where, params, function(results)
+				p:resolve(results or false)
 			end)
 			return Citizen.Await(p)
 		end,
 		NotJob = function(self, job)
 			local p = promise.new()
-			MySQL.query('SELECT * FROM characters WHERE Jobs NOT LIKE ? AND Jobs IS NOT NULL', { '%"Id":%'..job..'%' }, function(results)
-				if not results then
-					p:resolve(false)
-					return
-				end
-				p:resolve(results)
+			MySQL.query('SELECT * FROM characters WHERE NOT JSON_CONTAINS(Jobs, ?, "$[*].Id")', { job }, function(results)
+				p:resolve(results or false)
 			end)
 			return Citizen.Await(p)
 		end,
@@ -132,38 +71,27 @@ _MDT.People = {
 		local SID = tonumber(id)
 		local p = promise.new()
 		MySQL.query('SELECT * FROM characters WHERE SID = ? LIMIT 1', { SID }, function(character)
-			if not character or #character < 0 then
+			if not character or #character == 0 then
 				p:resolve(false)
 				return
 			end
-
 			if requireAllData then
 				MySQL.query('SELECT * FROM character_convictions WHERE SID = ? LIMIT 1', { SID }, function(convictions)
-					if not convictions then
-						p:resolve(false)
-						return
-					end
-
-					MySQL.query('SELECT * FROM vehicles WHERE Owner.Type = 0 AND Owner.Id = ?', { SID }, function(success, vehicles)
-						if not success then
-							p:resolve(false)
-							return
-						end
+					MySQL.query('SELECT * FROM vehicles WHERE JSON_EXTRACT(Owner, "$.Type") = 0 AND JSON_EXTRACT(Owner, "$.Id") = ?', { SID }, function(vehicles)
 						local char = character[1]
 						local ownedBusinesses = {}
-
 						if char.Jobs then
+							if type(char.Jobs) == 'string' then char.Jobs = json.decode(char.Jobs) end
 							for k, v in ipairs(char.Jobs) do
 								local jobData = Jobs:Get(v.Id)
-								if jobData.Owner and jobData.Owner == char.SID then
+								if jobData and jobData.Owner and jobData.Owner == char.SID then
 									table.insert(ownedBusinesses, v.Id)
 								end
 							end
 						end
-
 						p:resolve({
 							data = char,
-							convictions = convictions[1],
+							convictions = convictions and convictions[1] or {},
 							vehicles = vehicles,
 							ownedBusinesses = ownedBusinesses,
 						})
@@ -182,11 +110,6 @@ _MDT.People = {
 			logVal = json.encode(value)
 		end
 
-		-- Build the update set
-		local setParts = { key .. ' = ?' }
-		local params = { type(value) == 'table' and json.encode(value) or value }
-
-		-- Build the MDTHistory push
 		local mdtHistoryEntry
 		if requester == -1 then
 			mdtHistoryEntry = json.encode({
@@ -201,20 +124,20 @@ _MDT.People = {
 				Log = string.format("%s Updated Profile, Set %s To %s", requester:GetData("First") .. " " .. requester:GetData("Last"), key, logVal),
 			})
 		end
+		
+		local sql = string.format('UPDATE characters SET `%s` = ?, MDTHistory = JSON_ARRAY_APPEND(COALESCE(MDTHistory, JSON_ARRAY()), "$", ?) WHERE SID = ?', key)
+		local params = { (type(value) == 'table' and json.encode(value) or value), mdtHistoryEntry, id }
 
-		-- SQL for updating the field and appending to MDTHistory JSON array
-		local sql = 'UPDATE characters SET ' .. key .. ' = ?, MDTHistory = JSON_ARRAY_APPEND(COALESCE(MDTHistory, JSON_ARRAY()), "$", ?) WHERE SID = ?'
-		table.insert(params, mdtHistoryEntry)
-		table.insert(params, id)
-
-		MySQL.update(sql, params, function(success, results)
-			if success then
+		MySQL.update(sql, params, function(results)
+			if results and results.affectedRows > 0 then
 				local target = Fetch:SID(id)
 				if target then
 					target:GetData("Character"):SetData(key, value)
 				end
+				p:resolve(true)
+			else
+				p:resolve(false)
 			end
-			p:resolve(success)
 		end)
 		return Citizen.Await(p)
 	end,
@@ -273,7 +196,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 	Callbacks:RegisterServerCallback("MDT:CheckCallsign", function(source, data, cb)
 		if CheckMDTPermissions(source, false) then
 			MySQL.query('SELECT * FROM characters WHERE Callsign = ?', { data }, function(results)
-				cb(#results == 0)
+				cb(results and #results == 0)
 			end)
 		else
 			cb(false)
@@ -283,7 +206,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 	Callbacks:RegisterServerCallback("MDT:CheckParole", function(source, data, cb)
 		if CheckMDTPermissions(source, false) then
 			MySQL.query('SELECT * FROM characters WHERE SID = ? AND Parole IS NOT NULL', { data }, function(results)
-				if results[1].Parole ~= nil then
+				if results and results[1] and results[1].Parole ~= nil then
 					cb(results[1].Parole)
 				else
 					cb(false)

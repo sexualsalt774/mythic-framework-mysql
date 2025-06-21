@@ -26,8 +26,8 @@ function RegisterMiddleware()
 	Middleware:Add("Characters:GetSpawnPoints", function(source, charId)
 		local p = promise.new()
 
-		MySQL.query('SELECT * FROM properties WHERE JSON_EXTRACT(`keys`, "$.' .. charId .. '") IS NOT NULL AND (foreclosed IS NULL OR foreclosed = 0) AND type NOT IN ("container", "warehouse")', {}, function(success, results)
-			if not success or not results or #results == 0 then
+		MySQL.query('SELECT * FROM properties WHERE JSON_EXTRACT(`keys`, "$.' .. charId .. '") IS NOT NULL AND (foreclosed IS NULL OR foreclosed = 0) AND type NOT IN ("container", "warehouse")', {}, function(results)
+			if not results or #results == 0 then
 				p:resolve({})
 				return
 			end

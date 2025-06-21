@@ -8,8 +8,8 @@ AddEventHandler('Businesses:Server:Startup', function()
             end
         end
 
-        MySQL.query('SELECT * FROM business_tvs', {}, function(success, results)
-            if success and results and #results > 0 then
+        MySQL.query('SELECT * FROM business_tvs', {}, function(results)
+            if results and #results > 0 then
                 for k, v in pairs(results) do
                     if v.tv and _tvData[v.tv] then
                         GlobalState[string.format('TVsLink:%s', v.tv)] = v.link

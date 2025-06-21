@@ -223,8 +223,8 @@ function StorageUnitStartup()
     if not _ran then
         _ran = true
 
-        MySQL.query('SELECT * FROM storage_units', {}, function(success, results)
-            if success then
+        MySQL.query('SELECT * FROM storage_units', {}, function(results)
+            if results then
                 local count = results and #results or 0
                 Logger:Trace("StorageUnits", "Loaded ^2" .. count .. "^7 Storage Units", { console = true })
                 
@@ -325,8 +325,8 @@ _STORAGEUNITS = {
         MySQL.update('UPDATE storage_units SET `' .. key .. '` = ? WHERE id = ?', {
             queryValue,
             id
-        }, function(success, results)
-            if success and not skipRefresh then
+        }, function(results)
+            if results and not skipRefresh then
                 if key ~= "passcode" then
                     local unit = GlobalState[string.format("StorageUnit:%s", id)]
                     if unit then
@@ -338,14 +338,14 @@ _STORAGEUNITS = {
                 end
             end
 
-            p:resolve(success)
+            p:resolve(results)
         end)
         return Citizen.Await(p)
     end,
     Delete = function(self, id)
         local p = promise.new()
-        MySQL.query('DELETE FROM storage_units WHERE id = ?', {id}, function(success, result)
-            if success then
+        MySQL.query('DELETE FROM storage_units WHERE id = ?', {id}, function(results)
+            if results then
                 local newUnitIds = {}
                 for k, v in ipairs(GlobalState["StorageUnits"]) do
                     if v ~= id then
@@ -356,7 +356,7 @@ _STORAGEUNITS = {
                 GlobalState["StorageUnits"] = newUnitIds
                 GlobalState[string.format("StorageUnit:%s", id)] = nil
             end
-            p:resolve(success)
+            p:resolve(results)
         end)
 
         return Citizen.Await(p)
@@ -369,8 +369,8 @@ _STORAGEUNITS = {
             os.time(),
             os.time(),
             id
-        }, function(success, results)
-            if success then
+        }, function(results)
+            if results then
                 local unit = GlobalState[string.format("StorageUnit:%s", id)]
                 if unit then
                     unit["owner"] = owner
@@ -384,7 +384,7 @@ _STORAGEUNITS = {
                 end
             end
 
-            p:resolve(success)
+            p:resolve(results)
         end)
         return Citizen.Await(p)
     end,

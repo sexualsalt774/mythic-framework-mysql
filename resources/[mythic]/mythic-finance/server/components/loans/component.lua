@@ -28,8 +28,8 @@ _LOANS = {
             stateId,
             type,
             os.time() + (60 * 60 * 24 * 1)
-        }, function(success, results)
-            if not success then
+        }, function(results)
+            if not results then
                 p:resolve(false)
                 return
             end
@@ -82,8 +82,8 @@ _LOANS = {
                 doc.TotalMissedPayments,
                 doc.NextPayment,
                 doc.LastPayment
-            }, function(success, inserted)
-                if success and inserted > 0 then
+            }, function(inserted)
+                if inserted and inserted > 0 then
                     p:resolve(true)
                 else
                     p:resolve(false)
@@ -140,8 +140,8 @@ _LOANS = {
                 doc.TotalMissedPayments,
                 doc.NextPayment,
                 doc.LastPayment
-            }, function(success, inserted)
-                if success and inserted > 0 then
+            }, function(inserted)
+                if inserted and inserted > 0 then
                     p:resolve(true)
                 else
                     p:resolve(false)
@@ -244,8 +244,8 @@ _LOANS = {
                                 dueAmount,
                                 payments,
                                 loan.id
-                            }, function(success, updated)
-                                if success and updated > 0 then
+                            }, function(updated)
+                                if updated and updated > 0 then
                                     if creditScoreIncrease > 0 then
                                         IncreaseCharacterCreditScore(SID, creditScoreIncrease)
                                     end
@@ -283,8 +283,8 @@ _LOANS = {
                             
                             updateQuery = updateQuery .. ' WHERE id = ?'
                             
-                            MySQL.update(updateQuery, updateParams, function(success, updated)
-                                if success and updated > 0 then
+                            MySQL.update(updateQuery, updateParams, function(updated)
+                                if updated and updated > 0 then
                                     if creditScoreIncrease > 0 then
                                         IncreaseCharacterCreditScore(SID, creditScoreIncrease)
                                     end
@@ -319,8 +319,8 @@ _LOANS = {
     HasRemainingPayments = function(self, assetType, assetId)
         local p = promise.new()
 
-        MySQL.query('SELECT * FROM loans WHERE Type = ? AND AssetIdentifier = ? LIMIT 1', {assetType, assetId}, function(success, results)
-            if success and #results > 0 then
+        MySQL.query('SELECT * FROM loans WHERE Type = ? AND AssetIdentifier = ? LIMIT 1', {assetType, assetId}, function(results)
+            if results and #results > 0 then
                 local l = results[1]
                 if l and l.Remaining and l.Remaining > 0 then
                     p:resolve(true)
@@ -356,8 +356,8 @@ end)
 
 function GetLoanByID(loanId, stateId)
     local p = promise.new()
-    MySQL.query('SELECT * FROM loans WHERE id = ? AND SID = ? LIMIT 1', {loanId, stateId}, function(success, results)
-        if success and #results > 0 then
+    MySQL.query('SELECT * FROM loans WHERE id = ? AND SID = ? LIMIT 1', {loanId, stateId}, function(results)
+        if results and #results > 0 then
             p:resolve(results[1])
         else
             p:resolve(false)
@@ -400,8 +400,8 @@ function UpdateLoanById(loanId, update)
     
     table.insert(params, loanId)
     
-    MySQL.update('UPDATE loans ' .. setClause .. ' WHERE id = ?', params, function(success, updated)
-        if success and updated > 0 then
+    MySQL.update('UPDATE loans ' .. setClause .. ' WHERE id = ?', params, function(updated)
+        if updated and updated > 0 then
             p:resolve(true)
         else
             p:resolve(false)

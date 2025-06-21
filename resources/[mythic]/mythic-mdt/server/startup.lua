@@ -15,49 +15,49 @@ function Startup()
 	-- Update expired warrants
 	MySQL.update('UPDATE mdt_warrants SET state = "expired" WHERE expires <= ?', {
 		os.time() * 1000
-	}, function(success, updated)
-		if success then
-			Logger:Trace("MDT", "Expired ^2" .. (updated or 0) .. "^7 Old Warrants", { console = true })
+	}, function(result)
+		if result and result > 0 then
+			Logger:Trace("MDT", "Expired ^2" .. (result or 0) .. "^7 Old Warrants", { console = true })
 		end
 	end)
 
 	-- Load active warrants
-	MySQL.query('SELECT * FROM mdt_warrants WHERE state = "active"', {}, function(success, results)
-		if success and results then
+	MySQL.query('SELECT * FROM mdt_warrants WHERE state = "active"', {}, function(results)
+		if results then
 			Logger:Trace("MDT", "Loaded ^2" .. #results .. "^7 Active Warrants", { console = true })
 			_warrants = results
 		end
 	end)
 
 	-- Load charges
-	MySQL.query('SELECT * FROM mdt_charges', {}, function(success, results)
-		if success and results then
+	MySQL.query('SELECT * FROM mdt_charges', {}, function(results)
+		if results then
 			Logger:Trace("MDT", "Loaded ^2" .. #results .. "^7 Charges", { console = true })
 			_charges = results
 		end
 	end)
 
 	-- Load tags
-	MySQL.query('SELECT * FROM mdt_tags', {}, function(success, results)
-		if success and results then
+	MySQL.query('SELECT * FROM mdt_tags', {}, function(results)
+		if results then
 			Logger:Trace("MDT", "Loaded ^2" .. #results .. "^7 Tags", { console = true })
 			_tags = results
 		end
 	end)
 
 	-- Load notices
-	MySQL.query('SELECT * FROM mdt_notices', {}, function(success, results)
-		if success and results then
+	MySQL.query('SELECT * FROM mdt_notices', {}, function(results)
+		if results then
 			Logger:Trace("MDT", "Loaded ^2" .. #results .. "^7 Notices", { console = true })
 			_notices = results
 		end
 	end)
 
 	-- Load flagged vehicles - very simple query
-	MySQL.query('SELECT VIN, Flags, RegisteredPlate, Type FROM vehicles', {}, function(success, results)
-		if success then
+	MySQL.query('SELECT VIN, Flags, RegisteredPlate, Type FROM vehicles', {}, function(results)
+		if results then
 			local flaggedCount = 0
-			if results and #results > 0 then
+			if #results > 0 then
 				for k, v in ipairs(results) do
 					if v.RegisteredPlate and v.Type == 0 and v.Flags then
 						-- Check if Flags contains radarFlag

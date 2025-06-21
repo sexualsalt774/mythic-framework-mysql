@@ -52,8 +52,8 @@ end)
 function FindAllJobs()
 	local p = promise.new()
 
-	MySQL.query('SELECT * FROM jobs', {}, function(success, results)
-		if success and results and #results > 0 then
+	MySQL.query('SELECT * FROM jobs', {}, function(results)
+		if results and #results > 0 then
 			-- Decode JSON fields for each result
 			for k, v in pairs(results) do
 				if v then
@@ -94,8 +94,8 @@ function RefreshAllJobData(job)
 
 	-- Process government jobs
 	local govPromise = promise.new()
-	MySQL.query('SELECT Type, Id, Name, Workplaces FROM jobs WHERE Type = "Government"', {}, function(success, results)
-		if success and results and #results > 0 then
+	MySQL.query('SELECT Type, Id, Name, Workplaces FROM jobs WHERE Type = "Government"', {}, function(results)
+		if results and #results > 0 then
 			for k, v in pairs(results) do
 				if v and v.Id and v.Workplaces then
 					local workplaces = json.decode(v.Workplaces)
@@ -119,8 +119,8 @@ function RefreshAllJobData(job)
 
 	-- Process company jobs
 	local companyPromise = promise.new()
-	MySQL.query('SELECT Type, Id, Name, Grades FROM jobs WHERE Type = "Company"', {}, function(success, results)
-		if success and results and #results > 0 then
+	MySQL.query('SELECT Type, Id, Name, Grades FROM jobs WHERE Type = "Company"', {}, function(results)
+		if results and #results > 0 then
 			for k, v in pairs(results) do
 				if v and v.Id and v.Grades then
 					local grades = json.decode(v.Grades)
@@ -148,65 +148,45 @@ function RunStartup()
     if _ranStartup then return; end
     _ranStartup = true
 
-	-- Simple function to insert or update a job using ON DUPLICATE KEY UPDATE
-	local function upsertJob(document)
-		local p = promise.new()
-		
-		-- Ensure all required fields have safe defaults
-		local jobData = {
-			Type = document.Type or 'Company',
-			Id = document.Id,
-			Name = document.Name or 'Unknown Job',
-			Salary = document.Salary or 0,
-			SalaryTier = document.SalaryTier or 1,
-			Grades = json.encode(document.Grades or {}),
-			Workplaces = json.encode(document.Workplaces or {}),
-			Data = json.encode(document.Data or {}),
-			Owner = document.Owner or nil,
-			LastUpdated = document.LastUpdated or os.time()
-		}
-		
-		MySQL.insert('INSERT INTO jobs (Type, Id, Name, Salary, SalaryTier, Grades, Workplaces, Data, Owner, LastUpdated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE Name = VALUES(Name), Salary = VALUES(Salary), SalaryTier = VALUES(SalaryTier), Grades = VALUES(Grades), Workplaces = VALUES(Workplaces), Data = VALUES(Data), Owner = VALUES(Owner), LastUpdated = VALUES(LastUpdated)', {
-			jobData.Type,
-			jobData.Id,
-			jobData.Name,
-			jobData.Salary,
-			jobData.SalaryTier,
-			jobData.Grades,
-			jobData.Workplaces,
-			jobData.Data,
-			jobData.Owner,
-			jobData.LastUpdated
-		}, function(success, inserted)
-			if success then
-				p:resolve(true)
-			else
-				Logger:Error('Jobs', 'Error upserting job: ' .. tostring(document.Id))
-				p:resolve(false)
-			end
-		end)
-		
-		return p
-	end
+    -- Batch upsert all default jobs using a single transaction
+    local queries = {}
+    for _, v in ipairs(_defaultJobData) do
+        if v and v.Id then
+            table.insert(queries, {
+                query = 'INSERT INTO jobs (Type, Id, Name, Salary, SalaryTier, Grades, Workplaces, Data, Owner, LastUpdated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE Name = VALUES(Name), Salary = VALUES(Salary), SalaryTier = VALUES(SalaryTier), Grades = VALUES(Grades), Workplaces = VALUES(Workplaces), Data = VALUES(Data), Owner = VALUES(Owner), LastUpdated = VALUES(LastUpdated)',
+                values = {
+                    v.Type or 'Company',
+                    v.Id,
+                    v.Name or 'Unknown Job',
+                    v.Salary or 0,
+                    v.SalaryTier or 1,
+                    json.encode(v.Grades or {}),
+                    json.encode(v.Workplaces or {}),
+                    json.encode(v.Data or {}),
+                    v.Owner or nil,
+                    v.LastUpdated or os.time()
+                }
+            })
+        else
+            Logger:Error('Jobs', 'Invalid job data found at index ' .. tostring(_))
+        end
+    end
 
-	-- Process all default jobs
-	local awaitingPromises = {}
-	for k, v in ipairs(_defaultJobData) do
-		if v and v.Id then
-			table.insert(awaitingPromises, upsertJob(v))
-		else
-			Logger:Error('Jobs', 'Invalid job data found at index ' .. k)
-		end
-	end
+    if #queries > 0 then
+        local p = promise.new()
+        MySQL.transaction(queries, function(success)
+            if success then
+                Logger:Info('Jobs', 'Processed ^2' .. #queries .. '^7 Default Jobs (batched)')
+            else
+                Logger:Error('Jobs', 'Failed to process default jobs in batch')
+            end
+            p:resolve(success)
+        end)
+        Citizen.Await(p)
+    end
 
-	-- Wait for all jobs to be processed
-	if #awaitingPromises > 0 then
-		Citizen.Await(promise.all(awaitingPromises))
-		Logger:Info('Jobs', 'Processed ^2' .. #awaitingPromises .. '^7 Default Jobs')
-	end
-
-	-- Refresh job data
-	RefreshAllJobData()
-	Logger:Trace('Jobs', string.format('Loaded ^2%s^7 Jobs', JOB_COUNT))
-	TriggerEvent('Jobs:Server:CompleteStartup')
+    -- Refresh job data
+    RefreshAllJobData()
+    Logger:Trace('Jobs', string.format('Loaded ^2%s^7 Jobs', JOB_COUNT))
+    TriggerEvent('Jobs:Server:CompleteStartup')
 end

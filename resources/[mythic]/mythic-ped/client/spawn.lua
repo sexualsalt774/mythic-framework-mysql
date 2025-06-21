@@ -8,10 +8,16 @@ end)
 
 SPAWN = {
     SpawnToWorld = function(self, data, cb)
+        print("test2??")
         DoScreenFadeOut(500)
         while not IsScreenFadedOut() do Wait(10) end
         Callbacks:ServerCallback('Ped:CheckPed', {}, function(hasPed)
             print(json.encode(hasPed, {indent = true}))
+            print(hasPed, hasPed?.existed)
+            for k,v in pairs(hasPed) do 
+                print('Key', k)
+                print('Value', v)
+            end
             data.Ped = hasPed.ped
             if not hasPed.existed then
                 cb()

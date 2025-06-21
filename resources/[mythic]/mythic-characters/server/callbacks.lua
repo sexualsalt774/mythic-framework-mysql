@@ -18,13 +18,12 @@ function RegisterCallbacks()
 		end
 
 		local motd = GetConvar('motd', 'Welcome to Mythic RP')
-		MySQL.query('SELECT * FROM changelogs ORDER BY date DESC LIMIT 1', {}, function(success, results)
-			if not success then
+		MySQL.query('SELECT * FROM changelogs ORDER BY date DESC LIMIT 1', {}, function(results)
+			if not results then
 				Logger:Error("Characters", "Failed to load changelog", { console = true })
 				cb({ changelog = nil, motd = '' })
 				return
 			end
-
 			if results and #results > 0 then
 				cb({ changelog = results[1], motd = motd })
 			else
@@ -40,37 +39,37 @@ function RegisterCallbacks()
 				cb({})
 				return
 			end
+
 			local cData = {}
+			local promises = {}
+
 			for k, v in ipairs(results) do
 				local p = promise.new()
+				table.insert(promises, p)
 
 				if not v.ID then
 					Logger:Error("Characters", "Character ID is nil", { console = true })
 					p:resolve(true)
-					Citizen.Await(p)
-					goto continue
+				else
+					MySQL.query('SELECT * FROM peds WHERE `Char` = ? LIMIT 1', {v.ID}, function(pedData)
+						table.insert(cData, {
+							ID = v.ID,
+							First = v.First,
+							Last = v.Last,
+							Phone = v.Phone,
+							DOB = v.DOB,
+							Gender = v.Gender,
+							LastPlayed = v.LastPlayed,
+							Jobs = v.Jobs and json.decode(v.Jobs) or {},
+							SID = v.SID,
+							GangChain = v.GangChain,
+							Preview = pedData and pedData[1] and pedData[1].Ped or false
+						})
+						p:resolve(true)
+					end)
 				end
-
-				MySQL.query('SELECT * FROM peds WHERE `Char` = ? LIMIT 1', {v.ID}, function(s2, pedData)
-					table.insert(cData, {
-						ID = v.ID,
-						First = v.First,
-						Last = v.Last,
-						Phone = v.Phone,
-						DOB = v.DOB,
-						Gender = v.Gender,
-						LastPlayed = v.LastPlayed,
-						Jobs = json.decode(v.Jobs),
-						SID = v.SID,
-						GangChain = v.GangChain,
-						Preview = pedData and pedData[1] and pedData[1].Ped or false
-					})
-					p:resolve(true)
-				end)
-
-				Citizen.Await(p)
-				::continue::
 			end
+			Citizen.Await(promise.all(promises))
 			player:SetData('Characters', cData)
 			cb(cData)
 		end)
@@ -79,10 +78,13 @@ function RegisterCallbacks()
 	Callbacks:RegisterServerCallback('Characters:CreateCharacter', function(source, data, cb)
 		local player = Fetch:Source(source)
 		local pNumber = GeneratePhoneNumber()
-		while IsNumberInUse(pNumber) do
-			pNumber = GeneratePhoneNumber()
-		end
-
+		
+		-- Citizen.Await(function() -- this is the same error for both anyway
+			while IsNumberInUse(pNumber) do
+				pNumber = GeneratePhoneNumber()
+			end
+		-- end)
+		
 		local doc = {
 			User = player:GetData('AccountID'),
 			First = data.first,
@@ -97,29 +99,13 @@ function RegisterCallbacks()
 			SID = Sequence:Get('Character'),
 			Cash = 5000,
 			New = true,
-			Apartment = 1, -- Default apartment for new characters
+			Apartment = 1,
 			Licenses = {
-				Drivers = {
-					Active = true,
-					Points = 0,
-					Suspended = false,
-				},
-				Weapons = {
-					Active = false,
-					Suspended = false,
-				},
-				Hunting = {
-					Active = false,
-					Suspended = false,
-				},
-				Fishing = {
-					Active = false,
-					Suspended = false,
-				},
-				Pilot = {
-					Active = false,
-					Suspended = false,
-				},
+				Drivers = { Active = true, Points = 0, Suspended = false },
+				Weapons = { Active = false, Suspended = false },
+				Hunting = { Active = false, Suspended = false },
+				Fishing = { Active = false, Suspended = false },
+				Pilot = { Active = false, Suspended = false },
 			},
 		}
 
@@ -134,28 +120,27 @@ function RegisterCallbacks()
 
 		MySQL.insert('INSERT INTO characters (User, First, Last, Phone, Gender, Bio, Origin, DOB, LastPlayed, Jobs, SID, Cash, New, Apartment, Licenses) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
 			doc.User, doc.First, doc.Last, doc.Phone, doc.Gender, doc.Bio, doc.Origin, doc.DOB, doc.LastPlayed, json.encode(doc.Jobs), doc.SID, doc.Cash, doc.New, doc.Apartment, json.encode(doc.Licenses)
-		}, function(insertedId)
-			doc.ID = insertedId
-			TriggerEvent('Characters:Server:CharacterCreated', doc)
-			Middleware:TriggerEvent('Characters:Created', source, doc)
-			cb(doc)
-
-			Logger:Info(
-				'Characters',
-				string.format(
-					'%s [%s] Created a New Character %s %s (%s)',
-					player:GetData('Name'),
-					player:GetData('AccountID'),
-					doc.First,
-					doc.Last,
-					doc.SID
-				),
-				{
-					console = true,
-					file = true,
-					database = true,
-				}
-			)
+		}, function(result)
+			if result and type(result) == "number" and result > 0 then
+				doc.ID = result
+				TriggerEvent('Characters:Server:CharacterCreated', doc)
+				Middleware:TriggerEvent('Characters:Created', source, doc)
+				cb(doc)
+				Logger:Info(
+					'Characters',
+					string.format(
+						'%s [%s] Created a New Character %s %s (%s)',
+						player:GetData('Name'),
+						player:GetData('AccountID'),
+						doc.First,
+						doc.Last,
+						doc.SID
+					),
+					{ console = true, file = true, database = true }
+				)
+			else
+				cb(false)
+			end
 		end)
 	end)
 
@@ -167,11 +152,10 @@ function RegisterCallbacks()
 				return
 			end
 			local deletingChar = results[1]
-			MySQL.update('UPDATE characters SET Deleted = 1 WHERE User = ? AND ID = ?', { player:GetData('AccountID'), data }, function(success)
-				TriggerEvent('Characters:Server:CharacterDeleted', data)
-				cb(success)
-
-				if success then
+			MySQL.update('UPDATE characters SET Deleted = 1 WHERE User = ? AND ID = ?', { player:GetData('AccountID'), data }, function(result)
+				if result and result.affectedRows > 0 then
+					TriggerEvent('Characters:Server:CharacterDeleted', data)
+					cb(true)
 					Logger:Warn(
 						'Characters',
 						string.format(
@@ -182,15 +166,10 @@ function RegisterCallbacks()
 							deletingChar.Last,
 							deletingChar.SID
 						),
-						{
-							console = true,
-							file = true,
-							database = true,
-							discord = {
-								embed = true,
-							},
-						}
+						{ console = true, file = true, database = true, discord = { embed = true } }
 					)
+				else
+					cb(false)
 				end
 			end)
 		end)
@@ -203,20 +182,24 @@ function RegisterCallbacks()
 				cb(nil)
 				return
 			end
-			if results[1].New then
+			local charData = results[1]
+			if type(charData.Jailed) == 'string' then charData.Jailed = json.decode(charData.Jailed) end
+			if type(charData.ICU) == 'string' then charData.ICU = json.decode(charData.ICU) end
+
+			if charData.New then
 				cb({
 					{
 						id = 1,
 						label = 'Character Creation',
-						location = Apartment:GetInteriorLocation(results[1].Apartment or 1),
+						location = Apartment:GetInteriorLocation(charData.Apartment or 1),
 					},
 				})
-			elseif results[1].Jailed and not results[1].Jailed.Released ~= nil then
+			elseif charData.Jailed and not charData.Jailed.Released then
 				cb({ Config.PrisonSpawn })
-			elseif results[1].ICU and not results[1].ICU.Released then
+			elseif charData.ICU and not charData.ICU.Released then
 				cb({ Config.ICUSpawn })
 			else
-				local spawns = Middleware:TriggerEventWithData('Characters:GetSpawnPoints', source, data, results[1])
+				local spawns = Middleware:TriggerEventWithData('Characters:GetSpawnPoints', source, data, charData)
 				cb(spawns)
 			end
 		end)
@@ -229,20 +212,15 @@ function RegisterCallbacks()
 				cb(nil)
 				return
 			end
-
 			local cData = results[1]
 			cData.Source = source
 			cData.ID = results[1].ID
 			cData._id = nil
-
 			local store = DataStore:CreateStore(source, 'Character', cData)
-
 			player:SetData('Character', store)
 			GlobalState[string.format('SID:%s', source)] = cData.SID
 			GlobalState[string.format('Account:%s', source)] = player:GetData('AccountID')
-
 			Middleware:TriggerEvent('Characters:CharacterSelected', source)
-
 			cb(cData)
 		end)
 	end)
@@ -278,7 +256,6 @@ function HandleLastLocation(source)
 			end
 		end
 	end
-
 	_tempLastLocation[source] = nil
 end
 
@@ -304,7 +281,6 @@ function RegisterMiddleware()
 			end
 		end
 	end, 10000)
-
 	Middleware:Add('Characters:GetSpawnPoints', function(source, id)
 		if id then
 			local hasLastLocation = _lastSpawnLocations[id]
@@ -327,7 +303,6 @@ function RegisterMiddleware()
 		end
 		return {}
 	end, 1)
-
 	Middleware:Add('Characters:GetSpawnPoints', function(source)
 		local spawns = {}
 		for _, v in ipairs(Spawns) do
@@ -336,7 +311,6 @@ function RegisterMiddleware()
 		end
 		return spawns
 	end, 5)
-
 	Middleware:Add('playerDropped', function(source, message)
 		local player = Fetch:Source(source)
 		if player ~= nil then
@@ -346,19 +320,19 @@ function RegisterMiddleware()
 			end
 		end
 	end, 10000)
-
 	Middleware:Add('Characters:Logout', HandleLastLocation, 6)
 	Middleware:Add('playerDropped', HandleLastLocation, 6)
 end
 
+
 function IsNumberInUse(number)
 	local var = nil
-	MySQL.query('SELECT * FROM characters WHERE phone = ? LIMIT 1', { number }, function(results)
+	MySQL.query('SELECT * FROM characters WHERE phone = ? LIMIT 1', {number}, function(results)
 		if not results then
 			var = true
 			return
 		end
-		var = results and #results > 0
+		var = #results > 0
 	end)
 
 	while var == nil do
@@ -366,18 +340,25 @@ function IsNumberInUse(number)
 	end
 end
 
+
+
+-- function IsNumberInUse(number) -- this could
+-- 	local p = promise.new()
+-- 	MySQL.query('SELECT 1 FROM characters WHERE phone = ? LIMIT 1', { number }, function(results)
+-- 		p:resolve(results and #results > 0)
+-- 	end)
+-- 	return Citizen.Await(p)
+-- end
+
 function GeneratePhoneNumber()
 	local phone = ''
-
 	for i = 1, 10, 1 do
 		local d = math.random(0, 9)
 		phone = phone .. d
-
 		if i == 3 or i == 6 then
 			phone = phone .. '-'
 		end
 	end
-
 	return phone
 end
 

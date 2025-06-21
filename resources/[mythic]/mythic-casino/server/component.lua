@@ -123,8 +123,8 @@ AddEventHandler("Core:Shared:Ready", function()
 
 		Callbacks:RegisterServerCallback("Casino:GetBigWins", function(source, data, cb)
             if Player(source).state.onDuty == "casino" then
-				MySQL.query('SELECT * FROM casino_bigwins ORDER BY Time DESC', {}, function(success, results)
-					if success and results and #results > 0 then
+				MySQL.query('SELECT * FROM casino_bigwins ORDER BY Time DESC', {}, function(results)
+					if results and #results > 0 then
 						cb(results)
 					else
 						cb(false)
@@ -152,8 +152,8 @@ function RunConfigStartup()
 	if not _configStartup then
 		_configStartup = true
 
-		MySQL.query('SELECT * FROM casino_config', {}, function(success, results)
-			if success and results and #results > 0 then
+		MySQL.query('SELECT * FROM casino_config', {}, function(results)
+			if results and #results > 0 then
 				for k, v in ipairs(results) do
 					_casinoConfig[v.key] = v.data
 				end

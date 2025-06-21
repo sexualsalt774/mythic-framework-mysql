@@ -1,7 +1,7 @@
 function GetCharacterCreditScore(stateId)
     local p = promise.new()
-    MySQL.query('SELECT Score FROM loans_credit_scores WHERE SID = ? LIMIT 1', {stateId}, function(success, results)
-        if success and #results > 0 then
+    MySQL.query('SELECT Score FROM loans_credit_scores WHERE SID = ? LIMIT 1', {stateId}, function(results)
+        if results and #results > 0 then
             p:resolve(results[1].Score)
         else
             p:resolve(_creditScoreConfig.default)
@@ -23,12 +23,11 @@ function SetCharacterCreditScore(stateId, score)
         score = _creditScoreConfig.min
     end
 
-    MySQL.insert('INSERT INTO loans_credit_scores (SID, Score) VALUES (?, ?) ON DUPLICATE KEY UPDATE Score = VALUES(Score)', {stateId, score}, function(success, inserted)
-        if success then
-            -- Fetch the updated score to return it
-            MySQL.query('SELECT Score FROM loans_credit_scores WHERE SID = ? LIMIT 1', {stateId}, function(success2, results)
-                if success2 and #results > 0 then
-                    p:resolve(results[1].Score)
+    MySQL.insert('INSERT INTO loans_credit_scores (SID, Score) VALUES (?, ?) ON DUPLICATE KEY UPDATE Score = VALUES(Score)', {stateId, score}, function(result)
+        if result and result.affectedRows > 0 then
+            MySQL.query('SELECT Score FROM loans_credit_scores WHERE SID = ? LIMIT 1', {stateId}, function(results2)
+                if results2 and #results2 > 0 then
+                    p:resolve(results2[1].Score)
                 else
                     p:resolve(score)
                 end

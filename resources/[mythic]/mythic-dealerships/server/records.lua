@@ -4,8 +4,8 @@ DEALERSHIPS.Records = {
     Get = function(self, dealership)
         if _dealerships[dealership] then
             local p = promise.new()
-            MySQL.query('SELECT * FROM dealer_records WHERE dealership = ? ORDER BY time DESC LIMIT 100', {dealership}, function(success, results)
-                if success then
+            MySQL.query('SELECT * FROM dealer_records WHERE dealership = ? ORDER BY time DESC LIMIT 100', {dealership}, function(results)
+                if results then
                     p:resolve(results or {})
                 else
                     Logger:Error("Dealerships", "Failed to get dealer records", { console = true })
@@ -44,8 +44,8 @@ DEALERSHIPS.Records = {
 
             local query = string.format('SELECT * FROM dealer_records WHERE %s ORDER BY time DESC LIMIT %d OFFSET %d', whereClause, perPage + 1, offset)
             
-            MySQL.query(query, params, function(success, results)
-                if success then
+            MySQL.query(query, params, function(results)
+                if results then
                     local more = false
                     if #results > perPage then
                         more = true
@@ -82,8 +82,8 @@ DEALERSHIPS.Records = {
                 json.encode(document.buyer or {}),
                 document.newQuantity,
                 json.encode(document.loan or {})
-            }, function(success, result)
-                if success then
+            }, function(result)
+                if results then
                     p:resolve(true)
                 else
                     Logger:Error("Dealerships", "Failed to create dealer record", { console = true })
@@ -111,8 +111,8 @@ DEALERSHIPS.Records = {
                 json.encode(document.buyer or {}),
                 document.newQuantity,
                 json.encode(document.loan or {})
-            }, function(success, result)
-                if success then
+            }, function(result)
+                if results then
                     p:resolve(true)
                 else
                     Logger:Error("Dealerships", "Failed to create dealer buyback record", { console = true })

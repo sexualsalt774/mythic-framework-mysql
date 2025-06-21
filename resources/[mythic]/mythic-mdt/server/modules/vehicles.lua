@@ -6,8 +6,8 @@ _MDT.Vehicles = {
 			'%' .. term .. '%',
 			'%' .. term .. '%',
 			'%' .. term .. '%'
-		}, function(success, results)
-			if not success then
+		}, function(results)
+			if not results then
 				Logger:Error("MDT", "Failed to search vehicles", { console = true })
 				p:resolve(false)
 				return
@@ -19,15 +19,14 @@ _MDT.Vehicles = {
 	end,
 	View = function(self, VIN)
 		local p = promise.new()
-		MySQL.query('SELECT * FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
-			if not success or #results <= 0 then
+		MySQL.query('SELECT * FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(results)
+			if not results or #results <= 0 then
 				p:resolve(false)
 				return
 			end
 			local vehicle = results[1]
 
 			if vehicle.Owner then
-				-- Decode JSON Owner data if it's a string
 				if type(vehicle.Owner) == "string" then
 					vehicle.Owner = json.decode(vehicle.Owner)
 				end
@@ -56,10 +55,8 @@ _MDT.Vehicles = {
 	Flags = {
 		Add = function(self, VIN, data, plate)
 			local p = promise.new()
-			
-			-- Get current flags and add new one
-			MySQL.query('SELECT Flags FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
-				if success and #results > 0 then
+			MySQL.query('SELECT Flags FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(results)
+				if results and #results > 0 then
 					local currentFlags = results[1].Flags or {}
 					if type(currentFlags) == "string" then
 						currentFlags = json.decode(currentFlags) or {}
@@ -70,11 +67,11 @@ _MDT.Vehicles = {
 					MySQL.update('UPDATE vehicles SET Flags = ? WHERE VIN = ?', {
 						json.encode(currentFlags),
 						VIN
-					}, function(updateSuccess, result)
-						if updateSuccess and data.radarFlag and plate then
+					}, function(result)
+						if result and result.affectedRows > 0 and data.radarFlag and plate then
 							Radar:AddFlaggedPlate(plate, 'Vehicle Flagged in MDT')
 						end
-						p:resolve(updateSuccess)
+						p:resolve(result and result.affectedRows > 0)
 					end)
 				else
 					Logger:Error("MDT", "Failed to get vehicle flags", { console = true })
@@ -85,16 +82,13 @@ _MDT.Vehicles = {
 		end,
 		Remove = function(self, VIN, flag)
 			local p = promise.new()
-			
-			-- Get current flags and remove the specified one
-			MySQL.query('SELECT Flags FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
-				if success and #results > 0 then
+			MySQL.query('SELECT Flags FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(results)
+				if results and #results > 0 then
 					local currentFlags = results[1].Flags or {}
 					if type(currentFlags) == "string" then
 						currentFlags = json.decode(currentFlags) or {}
 					end
 					
-					-- Remove flags with matching Type
 					local newFlags = {}
 					for k, v in ipairs(currentFlags) do
 						if v.Type ~= flag then
@@ -105,8 +99,8 @@ _MDT.Vehicles = {
 					MySQL.update('UPDATE vehicles SET Flags = ? WHERE VIN = ?', {
 						json.encode(newFlags),
 						VIN
-					}, function(updateSuccess, result)
-						p:resolve(updateSuccess)
+					}, function(result)
+						p:resolve(result and result.affectedRows > 0)
 					end)
 				else
 					Logger:Error("MDT", "Failed to get vehicle flags for removal", { console = true })
@@ -121,15 +115,15 @@ _MDT.Vehicles = {
 		MySQL.update('UPDATE vehicles SET Strikes = ? WHERE VIN = ?', {
 			json.encode(strikes),
 			VIN
-		}, function(success, result)
-			p:resolve(success)
+		}, function(result)
+			p:resolve(result and result.affectedRows > 0)
 		end)
 		return Citizen.Await(p)
 	end,
 	GetStrikes = function(self, VIN)
 		local p = promise.new()
-		MySQL.query('SELECT VIN, Strikes, RegisteredPlate FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
-			if success then
+		MySQL.query('SELECT VIN, Strikes, RegisteredPlate FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(results)
+			if results then
 				local veh = results[1]
 				local strikes = 0
 				if veh and veh.Strikes then
@@ -148,7 +142,6 @@ _MDT.Vehicles = {
 				p:resolve(0)
 			end
 		end)
-
 		return Citizen.Await(p)
 	end
 }

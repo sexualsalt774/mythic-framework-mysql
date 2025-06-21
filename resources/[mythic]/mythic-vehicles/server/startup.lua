@@ -4,14 +4,14 @@ function Startup()
     if _ran then return end
     _ran = true
 
-    MySQL.query('SELECT COUNT(*) as count FROM vehicles WHERE JSON_EXTRACT(Owner, "$.Type") = 0', {}, function(success, results)
-        if success and results and #results > 0 then
+    MySQL.query('SELECT COUNT(*) as count FROM vehicles WHERE JSON_EXTRACT(Owner, "$.Type") = 0', {}, function(results)
+        if results and #results > 0 then
             Logger:Trace('Vehicles', string.format('Loaded ^2%s^7 Character Owned Vehicles', results[1].count))
         end
     end)
 
-    MySQL.query('SELECT COUNT(*) as count FROM vehicles WHERE JSON_EXTRACT(Owner, "$.Type") = 1', {}, function(success, results)
-        if success and results and #results > 0 then
+    MySQL.query('SELECT COUNT(*) as count FROM vehicles WHERE JSON_EXTRACT(Owner, "$.Type") = 1', {}, function(results)
+        if results and #results > 0 then
             Logger:Trace('Vehicles', string.format('Loaded ^2%s^7 Fleet Owned Vehicles', results[1].count))
         end
     end)

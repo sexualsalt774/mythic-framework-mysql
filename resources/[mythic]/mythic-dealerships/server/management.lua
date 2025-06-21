@@ -3,10 +3,10 @@ _managementData = {}
 DEALERSHIPS.Management = {
     LoadData = function(self)
         local p = promise.new()
-        MySQL.query('SELECT * FROM dealer_data', {}, function(success, results)
-            if success then
+        MySQL.query('SELECT * FROM dealer_data', {}, function(results)
+            if results then
                 local fuckface = {}
-                if results and #results > 0 then
+                if #results > 0 then
                     for k, v in ipairs(results) do
                         if v.dealership then
                             -- Decode JSON data if it exists
@@ -54,8 +54,8 @@ DEALERSHIPS.Management = {
                 dealerId,
                 jsonData,
                 jsonData
-            }, function(success, result)
-                if success then
+            }, function(result)
+                if result and result.affectedRows > 0 then
                     _managementData[dealerId] = dealerData
                     p:resolve(_managementData[dealerId])
                 else
@@ -87,8 +87,8 @@ DEALERSHIPS.Management = {
                 dealerId,
                 jsonData,
                 jsonData
-            }, function(success, result)
-                if success then
+            }, function(result)
+                if result and result.affectedRows > 0 then
                     _managementData[dealerId] = dealerData
                     p:resolve(_managementData[dealerId])
                 else

@@ -3,9 +3,9 @@ local showroomsLoaded = false
 DEALERSHIPS.Showroom = {
     Load = function(self)
         local p = promise.new()
-        MySQL.query('SELECT * FROM dealer_showrooms', {}, function(success, results)
+        MySQL.query('SELECT * FROM dealer_showrooms', {}, function(results)
             local showRoomData = {}
-            if success and results and #results > 0 then
+            if results and #results > 0 then
                 for k, v in ipairs(results) do
                     if _dealerships[v.dealership] then
                         -- Decode JSON showroom data if it exists
@@ -25,7 +25,7 @@ DEALERSHIPS.Showroom = {
                 GlobalState.DealershipShowrooms = showRoomData
                 showroomsLoaded = true
             end
-            p:resolve(success)
+            p:resolve(results)
         end)
         return Citizen.Await(p)
     end,

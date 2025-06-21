@@ -17,7 +17,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 					Time = (os.time() * 1000),
 					Char = char:GetData("SID"),
 					Log = string.format("%s Hired Them To %s", char:GetData("First") .. " " .. char:GetData("Last"), json.encode(data)),
-				}), data.SID }, function(success, results) end)
+				}), data.SID }, function(results) end)
 			end
 		else
 			cb(false)
@@ -60,8 +60,8 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 							Time = (os.time() * 1000),
 							Char = char:GetData("SID"),
 							Log = string.format("%s Fired Them From Job %s", char:GetData("First") .. " " .. char:GetData("Last"), data.JobId),
-						}), data.SID }, function(success, results)
-							if success then
+						}), data.SID }, function(results)
+							if results then
 								if (data.JobId == "police" or data.JobId == "ems") then
 									local plyr = Fetch:SID(data.SID)
 									if plyr then
@@ -122,7 +122,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 							Time = (os.time() * 1000),
 							Char = char:GetData("SID"),
 							Log = string.format("%s Promoted Them To %s", char:GetData("First") .. " " .. char:GetData("Last"), json.encode(newJobData)),
-						}), data.SID }, function(success, results) end)
+						}), data.SID }, function(results) end)
 					end
 				else
 					cb(false)

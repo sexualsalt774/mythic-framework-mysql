@@ -1,8 +1,8 @@
 function GetCharactersLoans(stateId)
     local p = promise.new()
 
-    MySQL.query('SELECT * FROM loans WHERE SID = ?', {stateId}, function(success, results)
-        if success and #results > 0 then
+    MySQL.query('SELECT * FROM loans WHERE SID = ?', {stateId}, function(results)
+        if results and #results > 0 then
             p:resolve(results)
         else
             p:resolve({})

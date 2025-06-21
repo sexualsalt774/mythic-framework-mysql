@@ -6,16 +6,16 @@ COMPONENTS.Punishment = {
 
 		local p = promise.new()
 		
-		MySQL.query('SELECT * FROM bans WHERE ?? = ? AND active = 1', {key, value}, function(success, results)
-			if not success then
-				COMPONENTS.Logger:Error(
-					"Database",
-					"[^8Error^7] Error in CheckBan query: " .. tostring(results),
-					{ console = true, file = true, database = true }
-				)
-				p:resolve(nil)
-				return
-			end
+		MySQL.query('SELECT * FROM bans WHERE ?? = ? AND active = 1', {key, value}, function(results)
+			-- if not results then
+			-- 	COMPONENTS.Logger:Error(
+			-- 		"Database",
+			-- 		"[^8Error^7] Error in CheckBan query: " .. tostring(results),
+			-- 		{ console = true, file = true, database = true }
+			-- 	)
+			-- 	p:resolve(nil)
+			-- 	return
+			-- end
 
 			if results and #results > 0 then
 				for k, v in ipairs(results) do
@@ -134,8 +134,8 @@ COMPONENTS.Punishment.Unban = {
 		if COMPONENTS.Punishment:CheckBan("id", id) then
 			local iPlayer = COMPONENTS.Fetch:Source(issuer)
 
-			MySQL.query('SELECT * FROM bans WHERE id = ? AND active = 1', {id}, function(success, results)
-				if success and results and #results > 0 then
+			MySQL.query('SELECT * FROM bans WHERE id = ? AND active = 1', {id}, function(results)
+				if results and #results > 0 then
 					if COMPONENTS.Punishment.Actions:Unban(results, iPlayer) then
 						COMPONENTS.Chat.Send.Server:Single(
 							iPlayer:GetData("Source"),
@@ -158,8 +158,8 @@ COMPONENTS.Punishment.Unban = {
 
 			local iPlayer = COMPONENTS.Fetch:Source(issuer)
 
-			MySQL.query('SELECT * FROM bans WHERE account = ? AND active = 1', {aId}, function(success, results)
-				if success and results and #results > 0 then
+			MySQL.query('SELECT * FROM bans WHERE account = ? AND active = 1', {aId}, function(results)
+				if results and #results > 0 then
 					if COMPONENTS.Punishment.Actions:Unban(results, iPlayer) then
 						COMPONENTS.Chat.Send.Server:Single(
 							iPlayer:GetData("Source"),
@@ -193,8 +193,8 @@ COMPONENTS.Punishment.Unban = {
 			end
 			local iPlayer = COMPONENTS.Fetch:Source(issuer)
 
-			MySQL.query('SELECT * FROM bans WHERE identifier = ? AND active = 1', {identifier}, function(success, results)
-				if success and results and #results > 0 then
+			MySQL.query('SELECT * FROM bans WHERE identifier = ? AND active = 1', {identifier}, function(results)
+				if results and #results > 0 then
 					if COMPONENTS.Punishment.Actions:Unban(results, iPlayer) then
 						COMPONENTS.Chat.Send.Server:Single(
 							iPlayer:GetData("Source"),
