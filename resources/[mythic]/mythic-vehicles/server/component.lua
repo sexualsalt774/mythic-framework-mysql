@@ -364,7 +364,7 @@ VEHICLE = {
 
                     VIN = VIN,
                     RegisteredPlate = plate,
-                    FakePlate = false,
+                    FakePlate = nil,
                     Fuel = math.random(90, 100),
 
                     Owner = ownerData,
