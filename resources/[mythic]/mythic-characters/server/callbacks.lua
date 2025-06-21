@@ -52,6 +52,11 @@ function RegisterCallbacks()
 					p:resolve(true)
 				else
 					MySQL.query('SELECT * FROM peds WHERE `Char` = ? LIMIT 1', {v.ID}, function(pedData)
+						local previewData = pedData and pedData[1] and pedData[1].Ped or false
+						if previewData and type(previewData) == 'string' then
+							previewData = json.decode(previewData)
+						end
+
 						table.insert(cData, {
 							ID = v.ID,
 							First = v.First,
@@ -63,7 +68,7 @@ function RegisterCallbacks()
 							Jobs = v.Jobs and json.decode(v.Jobs) or {},
 							SID = v.SID,
 							GangChain = v.GangChain,
-							Preview = pedData and pedData[1] and pedData[1].Ped or false
+							Preview = previewData,
 						})
 						p:resolve(true)
 					end)
@@ -326,29 +331,23 @@ end
 
 
 function IsNumberInUse(number)
-	local var = nil
-	MySQL.query('SELECT * FROM characters WHERE phone = ? LIMIT 1', {number}, function(results)
-		if not results then
-			var = true
-			return
-		end
-		var = #results > 0
-	end)
 
-	while var == nil do
-		Wait(10)
-	end
+    -- local var = nil
+    -- MySQL.query('SELECT * FROM characters WHERE phone = ? LIMIT 1', {number}, function(results)
+    --     if not results then
+    --         var = true
+    --         return
+    --     end
+    --     var = #results > 0
+    -- end)
+
+    -- while var == nil do
+    --     Wait(10)
+    -- end
+
+	local result = MySQL.query.await('SELECT 1 FROM characters WHERE phone = ? LIMIT 1', { number })
+	return result and #result > 0
 end
-
-
-
--- function IsNumberInUse(number) -- this could
--- 	local p = promise.new()
--- 	MySQL.query('SELECT 1 FROM characters WHERE phone = ? LIMIT 1', { number }, function(results)
--- 		p:resolve(results and #results > 0)
--- 	end)
--- 	return Citizen.Await(p)
--- end
 
 function GeneratePhoneNumber()
 	local phone = ''
