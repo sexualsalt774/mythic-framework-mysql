@@ -12,6 +12,7 @@ client_scripts {
 }
 
 server_scripts {
+    '@oxmysql/lib/MySQL.lua',
     'sh_init.lua',
     'sv_init.lua',
     'sv_config.lua',

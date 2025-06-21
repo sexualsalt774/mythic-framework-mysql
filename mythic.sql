@@ -207,4 +207,12 @@ CREATE TABLE IF NOT EXISTS `characters` (
   KEY `CryptoWallet` (`CryptoWallet`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
+DROP TABLE IF EXISTS `sequence`;
+CREATE TABLE IF NOT EXISTS `sequence` (
+  `key` VARCHAR(255) NOT NULL,
+  `current` INT NOT NULL DEFAULT 1,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
 -- Below needs to be worked on / formatted
