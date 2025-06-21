@@ -1,5 +1,7 @@
 local _run = false
 
+-- This was edited and hasnt been tested
+
 AddEventHandler("Core:Server:ForceSave", function()
 	local docs = {}
 	for k, v in pairs(_plants) do
@@ -9,17 +11,24 @@ AddEventHandler("Core:Server:ForceSave", function()
 	end
 	if #docs > 0 then
 		Logger:Info("Weed", string.format("Saving ^2%s^7 Plants", #docs))
+		
+		local queries = {}
 		for _, plant in ipairs(docs) do
-			MySQL.prepare('INSERT INTO weed (id, is_male, x, y, z, growth, output, material, planted, water, fertilizer_type, fertilizer_value, fertilizer_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE is_male=VALUES(is_male), x=VALUES(x), y=VALUES(y), z=VALUES(z), growth=VALUES(growth), output=VALUES(output), material=VALUES(material), planted=VALUES(planted), water=VALUES(water), fertilizer_type=VALUES(fertilizer_type), fertilizer_value=VALUES(fertilizer_value), fertilizer_time=VALUES(fertilizer_time)', {
-				plant._id,
-				plant.isMale and 1 or 0,
-				plant.location.x, plant.location.y, plant.location.z,
-				plant.growth, plant.output, plant.material, plant.planted, plant.water,
-				plant.fertilizer and plant.fertilizer.type or nil,
-				plant.fertilizer and plant.fertilizer.value or nil,
-				plant.fertilizer and plant.fertilizer.time or nil
+			table.insert(queries, {
+				query = 'INSERT INTO weed (id, is_male, x, y, z, growth, output, material, planted, water, fertilizer_type, fertilizer_value, fertilizer_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE is_male=VALUES(is_male), x=VALUES(x), y=VALUES(y), z=VALUES(z), growth=VALUES(growth), output=VALUES(output), material=VALUES(material), planted=VALUES(planted), water=VALUES(water), fertilizer_type=VALUES(fertilizer_type), fertilizer_value=VALUES(fertilizer_value), fertilizer_time=VALUES(fertilizer_time)',
+				values = {
+					plant._id,
+					plant.isMale and 1 or 0,
+					plant.location.x, plant.location.y, plant.location.z,
+					plant.growth, plant.output, plant.material, plant.planted, plant.water,
+					plant.fertilizer and plant.fertilizer.type or nil,
+					plant.fertilizer and plant.fertilizer.value or nil,
+					plant.fertilizer and plant.fertilizer.time or nil
+				}
 			})
 		end
+		
+		MySQL.transaction(queries)
 	end
 end)
 
@@ -38,17 +47,24 @@ function RegisterTasks()
 			end
 			if #docs > 0 then
 				Logger:Info("Weed", string.format("Saving ^2%s^7 Plants", #docs))
+				
+				local queries = {}
 				for _, plant in ipairs(docs) do
-					MySQL.prepare('INSERT INTO weed (id, is_male, x, y, z, growth, output, material, planted, water, fertilizer_type, fertilizer_value, fertilizer_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE is_male=VALUES(is_male), x=VALUES(x), y=VALUES(y), z=VALUES(z), growth=VALUES(growth), output=VALUES(output), material=VALUES(material), planted=VALUES(planted), water=VALUES(water), fertilizer_type=VALUES(fertilizer_type), fertilizer_value=VALUES(fertilizer_value), fertilizer_time=VALUES(fertilizer_time)', {
-						plant._id,
-						plant.isMale and 1 or 0,
-						plant.location.x, plant.location.y, plant.location.z,
-						plant.growth, plant.output, plant.material, plant.planted, plant.water,
-						plant.fertilizer and plant.fertilizer.type or nil,
-						plant.fertilizer and plant.fertilizer.value or nil,
-						plant.fertilizer and plant.fertilizer.time or nil
+					table.insert(queries, {
+						query = 'INSERT INTO weed (id, is_male, x, y, z, growth, output, material, planted, water, fertilizer_type, fertilizer_value, fertilizer_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE is_male=VALUES(is_male), x=VALUES(x), y=VALUES(y), z=VALUES(z), growth=VALUES(growth), output=VALUES(output), material=VALUES(material), planted=VALUES(planted), water=VALUES(water), fertilizer_type=VALUES(fertilizer_type), fertilizer_value=VALUES(fertilizer_value), fertilizer_time=VALUES(fertilizer_time)',
+						values = {
+							plant._id,
+							plant.isMale and 1 or 0,
+							plant.location.x, plant.location.y, plant.location.z,
+							plant.growth, plant.output, plant.material, plant.planted, plant.water,
+							plant.fertilizer and plant.fertilizer.type or nil,
+							plant.fertilizer and plant.fertilizer.value or nil,
+							plant.fertilizer and plant.fertilizer.time or nil
+						}
 					})
 				end
+				
+				MySQL.transaction(queries)
 			end
 		end
 	end)
