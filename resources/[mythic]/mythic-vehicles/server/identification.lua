@@ -70,13 +70,8 @@ function IsVINOwned(vin)
 
     local p = promise.new()
 
-    Database.Game:find({
-        collection = 'vehicles',
-        query = {
-            VIN = vin
-        }
-    }, function(success, results)
-        if success and #results > 0 then
+    MySQL.query('SELECT VIN FROM vehicles WHERE VIN = ? LIMIT 1', {vin}, function(success, results)
+        if success and results and #results > 0 then
             p:resolve(true)
         else
             p:resolve(false)
@@ -90,20 +85,8 @@ end
 function IsPlateOwned(plate)
     local p = promise.new()
 
-    Database.Game:find({
-        collection = 'vehicles',
-        query = {
-            ['$or'] = {
-                {
-                    RegisteredPlate = plate,
-                },
-                {
-                    FakePlate = plate,
-                }
-            }
-        }
-    }, function(success, results)
-        if success and #results > 0 then
+    MySQL.query('SELECT VIN FROM vehicles WHERE RegisteredPlate = ? OR FakePlate = ? LIMIT 1', {plate, plate}, function(success, results)
+        if success and results and #results > 0 then
             p:resolve(true)
         else
             p:resolve(false)

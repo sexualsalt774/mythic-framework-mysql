@@ -77,34 +77,37 @@ LOCATIONS = {
 			Type = type,
 			Name = name,
 		}
-		Database.Game:insertOne({
-			collection = 'locations',
-			document = doc,
-		}, function(success, results)
-			if not success then
-				return
-			end
-
+		MySQL.insert('INSERT INTO locations (Coords, Heading, Type, Name) VALUES (?, ?, ?, ?)', {
+			json.encode(doc.Coords), heading, type, name
+		}, function(insertId)
+			if insertId then
 			TriggerEvent("Locations:Server:Added", type, doc)
 			if cb ~= nil then
-				cb(results > 0)
+					cb(true)
+				end
+			else
+				if cb ~= nil then
+					cb(false)
+				end
 			end
 		end)
 	end,
 	GetAll = function(self, type, cb)
-		Database.Game:find({
-			collection = 'locations',
-			query = {
-				Type = type,
-			},
-		}, function(success, results)
-			if not success then
-				return
-			end
+		MySQL.query('SELECT * FROM locations WHERE Type = ?', {type}, function(results)
+			if results then
 			for k, location in ipairs(results) do
+					-- Parse Coords from JSON if it's stored as JSON
+					if type(location.Coords) == "string" then
+						local coords = json.decode(location.Coords)
+						results[k].Coords = vector3(coords.x, coords.y, coords.z)
+					else
 				results[k].Coords = vector3(location.Coords.x, location.Coords.y, location.Coords.z)
+					end
 			end
 			cb(results)
+			else
+				cb({})
+			end
 		end)
 	end,
 }

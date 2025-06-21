@@ -1,12 +1,7 @@
 function GetCharactersLoans(stateId)
     local p = promise.new()
 
-    Database.Game:find({
-        collection = 'loans',
-        query = {
-            SID = stateId,
-        }
-    }, function(success, results)
+    MySQL.query('SELECT * FROM loans WHERE SID = ?', {stateId}, function(success, results)
         if success and #results > 0 then
             p:resolve(results)
         else

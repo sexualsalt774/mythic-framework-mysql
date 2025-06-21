@@ -107,54 +107,60 @@ _BANKING = {
 		end,
 		AddPersonalSavingsJointOwner = function(self, accountId, jointOwnerSID)
 			local p = promise.new()
-			Database.Game:findOneAndUpdate({
-				collection = 'bank_accounts',
-				query = {
-					Account = accountId,
-				},
-				update = {
-					["$push"] = {
-						JointOwners = jointOwnerSID,
-					},
-				},
-				options = {
-					returnDocument = "after",
-				},
-			}, function(success, results)
-				if success and results then
-					p:resolve(results)
+			
+			MySQL.update('UPDATE bank_accounts SET JointOwners = JSON_ARRAY_APPEND(COALESCE(JointOwners, "[]"), "$", ?) WHERE Account = ?', {
+				jointOwnerSID, accountId
+			}, function(affectedRows)
+				if affectedRows and affectedRows > 0 then
+					-- Get the updated record
+					MySQL.query('SELECT * FROM bank_accounts WHERE Account = ?', {accountId}, function(result)
+						if result and #result > 0 then
+							local account = result[1]
+							if account.JointOwners then
+								account.JointOwners = json.decode(account.JointOwners)
+							end
+							if account.JobAccess then
+								account.JobAccess = json.decode(account.JobAccess)
+							end
+							p:resolve(account)
+						else
+							p:resolve(false)
+						end
+					end)
 				else
 					p:resolve(false)
 				end
 			end)
-
 			
 			local res = Citizen.Await(p)
 			return res
 		end,
 		RemovePersonalSavingsJointOwner = function(self, accountId, jointOwnerSID)
 			local p = promise.new()
-			Database.Game:findOneAndUpdate({
-				collection = 'bank_accounts',
-				query = {
-					Account = accountId,
-				},
-				update = {
-					["$pull"] = {
-						JointOwners = jointOwnerSID,
-					},
-				},
-				options = {
-					returnDocument = "after",
-				},
-			}, function(success, results)
-				if success and results then
-					p:resolve(results)
+			
+			MySQL.update('UPDATE bank_accounts SET JointOwners = JSON_REMOVE(JointOwners, JSON_UNQUOTE(JSON_SEARCH(JointOwners, "one", ?))) WHERE Account = ?', {
+				jointOwnerSID, accountId
+			}, function(affectedRows)
+				if affectedRows and affectedRows > 0 then
+					-- Get the updated record
+					MySQL.query('SELECT * FROM bank_accounts WHERE Account = ?', {accountId}, function(result)
+						if result and #result > 0 then
+							local account = result[1]
+							if account.JointOwners then
+								account.JointOwners = json.decode(account.JointOwners)
+							end
+							if account.JobAccess then
+								account.JobAccess = json.decode(account.JobAccess)
+							end
+							p:resolve(account)
+						else
+							p:resolve(false)
+						end
+					end)
 				else
 					p:resolve(false)
 				end
 			end)
-
 			
 			local res = Citizen.Await(p)
 			return res
@@ -369,22 +375,27 @@ _BANKING = {
 				Data = data,
 			}
 
-			Database.Game:insertOne({
-				collection = 'bank_accounts_transactions',
-				document = doc,
-			})
+			MySQL.insert('INSERT INTO bank_accounts_transactions (Type, Timestamp, Account, Amount, Title, Description, TransactionAccount, Data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', {
+				doc.Type, doc.Timestamp, doc.Account, doc.Amount, doc.Title, doc.Description, doc.TransactionAccount, doc.Data and json.encode(doc.Data) or nil
+			}, function(id)
+				if id then
+					doc.id = id
+				end
+			end)
 			return doc
 		end,
 		Get = function(self, accountNumber)
 			local p = promise.new()
-			Database.Game:find({
-				collection = 'bank_accounts_transactions',
-				query = {
-					Account = accountNumber,
-				},
-			}, function(success, results)
-				if success then
-					p:resolve(results)
+			
+			MySQL.query('SELECT * FROM bank_accounts_transactions WHERE Account = ? ORDER BY Timestamp DESC', {accountNumber}, function(result)
+				if result then
+					-- Parse JSON fields
+					for _, transaction in ipairs(result) do
+						if transaction.Data then
+							transaction.Data = json.decode(transaction.Data)
+						end
+					end
+					p:resolve(result)
 				else
 					p:resolve({})
 				end

@@ -52,7 +52,7 @@ function PlayerClass(identifier, player, deferrals)
 	local _data = {
 		Source = player,
 		State = States.QUEUED,
-		ID = member._id,
+		ID = member.id,
 		Groups = member.groups,
 		Name = member.name,
 		AccountID = member.account,
@@ -136,31 +136,17 @@ function PlayerClass(identifier, player, deferrals)
 
 			local p = promise.new()
 
-			Database.Auth:find({
-				collection = 'bans',
-				query = {
-					tokens = {
-						["$in"] = tkns,
-					},
-					["$or"] = {
-						{
-							expires = -1,
-						},
-						{
-							expires = {
-								["$gt"] = (os.time() * 1000),
-							},
-						},
-					},
-					active = true,
-				},
-			}, function(success, res)
+			-- Convert tokens array to JSON for MySQL query
+			local tokensJson = json.encode(tkns)
+			
+			MySQL.query('SELECT * FROM bans WHERE active = 1 AND (expires = -1 OR expires > ?) AND JSON_CONTAINS(tokens, ?)', 
+				{os.time() * 1000, tokensJson}, function(success, res)
 				if not success then
 					p:resolve(true)
 					return
 				end
 
-				if #res == 0 then
+				if not res or #res == 0 then
 					p:resolve(nil)
 				else
 					local ban = nil
@@ -191,27 +177,12 @@ end
 function FetchDatabaseUser(identifier, player)
 	local p = promise.new()
 
-	Database.Auth:findOne({
-		collection = 'users',
-		query = {
-			identifier = identifier,
-		},
-		limit = 1,
-		options = {
-			projection = {
-				name = 1,
-				forum = 1,
-				account = 1,
-				identifier = 1,
-				verified = 1,
-				joined = 1,
-				groups = 1,
-				avatar = 1,
-				priority = 1,
-			},
-		},
-	}, function(success, results)
-		if success and #results > 0 and results[1].identifier and results[1].identifier == identifier then
+	MySQL.query('SELECT name, forum, account, identifier, verified, joined, groups, avatar, priority FROM users WHERE identifier = ? LIMIT 1', {identifier}, function(results)
+		if results and #results > 0 and results[1].identifier and results[1].identifier == identifier then
+			-- Parse JSON fields if they're stored as strings
+			if type(results[1].groups) == "string" then
+				results[1].groups = json.decode(results[1].groups)
+			end
 			p:resolve(results[1])
 		else
 			local doc = {
@@ -225,10 +196,10 @@ function FetchDatabaseUser(identifier, player)
 				},
 				priority = 0,
 			}
-			Database.Auth:insertOne({
-				collection = 'users',
-				document = doc
-			}, function()
+			MySQL.insert('INSERT INTO users (name, forum, account, identifier, verified, joined, groups, avatar, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+				doc.name, doc.forum, doc.account, doc.identifier, doc.verified and 1 or 0, doc.joined, json.encode(doc.groups), doc.avatar, doc.priority
+			}, function(insertId)
+				doc.id = insertId
 				p:resolve(doc)
 			end)
 		end

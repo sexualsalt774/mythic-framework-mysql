@@ -223,25 +223,28 @@ function StorageUnitStartup()
     if not _ran then
         _ran = true
 
-        Database.Game:find({
-            collection = 'storage_units',
-            query = {},
-        }, function(success, results)
-            if not success then
-                return
+        MySQL.query('SELECT * FROM storage_units', {}, function(success, results)
+            if success then
+                local count = results and #results or 0
+                Logger:Trace("StorageUnits", "Loaded ^2" .. count .. "^7 Storage Units", { console = true })
+                
+                local unitIds = {}
+                if results and #results > 0 then
+                    for k, v in ipairs(results) do
+                        unitPasscodes[v.id] = v.passcode
+
+                        local unit = FormatStorageUnit(v)
+                        table.insert(unitIds, unit.id)
+
+                        GlobalState[string.format("StorageUnit:%s", unit.id)] = unit
+                    end
+                end
+
+                GlobalState["StorageUnits"] = unitIds
+            else
+                Logger:Error("StorageUnits", "Failed to load storage units from database", { console = true })
+                GlobalState["StorageUnits"] = {}
             end
-            Logger:Trace("StorageUnits", "Loaded ^2" .. #results .. "^7 Storage Units", { console = true })
-            local unitIds = {}
-            for k, v in ipairs(results) do
-                unitPasscodes[v._id] = v.passcode
-
-                local unit = FormatStorageUnit(v)
-                table.insert(unitIds, unit.id)
-
-                GlobalState[string.format("StorageUnit:%s", unit.id)] = unit
-            end
-
-            GlobalState["StorageUnits"] = unitIds
         end)
     end
 end
@@ -258,22 +261,27 @@ _STORAGEUNITS = {
             label = label,
             owner = false,
             level = level,
-            location = {
+            location = json.encode({
                 x = location.x,
                 y = location.y,
                 z = location.z,
-            },
+            }),
             managedBy = managedBy,
             lastAccessed = false,
             passcode = "0000",
         }
 
-        Database.Game:insertOne({
-            collection = 'storage_units',
-            document = doc,
-        }, function(success, result, insertedIds)
+        MySQL.insert('INSERT INTO storage_units (label, owner, level, location, managedBy, lastAccessed, passcode) VALUES (?, ?, ?, ?, ?, ?, ?)', {
+            doc.label,
+            doc.owner,
+            doc.level,
+            doc.location,
+            doc.managedBy,
+            doc.lastAccessed,
+            doc.passcode
+        }, function(success, result)
             if success then
-                doc.id = insertedIds[1]
+                doc.id = result.insertId
                 doc.location = location
 
                 local unitIds = GlobalState["StorageUnits"]
@@ -286,6 +294,7 @@ _STORAGEUNITS = {
 
                 p:resolve(doc.id)
             else
+                Logger:Error("StorageUnits", "Failed to create storage unit", { console = true })
                 p:resolve(false)
             end
         end)
@@ -298,16 +307,24 @@ _STORAGEUNITS = {
         end
 
         local p = promise.new()
-        Database.Game:updateOne({
-            collection = 'storage_units',
-            query = {
-                _id = id,
-            },
-            update = {
-                ["$set"] = {
-                    [key] = value,
-                },
-            },
+        
+        -- Handle special cases for JSON fields
+        local queryValue = value
+        if key == "location" and type(value) == "vector3" then
+            queryValue = json.encode({
+                x = value.x,
+                y = value.y,
+                z = value.z,
+            })
+        elseif key == "owner" and type(value) == "table" then
+            queryValue = json.encode(value)
+        elseif key == "soldBy" and type(value) == "table" then
+            queryValue = json.encode(value)
+        end
+
+        MySQL.update('UPDATE storage_units SET `' .. key .. '` = ? WHERE id = ?', {
+            queryValue,
+            id
         }, function(success, results)
             if success and not skipRefresh then
                 if key ~= "passcode" then
@@ -327,12 +344,7 @@ _STORAGEUNITS = {
     end,
     Delete = function(self, id)
         local p = promise.new()
-        Database.Game:deleteOne({
-            collection = 'storage_units',
-            query = {
-                _id = id,
-            },
-        }, function(success, result)
+        MySQL.query('DELETE FROM storage_units WHERE id = ?', {id}, function(success, result)
             if success then
                 local newUnitIds = {}
                 for k, v in ipairs(GlobalState["StorageUnits"]) do
@@ -351,19 +363,12 @@ _STORAGEUNITS = {
     end,
     Sell = function(self, id, owner, seller)
         local p = promise.new()
-        Database.Game:updateOne({
-            collection = 'storage_units',
-            query = {
-                _id = id,
-            },
-            update = {
-                ["$set"] = {
-                    owner = owner,
-                    soldBy = seller,
-                    soldAt = os.time(),
-                    lastAccessed = os.time(),
-                },
-            },
+        MySQL.update('UPDATE storage_units SET owner = ?, soldBy = ?, soldAt = ?, lastAccessed = ? WHERE id = ?', {
+            json.encode(owner),
+            json.encode(seller),
+            os.time(),
+            os.time(),
+            id
         }, function(success, results)
             if success then
                 local unit = GlobalState[string.format("StorageUnit:%s", id)]
@@ -435,25 +440,29 @@ AddEventHandler("Proxy:Shared:RegisterReady", function(component)
 end)
 
 function FormatStorageUnit(data)
-    data.id = data._id
-    data.location = vector3(data.location.x + 0.0, data.location.y + 0.0, data.location.z + 0.0)
+    data.id = data.id
+    if data.location then
+        local locationData = json.decode(data.location)
+        data.location = vector3(locationData.x + 0.0, locationData.y + 0.0, locationData.z + 0.0)
+    end
     data.passcode = nil
+
+    -- Handle JSON fields
+    if data.owner and type(data.owner) == "string" then
+        data.owner = json.decode(data.owner)
+    end
+    if data.soldBy and type(data.soldBy) == "string" then
+        data.soldBy = json.decode(data.soldBy)
+    end
 
     return data
 end
 
 function SaveStorageUnitLastAccess()
     for k, v in pairs(unitLastAccessed) do
-        Database.Game:updateOne({
-            collection = 'storage_units',
-            query = {
-                _id = k,
-            },
-            update = {
-                ["$set"] = {
-                    lastAccessed = v,
-                },
-            },
+        MySQL.update('UPDATE storage_units SET lastAccessed = ? WHERE id = ?', {
+            v,
+            k
         })
     end
 end

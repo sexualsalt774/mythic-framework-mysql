@@ -129,27 +129,9 @@ function RunBankingStartup()
 
     CreateOrganizationBankAccounts()
 
-    Database.Game:aggregate({
-        collection = 'bank_accounts',
-        aggregate = {
-            {
-                ['$group'] = {
-                    _id = '',
-                    TotalBalance = { ['$sum'] = '$Balance' },
-                    Count = { ['$sum'] = 1 }
-                }
-            }, 
-            {
-                ['$project'] = {
-                    _id = 0,
-                    TotalBalance = '$TotalBalance',
-                    Count = '$Count',
-                }
-            }
-        }
-    }, function(success, results)
-        if success and #results > 0 then
-            local data = results[1]
+    MySQL.query('SELECT COUNT(*) as Count, SUM(Balance) as TotalBalance FROM bank_accounts', {}, function(result)
+        if result and #result > 0 then
+            local data = result[1]
             if data.Count then
                 Logger:Trace('Banking', 'Loaded ^2'.. data.Count .. '^7 Bank Accounts')
             end
@@ -160,15 +142,10 @@ function RunBankingStartup()
         Logger:Info('Banking', 'Loaded State Government Account - Balance: ^2$'.. stateAccount.Balance .. '^7')
     end)
 
-    Database.Game:delete({
-        collection = 'bank_accounts_transactions',
-        query = {
-            Timestamp = {
-                ['$lte'] = (os.time() - (60 * 60 * 24 * 30))
-            }
-        },
-    }, function(success, deleted)
-        if success then
+    MySQL.update('DELETE FROM bank_accounts_transactions WHERE Timestamp <= ?', {
+        (os.time() - (60 * 60 * 24 * 30))
+    }, function(deleted)
+        if deleted then
             Logger:Info('Banking', 'Cleared ^2' .. deleted .. '^7' .. ' Old Bank Transactions')
         end
     end)

@@ -1,13 +1,8 @@
 function GetSpawnLocations()
     local p = promise.new()
 
-    Database.Game:find({
-        collection = 'locations',
-        query = {
-            Type = 'spawn'
-        }
-    }, function(success, results)
-        if success and #results > 0 then
+    MySQL.query('SELECT * FROM locations WHERE Type = ?', {'spawn'}, function(results)
+        if results and #results > 0 then
             p:resolve(results)
         else
             p:resolve(false)

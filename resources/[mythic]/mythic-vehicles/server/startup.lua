@@ -4,25 +4,15 @@ function Startup()
     if _ran then return end
     _ran = true
 
-    Database.Game:count({
-        collection = 'vehicles',
-        query = {
-            ['Owner.Type'] = 0,
-        }
-    }, function(success, count)
-        if success then
-            Logger:Trace('Vehicles', string.format('Loaded ^2%s^7 Character Owned Vehicles', count))
+    MySQL.query('SELECT COUNT(*) as count FROM vehicles WHERE JSON_EXTRACT(Owner, "$.Type") = 0', {}, function(success, results)
+        if success and results and #results > 0 then
+            Logger:Trace('Vehicles', string.format('Loaded ^2%s^7 Character Owned Vehicles', results[1].count))
         end
     end)
 
-    Database.Game:count({
-        collection = 'vehicles',
-        query = {
-            ['Owner.Type'] = 1,
-        }
-    }, function(success, count)
-        if success then
-            Logger:Trace('Vehicles', string.format('Loaded ^2%s^7 Fleet Owned Vehicles', count))
+    MySQL.query('SELECT COUNT(*) as count FROM vehicles WHERE JSON_EXTRACT(Owner, "$.Type") = 1', {}, function(success, results)
+        if success and results and #results > 0 then
+            Logger:Trace('Vehicles', string.format('Loaded ^2%s^7 Fleet Owned Vehicles', results[1].count))
         end
     end)
 

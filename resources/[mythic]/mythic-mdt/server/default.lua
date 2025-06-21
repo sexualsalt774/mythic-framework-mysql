@@ -5,7 +5,7 @@ function AddDefaultData()
         _ran = true
         Default:Add(
             "mdt_charges",
-            1630665654,
+            1630665654, -- each column below for table
             json.decode([[
                 [
                     {

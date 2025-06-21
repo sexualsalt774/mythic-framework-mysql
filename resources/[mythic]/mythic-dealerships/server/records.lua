@@ -4,21 +4,11 @@ DEALERSHIPS.Records = {
     Get = function(self, dealership)
         if _dealerships[dealership] then
             local p = promise.new()
-            Database.Game:find({
-                collection = 'dealer_records',
-                query = {
-                    dealership = dealership,
-                },
-                options = {
-                    limit = 100,
-                    sort = {
-                        time = -1,
-                    },
-                }
-            }, function(success, results)
+            MySQL.query('SELECT * FROM dealer_records WHERE dealership = ? ORDER BY time DESC LIMIT 100', {dealership}, function(success, results)
                 if success then
                     p:resolve(results or {})
                 else
+                    Logger:Error("Dealerships", "Failed to get dealer records", { console = true })
                     p:resolve(false)
                 end
             end)
@@ -30,82 +20,31 @@ DEALERSHIPS.Records = {
         if _dealerships[dealership] then
             local p = promise.new()
 
-            local skip = 0
+            local offset = 0
             if page > 1 then
-                skip = perPage * (page - 1)
+                offset = perPage * (page - 1)
             end
 
-            local orQuery = {
-                {
-                    ["$expr"] = {
-                        ["$regexMatch"] = {
-                            input = {
-                                ["$concat"] = {
-                                    { ['$convert'] = { input = "$seller.First", to = "string", onError = "error" }},
-                                    " ", 
-                                    { ['$convert'] = { input = "$seller.Last", to = "string", onError = "error" } }
-                                },
-                            },
-                            regex = term,
-                            options = "i",
-                        },
-                    },
-                },
-                {
-                    ["$expr"] = {
-                        ["$regexMatch"] = {
-                            input = {
-                                ["$concat"] = { "$buyer.First", " ", "$buyer.Last" },
-                            },
-                            regex = term,
-                            options = "i",
-                        },
-                    },
-                },
-                {
-                    ["$expr"] = {
-                        ["$regexMatch"] = {
-                            input = {
-                                ["$concat"] = { "$vehicle.data.make", " ", "$vehicle.data.model" },
-                            },
-                            regex = term,
-                            options = "i",
-                        },
-                    },
-                },
-            }
-
-            local andQuery = {
-                {
-                    dealership = dealership,
-                },
-            }
+            -- Build WHERE clause for search
+            local whereClause = "dealership = ?"
+            local params = {dealership}
             
             if #term > 0 then
-                table.insert(andQuery, {
-                    ["$or"] = orQuery,
-                })
+                whereClause = whereClause .. " AND (JSON_EXTRACT(seller, '$.First') LIKE ? OR JSON_EXTRACT(seller, '$.Last') LIKE ? OR JSON_EXTRACT(buyer, '$.First') LIKE ? OR JSON_EXTRACT(buyer, '$.Last') LIKE ? OR JSON_EXTRACT(vehicle, '$.data.make') LIKE ? OR JSON_EXTRACT(vehicle, '$.data.model') LIKE ?)"
+                local searchTerm = "%" .. term .. "%"
+                for i = 1, 6 do
+                    table.insert(params, searchTerm)
+                end
             end
 
             if category ~= "all" then
-                table.insert(andQuery, {
-                    ["vehicle.data.category"] = category,
-                })
+                whereClause = whereClause .. " AND JSON_EXTRACT(vehicle, '$.data.category') = ?"
+                table.insert(params, category)
             end
 
-            Database.Game:find({
-                collection = 'dealer_records',
-                query = {
-                    ["$and"] = andQuery,
-                },
-                options = {
-                    sort = {
-                        time = -1,
-                    },
-                    skip = skip,
-                    limit = perPage + 1,
-                }
-            }, function(success, results)
+            local query = string.format('SELECT * FROM dealer_records WHERE %s ORDER BY time DESC LIMIT %d OFFSET %d', whereClause, perPage + 1, offset)
+            
+            MySQL.query(query, params, function(success, results)
                 if success then
                     local more = false
                     if #results > perPage then
@@ -118,6 +57,7 @@ DEALERSHIPS.Records = {
                         more = more,
                     })
                 else
+                    Logger:Error("Dealerships", "Failed to get dealer records page", { console = true })
                     p:resolve(false)
                 end
             end)
@@ -129,11 +69,26 @@ DEALERSHIPS.Records = {
         if type(document) == 'table' then
             document.dealership = dealership
             local p = promise.new()
-            Database.Game:insertOne({
-                collection = 'dealer_records',
-                document = document,
-            }, function(success, inserted)
-                p:resolve(success and inserted > 0)
+            MySQL.insert('INSERT INTO dealer_records (dealership, time, type, vehicle, profitPercent, salePrice, dealerProfits, commission, seller, buyer, newQuantity, loan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+                document.dealership,
+                document.time,
+                document.type,
+                json.encode(document.vehicle or {}),
+                document.profitPercent,
+                document.salePrice,
+                document.dealerProfits,
+                document.commission,
+                json.encode(document.seller or {}),
+                json.encode(document.buyer or {}),
+                document.newQuantity,
+                json.encode(document.loan or {})
+            }, function(success, result)
+                if success then
+                    p:resolve(true)
+                else
+                    Logger:Error("Dealerships", "Failed to create dealer record", { console = true })
+                    p:resolve(false)
+                end
             end)
             return Citizen.Await(p)
         end
@@ -143,11 +98,26 @@ DEALERSHIPS.Records = {
         if type(document) == 'table' then
             document.dealership = dealership
             local p = promise.new()
-            Database.Game:insertOne({
-                collection = 'dealer_records_buybacks',
-                document = document,
-            }, function(success, inserted)
-                p:resolve(success and inserted > 0)
+            MySQL.insert('INSERT INTO dealer_records_buybacks (dealership, time, type, vehicle, profitPercent, salePrice, dealerProfits, commission, seller, buyer, newQuantity, loan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+                document.dealership,
+                document.time,
+                document.type,
+                json.encode(document.vehicle or {}),
+                document.profitPercent,
+                document.salePrice,
+                document.dealerProfits,
+                document.commission,
+                json.encode(document.seller or {}),
+                json.encode(document.buyer or {}),
+                document.newQuantity,
+                json.encode(document.loan or {})
+            }, function(success, result)
+                if success then
+                    p:resolve(true)
+                else
+                    Logger:Error("Dealerships", "Failed to create dealer buyback record", { console = true })
+                    p:resolve(false)
+                end
             end)
             return Citizen.Await(p)
         end

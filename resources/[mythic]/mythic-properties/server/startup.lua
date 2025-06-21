@@ -25,18 +25,33 @@ function Startup()
 		return
 	end
 
-	Database.Game:find({
-		collection = 'properties',
-	}, function(success, results)
-		if not success then
+	MySQL.query('SELECT * FROM properties', {}, function(success, results)
+		if not success or not results then
 			return
 		end
 		Logger:Trace("Properties", "Loaded ^2" .. #results .. "^7 Properties", { console = true })
 
 		for k, v in ipairs(results) do
+			-- Decode JSON fields
+			if v.location then
+				v.location = json.decode(v.location)
+			end
+			if v.upgrades then
+				v.upgrades = json.decode(v.upgrades)
+			end
+			if v.data then
+				v.data = json.decode(v.data)
+			end
+			if v.keys then
+				v.keys = json.decode(v.keys)
+			end
+			if v.owner then
+				v.owner = json.decode(v.owner)
+			end
+			
 			local p = doPropertyThings(v)
 
-			_properties[v._id] = p
+			_properties[v.id] = p
 		end
 	end)
 
@@ -44,17 +59,32 @@ function Startup()
 end
 
 RegisterNetEvent("Properties:RefreshProperties", function()
-    Database.Game:find({
-        collection = 'properties',
-    }, function(success, results)
-        if not success then
+    MySQL.query('SELECT * FROM properties', {}, function(success, results)
+        if not success or not results then
             return
         end
         Logger:Warn("Properties", "Loaded ^2" .. #results .. "^7 Properties", { console = true })
 
         for k, v in ipairs(results) do
+            -- Decode JSON fields
+            if v.location then
+                v.location = json.decode(v.location)
+            end
+            if v.upgrades then
+                v.upgrades = json.decode(v.upgrades)
+            end
+            if v.data then
+                v.data = json.decode(v.data)
+            end
+            if v.keys then
+                v.keys = json.decode(v.keys)
+            end
+            if v.owner then
+                v.owner = json.decode(v.owner)
+            end
+            
             local p = doPropertyThings(v)
-            _properties[v._id] = p
+            _properties[v.id] = p
         end
         TriggerLatentClientEvent("Properties:Client:Load", -1, 800000, _properties)
 

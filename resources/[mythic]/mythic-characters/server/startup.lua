@@ -7,24 +7,19 @@ function Startup()
 		return
 	end
 
-	Database.Game:find({
-		collection = 'locations',
-		query = {
-			Type = 'spawn',
-		},
-	}, function(success, results)
-		if not success then
+	MySQL.query('SELECT * FROM locations WHERE Type = ?', {'spawn'}, function(results)
+		if not results then
 			return
 		end
 
-		Logger:Trace('Characters', 'Loaded ^2' .. #results .. '^7 Spawn Locations', { console = true })
+		Logger:Trace('Characters', 'Loaded ^2' .. (results and #results or 0) .. '^7 Spawn Locations', { console = true })
 
 		Spawns = { table.unpack(Config.DefaultSpawns) }
 		for _, v in ipairs(results) do
 			local spawn = {
-				id = v._id,
+				id = v.id,
 				label = v.Name,
-				location = { x = v.Coords.x, y = v.Coords.y, z = v.Coords.z, h = v.Coords.h },
+				location = { x = v.Coords.x, y = v.Coords.y, z = v.Coords.z, h = v.Heading },
 			}
 			table.insert(Spawns, spawn)
 		end

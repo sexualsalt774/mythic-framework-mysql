@@ -26,24 +26,8 @@ function RegisterMiddleware()
 	Middleware:Add("Characters:GetSpawnPoints", function(source, charId)
 		local p = promise.new()
 
-		Database.Game:find({
-			collection = 'properties',
-			query = {
-				[string.format("keys.%s", charId)] = {
-					["$exists"] = true,
-				},
-				foreclosed = {
-					["$ne"] = true,
-				},
-				type = {
-					["$nin"] = {
-						"container",
-						"warehouse",
-					}
-				}
-			},
-		}, function(success, results)
-			if not success or not #results then
+		MySQL.query('SELECT * FROM properties WHERE JSON_EXTRACT(`keys`, "$.' .. charId .. '") IS NOT NULL AND (foreclosed IS NULL OR foreclosed = 0) AND type NOT IN ("container", "warehouse")', {}, function(success, results)
+			if not success or not results or #results == 0 then
 				p:resolve({})
 				return
 			end
@@ -52,8 +36,25 @@ function RegisterMiddleware()
 			local keys = {}
 
 			for k, v in pairs(results) do
-				table.insert(keys, v._id)
-				local property = _properties[v._id]
+				-- Decode JSON fields
+				if v.location then
+					v.location = json.decode(v.location)
+				end
+				if v.upgrades then
+					v.upgrades = json.decode(v.upgrades)
+				end
+				if v.data then
+					v.data = json.decode(v.data)
+				end
+				if v.keys then
+					v.keys = json.decode(v.keys)
+				end
+				if v.owner then
+					v.owner = json.decode(v.owner)
+				end
+				
+				table.insert(keys, v.id)
+				local property = _properties[v.id]
 				if property ~= nil then
 					local interior = property.upgrades?.interior
 					local interiorData = PropertyInteriors[interior]

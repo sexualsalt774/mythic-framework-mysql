@@ -9,43 +9,41 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 	Callbacks:RegisterServerCallback("Phone:Dyn8:Search", function(source, data, cb)
 		local char = Fetch:Source(source):GetData("Character")
 		if char then
-			local qry = {
-				label = {
-					["$regex"] = data,
-					["$options"] = "i",
-				},
-				sold = false,
-			}
+			local whereClause = "label LIKE ?"
+			local params = {"%" .. data .. "%"}
 
 			if Player(source).state.onDuty == 'realestate' then
-				qry = {
-					label = {
-						["$regex"] = data,
-						["$options"] = "i",
-					},
-				}
+				-- Real estate agents can see all properties
+			else
+				-- Regular users can only see unsold properties
+				whereClause = whereClause .. " AND sold = 0"
 			end
 
-			Database.Game:aggregate({
-				collection = 'properties',
-				aggregate = {
-					{
-						["$match"] = {
-							label = {
-								["$regex"] = data,
-								["$options"] = "i",
-							},
-						},
-					},
-					{
-						['$limit'] = 80
-					},
-				},
-			}, function(success, results)
+			MySQL.query('SELECT * FROM properties WHERE ' .. whereClause .. ' LIMIT 80', params, function(success, results)
 				if not success then
 					cb(false)
 					return
 				end
+				
+				-- Decode JSON fields for each result
+				for k, v in pairs(results) do
+					if v.location then
+						v.location = json.decode(v.location)
+					end
+					if v.upgrades then
+						v.upgrades = json.decode(v.upgrades)
+					end
+					if v.data then
+						v.data = json.decode(v.data)
+					end
+					if v.keys then
+						v.keys = json.decode(v.keys)
+					end
+					if v.owner then
+						v.owner = json.decode(v.owner)
+					end
+				end
+				
 				cb(results)
 			end)
 		else

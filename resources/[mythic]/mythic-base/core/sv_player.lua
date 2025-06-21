@@ -152,17 +152,9 @@ COMPONENTS.Player = {
 			for k, v in pairs(ctkns) do
 				table.insert(existing, k)
 			end
-			COMPONENTS.Database.Auth:updateOne({
-				collection = 'users',
-				query = {
-					_id = accountId,
-				},
-				update = {
-					["$set"] = {
-						tokens = existing,
-					},
-				},
-			}, function()
+			MySQL.update('UPDATE users SET tokens = ? WHERE id = ?', {
+				json.encode(existing), accountId
+			}, function(affectedRows)
 				p:resolve(existing)
 			end)
 		else
@@ -171,17 +163,9 @@ COMPONENTS.Player = {
 				table.insert(tkns, k)
 			end
 
-			COMPONENTS.Database.Auth:updateOne({
-				collection = 'users',
-				query = {
-					_id = accountId,
-				},
-				update = {
-					["$set"] = {
-						tokens = tkns,
-					},
-				},
-			}, function()
+			MySQL.update('UPDATE users SET tokens = ? WHERE id = ?', {
+				json.encode(tkns), accountId
+			}, function(affectedRows)
 				p:resolve(tkns)
 			end)
 		end

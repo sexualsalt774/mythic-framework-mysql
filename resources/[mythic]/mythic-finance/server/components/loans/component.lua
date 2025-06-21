@@ -24,25 +24,10 @@ _LOANS = {
     end,
     GetPlayerLoans = function(self, stateId, type)
         local p = promise.new()
-        Database.Game:find({
-            collection = 'loans',
-            query = {
-                SID = stateId,
-                Type = type,
-                ['$or'] = {
-                    {
-                        Remaining = {
-                            ['$gt'] = 0,
-                        }
-                    },
-                    {
-                        Remaining = 0,
-                        LastPayment = {
-                            ['$gte'] = os.time() + (60 * 60 * 24 * 1)
-                        }
-                    }
-                }
-            }
+        MySQL.query('SELECT * FROM loans WHERE SID = ? AND Type = ? AND (Remaining > 0 OR (Remaining = 0 AND LastPayment >= ?))', {
+            stateId,
+            type,
+            os.time() + (60 * 60 * 24 * 1)
         }, function(success, results)
             if not success then
                 p:resolve(false)
@@ -79,9 +64,24 @@ _LOANS = {
                 LastPayment = 0,
             }
 
-            Database.Game:insertOne({
-                collection = 'loans',
-                document = doc,
+            MySQL.insert('INSERT INTO loans (Creation, SID, Type, AssetIdentifier, Defaulted, InterestRate, Total, Remaining, Paid, DownPayment, TotalPayments, PaidPayments, MissablePayments, MissedPayments, TotalMissedPayments, NextPayment, LastPayment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+                doc.Creation,
+                doc.SID,
+                doc.Type,
+                doc.AssetIdentifier,
+                doc.Defaulted,
+                doc.InterestRate,
+                doc.Total,
+                doc.Remaining,
+                doc.Paid,
+                doc.DownPayment,
+                doc.TotalPayments,
+                doc.PaidPayments,
+                doc.MissablePayments,
+                doc.MissedPayments,
+                doc.TotalMissedPayments,
+                doc.NextPayment,
+                doc.LastPayment
             }, function(success, inserted)
                 if success and inserted > 0 then
                     p:resolve(true)
@@ -122,9 +122,24 @@ _LOANS = {
                 LastPayment = 0,
             }
 
-            Database.Game:insertOne({
-                collection = 'loans',
-                document = doc,
+            MySQL.insert('INSERT INTO loans (Creation, SID, Type, AssetIdentifier, Defaulted, InterestRate, Total, Remaining, Paid, DownPayment, TotalPayments, PaidPayments, MissablePayments, MissedPayments, TotalMissedPayments, NextPayment, LastPayment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+                doc.Creation,
+                doc.SID,
+                doc.Type,
+                doc.AssetIdentifier,
+                doc.Defaulted,
+                doc.InterestRate,
+                doc.Total,
+                doc.Remaining,
+                doc.Paid,
+                doc.DownPayment,
+                doc.TotalPayments,
+                doc.PaidPayments,
+                doc.MissablePayments,
+                doc.MissedPayments,
+                doc.TotalMissedPayments,
+                doc.NextPayment,
+                doc.LastPayment
             }, function(success, inserted)
                 if success and inserted > 0 then
                     p:resolve(true)
@@ -199,18 +214,15 @@ _LOANS = {
                         title = 'Loan Payment',
                         description = string.format('Loan Payment for %s %s', GetLoanTypeName(loan.Type), loan.AssetIdentifier),
                         data = {
-                            loan = loan._id,
+                            loan = loan.id,
                         }
                     })
 
                     if chargeSuccess then
-                        local updateQuery
                         local loanPaidOff = false
-                        local nowRemainingPayments = remainingPayments - payments
-                        if nowRemainingPayments <= 0 then
+                        if remainingPayments - payments <= 0 then
                             loanPaidOff = true
                         end
-
 
                         if loan.Defaulted then -- Unseize Assets
                             if loan.Type == 'vehicle' then
@@ -227,51 +239,69 @@ _LOANS = {
                                 creditScoreIncrease += _creditScoreConfig.addition.completingLoan
                             end
 
-                            updateQuery = {
-                                ['$set'] = {
-                                    LastPayment = timeStamp,
-                                    NextPayment = 0,
-                                    Remaining = 0,
-                                    Defaulted = false,
-                                },
-                                ['$inc'] = {
-                                    Paid = dueAmount,
-                                    PaidPayments = payments,
-                                }
-                            }
+                            MySQL.update('UPDATE loans SET LastPayment = ?, NextPayment = 0, Remaining = 0, Defaulted = 0, Paid = Paid + ?, PaidPayments = PaidPayments + ? WHERE id = ?', {
+                                timeStamp,
+                                dueAmount,
+                                payments,
+                                loan.id
+                            }, function(success, updated)
+                                if success and updated > 0 then
+                                    if creditScoreIncrease > 0 then
+                                        IncreaseCharacterCreditScore(SID, creditScoreIncrease)
+                                    end
+                                    
+                                    return {
+                                        success = true,
+                                        paidOff = loanPaidOff,
+                                        paymentAmount = dueAmount,
+                                        creditIncrease = creditScoreIncrease,
+                                    }
+                                else
+                                    return {
+                                        success = false,
+                                        message = 'Failed to update loan',
+                                    }
+                                end
+                            end)
                         else
-                            updateQuery = {
-                                ['$set'] = {
-                                    LastPayment = timeStamp,
-                                    NextPayment = (loan.NextPayment + _loanConfig.paymentInterval),
-                                    Defaulted = false,
-                                },
-                                ['$inc'] = {
-                                    Paid = dueAmount,
-                                    PaidPayments = payments,
-                                    Remaining = -dueAmount,
-                                },
+                            local nextPayment = loan.NextPayment + _loanConfig.paymentInterval
+                            local updateParams = {
+                                timeStamp,
+                                nextPayment,
+                                dueAmount,
+                                payments,
+                                -dueAmount,
+                                loan.id
                             }
-
+                            
+                            local updateQuery = 'UPDATE loans SET LastPayment = ?, NextPayment = ?, Defaulted = 0, Paid = Paid + ?, PaidPayments = PaidPayments + ?, Remaining = Remaining + ?'
+                            
                             if loan.MissedPayments > 0 then
-                                updateQuery['$set']['MissedPayments'] = 0
-                                updateQuery['$set']['MissablePayments'] = math.max(1, loan.MissablePayments - loan.MissedPayments)
+                                updateQuery = updateQuery .. ', MissedPayments = 0, MissablePayments = ?'
+                                table.insert(updateParams, math.max(1, loan.MissablePayments - loan.MissedPayments))
                             end
-                        end
-
-                        local updated = UpdateLoanById(loan._id, updateQuery)
-
-                        if creditScoreIncrease > 0 then
-                            IncreaseCharacterCreditScore(SID, creditScoreIncrease)
-                        end
-
-                        if updated then
-                            return {
-                                success = true,
-                                paidOff = loanPaidOff,
-                                paymentAmount = dueAmount,
-                                creditIncrease = creditScoreIncrease,
-                            }
+                            
+                            updateQuery = updateQuery .. ' WHERE id = ?'
+                            
+                            MySQL.update(updateQuery, updateParams, function(success, updated)
+                                if success and updated > 0 then
+                                    if creditScoreIncrease > 0 then
+                                        IncreaseCharacterCreditScore(SID, creditScoreIncrease)
+                                    end
+                                    
+                                    return {
+                                        success = true,
+                                        paidOff = loanPaidOff,
+                                        paymentAmount = dueAmount,
+                                        creditIncrease = creditScoreIncrease,
+                                    }
+                                else
+                                    return {
+                                        success = false,
+                                        message = 'Failed to update loan',
+                                    }
+                                end
+                            end)
                         end
                     else
                         return {
@@ -289,13 +319,7 @@ _LOANS = {
     HasRemainingPayments = function(self, assetType, assetId)
         local p = promise.new()
 
-        Database.Game:findOne({
-            collection = 'loans',
-            query = {
-                Type = assetType,
-                AssetIdentifier = assetId,
-            }
-        }, function(success, results)
+        MySQL.query('SELECT * FROM loans WHERE Type = ? AND AssetIdentifier = ? LIMIT 1', {assetType, assetId}, function(success, results)
             if success and #results > 0 then
                 local l = results[1]
                 if l and l.Remaining and l.Remaining > 0 then
@@ -332,13 +356,7 @@ end)
 
 function GetLoanByID(loanId, stateId)
     local p = promise.new()
-    Database.Game:findOne({
-        collection = 'loans',
-        query = {
-            _id = loanId,
-            SID = stateId,
-        }
-    }, function(success, results)
+    MySQL.query('SELECT * FROM loans WHERE id = ? AND SID = ? LIMIT 1', {loanId, stateId}, function(success, results)
         if success and #results > 0 then
             p:resolve(results[1])
         else
@@ -352,13 +370,37 @@ end
 
 function UpdateLoanById(loanId, update)
     local p = promise.new()
-    Database.Game:updateOne({
-        collection = 'loans',
-        query = {
-            _id = loanId,
-        },
-        update = update,
-    }, function(success, updated)
+    
+    -- Convert MongoDB update format to MySQL
+    local setClause = ""
+    local incClause = ""
+    local params = {}
+    
+    if update['$set'] then
+        local setParts = {}
+        for key, value in pairs(update['$set']) do
+            table.insert(setParts, key .. " = ?")
+            table.insert(params, value)
+        end
+        setClause = "SET " .. table.concat(setParts, ", ")
+    end
+    
+    if update['$inc'] then
+        local incParts = {}
+        for key, value in pairs(update['$inc']) do
+            table.insert(incParts, key .. " = " .. key .. " + ?")
+            table.insert(params, value)
+        end
+        if setClause ~= "" then
+            setClause = setClause .. ", " .. table.concat(incParts, ", ")
+        else
+            setClause = "SET " .. table.concat(incParts, ", ")
+        end
+    end
+    
+    table.insert(params, loanId)
+    
+    MySQL.update('UPDATE loans ' .. setClause .. ' WHERE id = ?', params, function(success, updated)
         if success and updated > 0 then
             p:resolve(true)
         else

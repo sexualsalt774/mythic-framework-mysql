@@ -4,8 +4,10 @@ function DefaultData()
     if _ran then return end
 
     _ran = true
+    -- This default data is completely wrong in mythic anyway might aswell comment it out
     Default:Add('properties', 1590006209, {
         {
+            type = 'house',
             interior = 1,
             price = 100000,
             location = {

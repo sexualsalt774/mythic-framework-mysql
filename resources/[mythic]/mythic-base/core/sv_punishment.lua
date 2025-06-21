@@ -5,32 +5,25 @@ COMPONENTS.Punishment = {
 		local retVal = -1 -- Fuck You Lua
 
 		local p = promise.new()
-		COMPONENTS.Database.Auth:findOne({
-			collection = 'bans',
-			query = {
-				[key] = value,
-				active = true,
-			},
-		}, function(success, results, insertedIds)
+		
+		MySQL.query('SELECT * FROM bans WHERE ?? = ? AND active = 1', {key, value}, function(success, results)
 			if not success then
 				COMPONENTS.Logger:Error(
 					"Database",
-					"[^8Error^7] Error in insertOne: " .. tostring(results),
+					"[^8Error^7] Error in CheckBan query: " .. tostring(results),
 					{ console = true, file = true, database = true }
 				)
+				p:resolve(nil)
 				return
 			end
 
-			if #results > 0 then
+			if results and #results > 0 then
 				for k, v in ipairs(results) do
 					if v.expires < os.time() and v.expires ~= -1 then
-						COMPONENTS.Database.Auth:updateOne({
-							collection = 'bans',
-							query = { _id = v._id },
-							update = { ["$set"] = { active = false } },
-						})
+						MySQL.update('UPDATE bans SET active = 0 WHERE id = ?', {v.id})
 					else
-						return p:resolve(v)
+						p:resolve(v)
+						return
 					end
 				end
 				p:resolve(nil)
@@ -138,21 +131,17 @@ COMPONENTS.Punishment = {
 
 COMPONENTS.Punishment.Unban = {
 	BanID = function(self, id, issuer)
-		if COMPONENTS.Punishment:CheckBan("_id", id) then
+		if COMPONENTS.Punishment:CheckBan("id", id) then
 			local iPlayer = COMPONENTS.Fetch:Source(issuer)
 
-			COMPONENTS.Database.Auth:find({
-				collection = 'bans',
-				query = {
-					_id = id,
-					active = true,
-				},
-			}, function(success, results)
-				if COMPONENTS.Punishment.Actions:Unban(results, iPlayer) then
-					COMPONENTS.Chat.Send.Server:Single(
-						iPlayer:GetData("Source"),
-						string.format("%s Has Been Revoked", id)
-					)
+			MySQL.query('SELECT * FROM bans WHERE id = ? AND active = 1', {id}, function(success, results)
+				if success and results and #results > 0 then
+					if COMPONENTS.Punishment.Actions:Unban(results, iPlayer) then
+						COMPONENTS.Chat.Send.Server:Single(
+							iPlayer:GetData("Source"),
+							string.format("%s Has Been Revoked", id)
+						)
+					end
 				end
 			end)
 		end
@@ -169,22 +158,18 @@ COMPONENTS.Punishment.Unban = {
 
 			local iPlayer = COMPONENTS.Fetch:Source(issuer)
 
-			COMPONENTS.Database.Auth:find({
-				collection = 'bans',
-				query = {
-					account = aId,
-					active = true,
-				},
-			}, function(success, results)
-				if COMPONENTS.Punishment.Actions:Unban(results, iPlayer) then
-					COMPONENTS.Chat.Send.Server:Single(
-						iPlayer:GetData("Source"),
-						string.format(
-							"%s (Account: %s) Has Been Unbanned",
-							tPlayer:GetData("Name"),
-							tPlayer:GetData("AccountID")
+			MySQL.query('SELECT * FROM bans WHERE account = ? AND active = 1', {aId}, function(success, results)
+				if success and results and #results > 0 then
+					if COMPONENTS.Punishment.Actions:Unban(results, iPlayer) then
+						COMPONENTS.Chat.Send.Server:Single(
+							iPlayer:GetData("Source"),
+							string.format(
+								"%s (Account: %s) Has Been Unbanned",
+								tPlayer:GetData("Name"),
+								tPlayer:GetData("AccountID")
+							)
 						)
-					)
+					end
 				end
 			end)
 
@@ -208,22 +193,18 @@ COMPONENTS.Punishment.Unban = {
 			end
 			local iPlayer = COMPONENTS.Fetch:Source(issuer)
 
-			COMPONENTS.Database.Auth:find({
-				collection = 'bans',
-				query = {
-					identifier = identifier,
-					active = true,
-				},
-			}, function(success, results)
-				if COMPONENTS.Punishment.Actions:Unban(results, iPlayer) then
-					COMPONENTS.Chat.Send.Server:Single(
-						iPlayer:GetData("Source"),
-						string.format(
-							"%s (Identifier: %s) Has Been Unbanned",
-							tPlayer:GetData("Name"),
-							tPlayer:GetData("Identifier")
+			MySQL.query('SELECT * FROM bans WHERE identifier = ? AND active = 1', {identifier}, function(success, results)
+				if success and results and #results > 0 then
+					if COMPONENTS.Punishment.Actions:Unban(results, iPlayer) then
+						COMPONENTS.Chat.Send.Server:Single(
+							iPlayer:GetData("Source"),
+							string.format(
+								"%s (Identifier: %s) Has Been Unbanned",
+								tPlayer:GetData("Name"),
+								tPlayer:GetData("Identifier")
+							)
 						)
-					)
+					end
 				end
 			end)
 
@@ -693,94 +674,159 @@ COMPONENTS.Punishment.Actions = {
 		DropPlayer(tSource, string.format("Kicked From The Server By %s\nReason: %s", issuer, reason))
 	end,
 	Ban = function(self, tSource, tAccount, tIdentifier, tName, tTokens, reason, expires, expStr, issuer, issuerId, mask)
-		local orStatement = {}
-		if tAccount then
-			table.insert(orStatement, {
-				account = tAccount,
-			})
-		end
-
-		if tIdentifier then
-			table.insert(orStatement, {
-				identifier = tIdentifier,
-			})
-		end
-
 		local p = promise.new()
 
-		COMPONENTS.Database.Auth:findOneAndUpdate({
-			collection = 'bans',
-			query = {
-				active = true,
-				["$or"] = orStatement,
-			},
-			update = {
-				["$set"] = {
-					account = tAccount,
-					identifier = tIdentifier,
-					expires = expires,
-					reason = reason,
-					issuer = issuer,
-					active = true,
-					started = os.time(),
-				},
-				["$addToSet"] = {
-					tokens = { ["$each"] = tTokens },
-				},
-			},
-			options = {
-				returnDocument = "after",
-				upsert = true,
-			},
-		}, function(success, results)
-			p:resolve(success)
+		-- First check if a ban already exists for this account or identifier
+		local whereConditions = {}
+		local params = {}
+		
+		if tAccount then
+			table.insert(whereConditions, "account = ?")
+			table.insert(params, tAccount)
+		end
+		
+		if tIdentifier then
+			table.insert(whereConditions, "identifier = ?")
+			table.insert(params, tIdentifier)
+		end
+		
+		if #whereConditions == 0 then
+			p:resolve(false)
+			return Citizen.Await(p)
+		end
+		
+		local whereClause = table.concat(whereConditions, " OR ")
+		
+		MySQL.query('SELECT * FROM bans WHERE (' .. whereClause .. ') AND active = 1', params, function(success, existingBans)
 			if not success then
-				return COMPONENTS.Logger:Error(
+				COMPONENTS.Logger:Error(
 					"Database",
-					"[^8Error^7] Error in insertOne: " .. tostring(results),
+					"[^8Error^7] Error in Ban query: " .. tostring(existingBans),
 					{ console = true, file = true, database = true, discord = { embed = true, type = "error" } }
 				)
+				p:resolve(false)
+				return
 			end
-
-			local data = COMPONENTS.WebAPI:Request("POST", "admin/ban", {
+			
+			local tokensJson = json.encode(tTokens or {})
+			local banData = {
 				account = tAccount,
 				identifier = tIdentifier,
-				duration = expires,
-				issuer = issuerId,
-			}, {})
-			if data.code ~= 200 then
-				COMPONENTS.Logger:Info(
-					"Punishment",
-					("Failed To Ban Account %s On Website"):format(tAccount),
-					{ console = true, discord = { embed = true, type = "error" } }
-				)
-			end
+				expires = expires,
+				reason = reason,
+				issuer = issuer,
+				active = 1,
+				started = os.time(),
+				tokens = tokensJson
+			}
+			
+			if existingBans and #existingBans > 0 then
+				-- Update existing ban
+				local banId = existingBans[1].id
+				MySQL.update('UPDATE bans SET account = ?, identifier = ?, expires = ?, reason = ?, issuer = ?, active = 1, started = ?, tokens = ? WHERE id = ?', 
+					{tAccount, tIdentifier, expires, reason, issuer, os.time(), tokensJson, banId}, function(updateSuccess)
+					if updateSuccess then
+						banData.id = banId
+						p:resolve(true)
+						
+						-- Web API call
+						local data = COMPONENTS.WebAPI:Request("POST", "admin/ban", {
+							account = tAccount,
+							identifier = tIdentifier,
+							duration = expires,
+							issuer = issuerId,
+						}, {})
+						if data.code ~= 200 then
+							COMPONENTS.Logger:Info(
+								"Punishment",
+								("Failed To Ban Account %s On Website"):format(tAccount),
+								{ console = true, discord = { embed = true, type = "error" } }
+							)
+						end
 
-			if mask then
-				reason = "💙 From Pwnzor 🙂"
-			end
+						if mask then
+							reason = "💙 From Pwnzor 🙂"
+						end
 
-			if tSource ~= nil then
-				if expires ~= -1 then
-					DropPlayer(
-						tSource,
-						string.format(
-							"You're Banned, Appeal At https://mythicrp.com/\n\nReason: %s\nExpires: %s\nID: %s",
-							reason,
-							expStr,
-							results._id
-						)
-					)
-				else
-					DropPlayer(
-						tSource,
-						string.format(
-							"You're Permanently Banned, Appeal At https://mythicrp.com/\n\nReason: %s\nID: %s",
-							reason,
-							results._id
-						)
-					)
-				end
+						if tSource ~= nil then
+							if expires ~= -1 then
+								DropPlayer(
+									tSource,
+									string.format(
+										"You're Banned, Appeal At https://mythicrp.com/\n\nReason: %s\nExpires: %s\nID: %s",
+										reason,
+										expStr,
+										banId
+									)
+								)
+							else
+								DropPlayer(
+									tSource,
+									string.format(
+										"You're Permanently Banned, Appeal At https://mythicrp.com/\n\nReason: %s\nID: %s",
+										reason,
+										banId
+									)
+								)
+							end
+						end
+					else
+						p:resolve(false)
+					end
+				end)
+			else
+				-- Insert new ban
+				MySQL.insert('INSERT INTO bans (account, identifier, expires, reason, issuer, active, started, tokens) VALUES (?, ?, ?, ?, ?, 1, ?, ?)', 
+					{tAccount, tIdentifier, expires, reason, issuer, os.time(), tokensJson}, function(insertSuccess, insertId)
+					if insertSuccess then
+						banData.id = insertId
+						p:resolve(true)
+						
+						-- Web API call
+						local data = COMPONENTS.WebAPI:Request("POST", "admin/ban", {
+							account = tAccount,
+							identifier = tIdentifier,
+							duration = expires,
+							issuer = issuerId,
+						}, {})
+						if data.code ~= 200 then
+							COMPONENTS.Logger:Info(
+								"Punishment",
+								("Failed To Ban Account %s On Website"):format(tAccount),
+								{ console = true, discord = { embed = true, type = "error" } }
+							)
+						end
+
+						if mask then
+							reason = "💙 From Pwnzor 🙂"
+						end
+
+						if tSource ~= nil then
+							if expires ~= -1 then
+								DropPlayer(
+									tSource,
+									string.format(
+										"You're Banned, Appeal At https://mythicrp.com/\n\nReason: %s\nExpires: %s\nID: %s",
+										reason,
+										expStr,
+										insertId
+									)
+								)
+							else
+								DropPlayer(
+									tSource,
+									string.format(
+										"You're Permanently Banned, Appeal At https://mythicrp.com/\n\nReason: %s\nID: %s",
+										reason,
+										insertId
+									)
+								)
+							end
+						end
+					else
+						p:resolve(false)
+					end
+				end)
 			end
 		end)
 
@@ -789,13 +835,8 @@ COMPONENTS.Punishment.Actions = {
 	Unban = function(self, ids, issuer)
 		local _ids = {}
 		for k, v in ipairs(ids) do
-			COMPONENTS.Database.Auth:updateOne({
-				collection = 'bans',
-				query = { _id = v._id, active = true },
-				update = {
-					["$set"] = { active = false, unbanned = { issuer = issuer:GetData("Name"), date = os.time() } },
-				},
-			})
+			MySQL.update('UPDATE bans SET active = 0, unbanned = ? WHERE id = ? AND active = 1', 
+				{json.encode({issuer = issuer:GetData("Name"), date = os.time()}), v.id})
 
 			local data = COMPONENTS.WebAPI:Request("DELETE", "admin/ban", {
 				type = v.account ~= nil and "account" or "identifier",
@@ -812,7 +853,7 @@ COMPONENTS.Punishment.Actions = {
 				)
 			end
 
-			table.insert(_ids, v._id)
+			table.insert(_ids, v.id)
 		end
 
 		COMPONENTS.Logger:Info(

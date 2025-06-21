@@ -317,14 +317,14 @@ QUEUE.Connect = function(self, source, playerName, setKickReason, deferrals)
 				banned.reason = "💙 From Pwnzor 🙂"
 			end
 			if banned.expires == -1 then
-				deferrals.done(string.format(Config.Strings.PermaBanned, banned.reason, banned._id or "N/A"))
+				deferrals.done(string.format(Config.Strings.PermaBanned, banned.reason, banned.id or "N/A"))
 			else
 				deferrals.done(
 					string.format(
 						Config.Strings.Banned,
 						banned.reason,
 						os.date("%Y-%m-%d at %I:%M:%S %p", tostring(banned.expires)),
-						banned._id or "N/A"
+						banned.id or "N/A"
 					)
 				)
 			end
@@ -335,14 +335,14 @@ QUEUE.Connect = function(self, source, playerName, setKickReason, deferrals)
 		local tknBan = ply:IsTokenBanned()
 		if tknBan ~= nil then
 			if tknBan.expires == -1 then
-				deferrals.done(string.format(Config.Strings.PermaBanned, tknBan.reason, tknBan._id or "N/A"))
+				deferrals.done(string.format(Config.Strings.PermaBanned, tknBan.reason, tknBan.id or "N/A"))
 			else
 				deferrals.done(
 					string.format(
 						Config.Strings.Banned,
 						tknBan.reason,
 						os.date("%Y-%m-%d at %I:%M:%S %p", tostring(tknBan.expires)),
-						tknBan._id or "N/A"
+						tknBan.id or "N/A"
 					)
 				)
 			end

@@ -81,7 +81,14 @@ STATUS = {
 		local char = player:GetData("Character")
 		if char ~= nil then
 			local status = char:GetData("Status")
-			if status == nil then
+			if type(status) == 'string' then
+				local ok, decoded = pcall(json.decode, status)
+				if ok and type(decoded) == 'table' then
+					status = decoded
+				else
+					status = {}
+				end
+			elseif type(status) ~= 'table' then
 				status = {}
 			end
 			status[name] = value
@@ -100,7 +107,14 @@ RegisterServerEvent("Status:Server:Update", function(data)
 	local char = player:GetData("Character")
 	if char ~= nil then
 		local status = char:GetData("Status")
-		if status == nil then
+		if type(status) == 'string' then
+			local ok, decoded = pcall(json.decode, status)
+			if ok and type(decoded) == 'table' then
+				status = decoded
+			else
+				status = {}
+			end
+		elseif type(status) ~= 'table' then
 			status = {}
 		end
 		status[data.status] = data.value

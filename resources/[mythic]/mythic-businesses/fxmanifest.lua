@@ -11,6 +11,7 @@ version 'v1.0.0'
 url 'https://www.mythicrp.com'
 
 server_scripts {
+    '@oxmysql/lib/MySQL.lua',
     'config/sv_config.lua',
     'config/businesses/*.lua',
     'shared/**/*.lua',

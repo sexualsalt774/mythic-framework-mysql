@@ -123,11 +123,8 @@ AddEventHandler("Core:Shared:Ready", function()
 
 		Callbacks:RegisterServerCallback("Casino:GetBigWins", function(source, data, cb)
             if Player(source).state.onDuty == "casino" then
-				Database.Game:find({
-					collection = 'casino_bigwins',
-					query = {}
-				}, function(success, results)
-					if success and #results > 0 then
+				MySQL.query('SELECT * FROM casino_bigwins ORDER BY Time DESC', {}, function(success, results)
+					if success and results and #results > 0 then
 						cb(results)
 					else
 						cb(false)
@@ -155,11 +152,8 @@ function RunConfigStartup()
 	if not _configStartup then
 		_configStartup = true
 
-		Database.Game:find({
-			collection = 'casino_config',
-			query = {}
-		}, function(success, results)
-			if success and #results > 0 then
+		MySQL.query('SELECT * FROM casino_config', {}, function(success, results)
+			if success and results and #results > 0 then
 				for k, v in ipairs(results) do
 					_casinoConfig[v.key] = v.data
 				end
@@ -206,25 +200,16 @@ _CASINO = {
 		Set = function(self, key, data)
 			local p = promise.new()
 
-			Database.Game:findOneAndUpdate({
-				collection = 'casino_config',
-				query = {
-					key = key,
-				},
-				update = {
-					['$set'] = {
-						data = data,
-					},
-				},
-				options = {
-					returnDocument = 'after',
-					upsert = true,
-				}
-			}, function(success, results)
-				if success and results then
+			MySQL.insert('INSERT INTO casino_config (key, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = ?', {
+				key,
+				json.encode(data),
+				json.encode(data)
+			}, function(success, result)
+				if success then
 					_casinoConfig[key] = data
 					p:resolve(true)
 				else
+					Logger:Error("Casino", "Failed to update casino config", { console = true })
 					p:resolve(false)
 				end
 

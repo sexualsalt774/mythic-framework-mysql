@@ -52,11 +52,22 @@ end)
 function FindAllJobs()
 	local p = promise.new()
 
-	Database.Game:find({
-		collection = 'jobs',
-		query = {},
-	}, function(success, results)
-		if success and #results > 0 then
+	MySQL.query('SELECT * FROM jobs', {}, function(success, results)
+		if success and results and #results > 0 then
+			-- Decode JSON fields for each result
+			for k, v in pairs(results) do
+				if v then
+					if v.Grades then
+						v.Grades = json.decode(v.Grades)
+					end
+					if v.Workplaces then
+						v.Workplaces = json.decode(v.Workplaces)
+					end
+					if v.Data then
+						v.Data = json.decode(v.Data)
+					end
+				end
+			end
 			p:resolve(results)
 		else
 			p:resolve({})
@@ -70,52 +81,62 @@ end
 function RefreshAllJobData(job)
 	local jobsFetch = FindAllJobs()
 	JOB_COUNT = #jobsFetch
+	
+	-- Clear and rebuild cache
+	JOB_CACHE = {}
 	for k, v in ipairs(jobsFetch) do
-		JOB_CACHE[v.Id] = v
+		if v and v.Id then
+			JOB_CACHE[v.Id] = v
+		end
 	end
 
 	TriggerEvent('Jobs:Server:UpdatedCache', job or -1)
 
+	-- Process government jobs
 	local govPromise = promise.new()
-	Database.Game:aggregate({
-        collection = 'jobs',
-        aggregate = {
-			{ ["$match"] = { Type = 'Government' } },
-			{ ["$project"] = { ['Type'] = 1, ['Id'] = 1, ['Name'] = 1, ['Workplaces.Grades'] = 1, ['Workplaces.Id'] = 1 } },
-            { ["$unwind"] = '$Workplaces' },
-            { ["$unwind"] = '$Workplaces.Grades' },
-        }
-    }, function(success, results)
-		if success and #results > 0 then
-			for k, v in ipairs(results) do
-				local key = string.format('JobPerms:%s:%s:%s', v.Id, v.Workplaces.Id, v.Workplaces.Grades.Id)
-				GlobalState[key] = v.Workplaces.Grades.Permissions
+	MySQL.query('SELECT Type, Id, Name, Workplaces FROM jobs WHERE Type = "Government"', {}, function(success, results)
+		if success and results and #results > 0 then
+			for k, v in pairs(results) do
+				if v and v.Id and v.Workplaces then
+					local workplaces = json.decode(v.Workplaces)
+					if workplaces then
+						for _, workplace in pairs(workplaces) do
+							if workplace and workplace.Grades then
+								for _, grade in pairs(workplace.Grades) do
+									if grade and grade.Id and grade.Permissions then
+										local key = string.format('JobPerms:%s:%s:%s', v.Id, workplace.Id or 'default', grade.Id)
+										GlobalState[key] = grade.Permissions
+									end
+								end
+							end
+						end
+					end
+				end
 			end
-			govPromise:resolve(true)
-		else
-			govPromise:resolve(false)
 		end
-    end)
+		govPromise:resolve(true)
+	end)
 
+	-- Process company jobs
 	local companyPromise = promise.new()
-	Database.Game:aggregate({
-        collection = 'jobs',
-        aggregate = {
-			{ ["$match"] = { Type = 'Company' } },
-			{ ["$project"] = { ['Type'] = 1, ['Id'] = 1, ['Name'] = 1, ['Grades'] = 1 } },
-            { ["$unwind"] = '$Grades' },
-        }
-    }, function(success, results)
-		if success and #results > 0 then
-			for k, v in ipairs(results) do
-				local key = string.format('JobPerms:%s:false:%s', v.Id, v.Grades.Id)
-				GlobalState[key] = v.Grades.Permissions
+	MySQL.query('SELECT Type, Id, Name, Grades FROM jobs WHERE Type = "Company"', {}, function(success, results)
+		if success and results and #results > 0 then
+			for k, v in pairs(results) do
+				if v and v.Id and v.Grades then
+					local grades = json.decode(v.Grades)
+					if grades then
+						for _, grade in pairs(grades) do
+							if grade and grade.Id and grade.Permissions then
+								local key = string.format('JobPerms:%s:false:%s', v.Id, grade.Id)
+								GlobalState[key] = grade.Permissions
+							end
+						end
+					end
+				end
 			end
-			companyPromise:resolve(true)
-		else
-			companyPromise:resolve(false)
 		end
-    end)
+		companyPromise:resolve(true)
+	end)
 
 	return Citizen.Await(promise.all({
 		govPromise,
@@ -127,73 +148,64 @@ function RunStartup()
     if _ranStartup then return; end
     _ranStartup = true
 
-	local function replaceExistingDefaultJob(_id, document)
+	-- Simple function to insert or update a job using ON DUPLICATE KEY UPDATE
+	local function upsertJob(document)
 		local p = promise.new()
-		Database.Game:deleteOne({
-			collection = 'jobs',
-			query = {
-				_id = _id,
-			}
-		}, function(success, deleted)
-			if success then
-				Database.Game:insertOne({
-					collection = 'jobs',
-					document = document,
-				}, function(success, inserted)
-					if not success or inserted <= 0 then
-						Logger:Error('Jobs', 'Error Inserting Job on Default Job Update')
-						p:resolve(false)
-					else
-						Wait(10000)
-						p:resolve(true)
-					end
-				end)
-			else
-				Logger:Error('Jobs', 'Error Deleting Job on Default Job Update')
-				p:resolve(false)
-			end
-		end)
-		return p
-	end
-
-	local function insertDefaultJob(document)
-		local p = promise.new()
-		Database.Game:insertOne({
-			collection = 'jobs',
-			document = document,
+		
+		-- Ensure all required fields have safe defaults
+		local jobData = {
+			Type = document.Type or 'Company',
+			Id = document.Id,
+			Name = document.Name or 'Unknown Job',
+			Salary = document.Salary or 0,
+			SalaryTier = document.SalaryTier or 1,
+			Grades = json.encode(document.Grades or {}),
+			Workplaces = json.encode(document.Workplaces or {}),
+			Data = json.encode(document.Data or {}),
+			Owner = document.Owner or nil,
+			LastUpdated = document.LastUpdated or os.time()
+		}
+		
+		MySQL.insert('INSERT INTO jobs (Type, Id, Name, Salary, SalaryTier, Grades, Workplaces, Data, Owner, LastUpdated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE Name = VALUES(Name), Salary = VALUES(Salary), SalaryTier = VALUES(SalaryTier), Grades = VALUES(Grades), Workplaces = VALUES(Workplaces), Data = VALUES(Data), Owner = VALUES(Owner), LastUpdated = VALUES(LastUpdated)', {
+			jobData.Type,
+			jobData.Id,
+			jobData.Name,
+			jobData.Salary,
+			jobData.SalaryTier,
+			jobData.Grades,
+			jobData.Workplaces,
+			jobData.Data,
+			jobData.Owner,
+			jobData.LastUpdated
 		}, function(success, inserted)
-			if not success or inserted <= 0 then
-				Logger:Error('Jobs', 'Error Inserting Job on Default Job Update')
-				p:resolve(false)
-			else
+			if success then
 				p:resolve(true)
+			else
+				Logger:Error('Jobs', 'Error upserting job: ' .. tostring(document.Id))
+				p:resolve(false)
 			end
 		end)
+		
 		return p
 	end
 
-	local jobsFetch = FindAllJobs()
-	local currentData = {}
-	for k, v in ipairs(jobsFetch) do
-		currentData[v.Id] = v
-	end
-
+	-- Process all default jobs
 	local awaitingPromises = {}
 	for k, v in ipairs(_defaultJobData) do
-		local currentDataForJob = currentData[v.Id]
-		if currentDataForJob and currentDataForJob.LastUpdated < v.LastUpdated then
-			table.insert(awaitingPromises, replaceExistingDefaultJob(currentDataForJob._id, v))
-		elseif not currentDataForJob then
-			table.insert(awaitingPromises, insertDefaultJob(v))
+		if v and v.Id then
+			table.insert(awaitingPromises, upsertJob(v))
+		else
+			Logger:Error('Jobs', 'Invalid job data found at index ' .. k)
 		end
 	end
 
+	-- Wait for all jobs to be processed
 	if #awaitingPromises > 0 then
 		Citizen.Await(promise.all(awaitingPromises))
-		Logger:Info('Jobs', 'Inserted/Replaced ^2' .. #awaitingPromises .. '^7 Default Jobs')
-		jobsFetch = FindAllJobs()
+		Logger:Info('Jobs', 'Processed ^2' .. #awaitingPromises .. '^7 Default Jobs')
 	end
 
+	-- Refresh job data
 	RefreshAllJobData()
 	Logger:Trace('Jobs', string.format('Loaded ^2%s^7 Jobs', JOB_COUNT))
 	TriggerEvent('Jobs:Server:CompleteStartup')

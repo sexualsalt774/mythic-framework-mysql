@@ -409,26 +409,25 @@ PED = {
 			end
 		end
 
-		Database.Game:updateOne({
-			collection = 'peds',
-			query = {
-				Char = char:GetData("ID"),
-			},
-			update = {
-				["$set"] = {
-					Ped = ped,
-				},
-			},
-			options = {
-				upsert = true,
-			},
-		}, function(success, results)
-			if not success then
-				return
-			end
-			char:SetData("Ped", ped)
+		local charId = char:GetData("ID")
+		if not charId then
+			Logger:Error("Ped", "No character ID found in Save function", { console = true })
+			p:resolve(false)
+			return Citizen.Await(p)
+		end
 
-			p:resolve(success)
+		MySQL.insert('INSERT INTO peds (`Char`, Ped) VALUES (?, ?) ON DUPLICATE KEY UPDATE Ped = ?', {
+			charId,
+			json.encode(ped),
+			json.encode(ped)
+		}, function(success, result)
+			if success then
+				char:SetData("Ped", ped)
+				p:resolve(true)
+			else
+				Logger:Error("Ped", "Failed to save ped data", { console = true })
+				p:resolve(false)
+			end
 		end)
 
 		return Citizen.Await(p)
@@ -776,16 +775,26 @@ function RegisterCallbacks()
 	Callbacks:RegisterServerCallback("Ped:CheckPed", function(source, data, cb)
 		local player = exports["mythic-base"]:FetchComponent("Fetch"):Source(source)
 		local char = player:GetData("Character")
-		Database.Game:findOne({
-			collection = 'peds',
-			query = {
-				Char = char:GetData("ID"),
-			},
-		}, function(success, results)
+		
+		if not char then
+			Logger:Error("Ped", "No character found for player", { console = true })
+			cb(false)
+			return
+		end
+		
+		local charId = char:GetData("ID")
+		if not charId then
+			Logger:Error("Ped", "No character ID found", { console = true })
+			cb(false)
+			return
+		end
+		
+		MySQL.query('SELECT * FROM peds WHERE `Char` = ? LIMIT 1', {charId}, function(success, results)
 			if not success then
+				Logger:Error("Ped", "Failed to check ped data", { console = true })
 				return
 			end
-			if #results == 0 then
+			if not results or #results == 0 then
 				local tmp = deepcopy(TemplateData)
 
 				if char:GetData("Gender") == 0 then
@@ -800,7 +809,7 @@ function RegisterCallbacks()
 					ped = tmp,
 				})
 			else
-				local tmp = results[1].Ped
+				local tmp = json.decode(results[1].Ped)
 				if tmp.model == "" then
 					if char:GetData("Gender") == 0 then
 						tmp.model = "mp_m_freemode_01"

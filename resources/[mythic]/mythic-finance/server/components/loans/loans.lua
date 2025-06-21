@@ -4,16 +4,9 @@ function RunLoanStartup()
     if _ranStartup then return end
     _ranStartup = true
 
-    Database.Game:count({
-        collection = 'loans',
-        query = {
-            Remaining = {
-                ['$gt'] = 0,
-            }
-        }
-    }, function(success, count)
-        if success then
-            Logger:Trace('Loans', 'Loaded ^2' .. count .. '^7 Active Loans')
+    MySQL.query('SELECT COUNT(*) as count FROM loans WHERE Remaining > 0', {}, function(success, results)
+        if success and results and #results > 0 then
+            Logger:Trace('Loans', 'Loaded ^2' .. results[1].count .. '^7 Active Loans')
         end
     end)
 end
@@ -30,74 +23,17 @@ function CreateLoanTasks()
     --RegisterCommand('testloans', function()
         local TASK_RUN_TIMESTAMP = os.time()
 
-        Database.Game:aggregate({
-            collection = 'loans',
-            aggregate = {
-                {
-                    ['$match'] = {
-                        ['$and'] = {
-                            { -- Due now
-                                NextPayment = { 
-                                    ['$gt'] = 0,
-                                    ['$lte'] = (TASK_RUN_TIMESTAMP)
-                                }
-                            },
-                            { -- There is still cost remaining
-                                Defaulted = false,
-                                Remaining = { 
-                                    ['$gte'] = 0 
-                                } 
-                            },
-                        }
-                    }
-                },
-                {
-                    ['$set'] = {
-                        InterestRate = {
-                            ['$add'] = { '$InterestRate', _loanConfig.missedPayments.interestIncrease }
-                        },
-                        LastMissedPayment = TASK_RUN_TIMESTAMP,
-                        MissedPayments = {
-                            ['$add'] = { '$MissedPayments', 1 },
-                        },
-                        TotalMissedPayments = {
-                            ['$add'] = { '$TotalMissedPayments', 1 },
-                        },
-                        NextPayment = {
-                            ['$add'] = { '$NextPayment', _loanConfig.paymentInterval },
-                        },
-                        Remaining = {
-                            ['$add'] = { 
-                                '$Remaining',
-                                { ['$multiply'] = { '$Total', (_loanConfig.missedPayments.charge / 100) } }
-                            }
-                        }
-                    },
-                },
-                {
-                    ['$merge'] = {
-                        into = 'loans',
-                        on = '_id',
-                        whenMatched = 'replace',
-                        whenNotMatched = 'discard',
-                    }
-                }
-            }
+        -- First, update loans that are due now
+        MySQL.update('UPDATE loans SET InterestRate = InterestRate + ?, LastMissedPayment = ?, MissedPayments = MissedPayments + 1, TotalMissedPayments = TotalMissedPayments + 1, NextPayment = NextPayment + ?, Remaining = Remaining + (Total * ? / 100) WHERE NextPayment > 0 AND NextPayment <= ? AND Defaulted = 0 AND Remaining >= 0', {
+            _loanConfig.missedPayments.interestIncrease,
+            TASK_RUN_TIMESTAMP,
+            _loanConfig.paymentInterval,
+            _loanConfig.missedPayments.charge,
+            TASK_RUN_TIMESTAMP
         }, function(success, results)
             if success then
-                -- Get All the Loans are now need to be defaulted and notify/seize
-                Database.Game:find({
-                    collection = 'loans',
-                    query = {
-                        ['$expr'] = {
-                            ['$gte'] = {
-                                "$MissedPayments",
-                                "$MissablePayments"
-                            }
-                        },
-                        Defaulted = false,
-                    }
-                }, function(success, results)
+                -- Get All the Loans that now need to be defaulted and notify/seize
+                MySQL.query('SELECT * FROM loans WHERE MissedPayments >= MissablePayments AND Defaulted = 0', {}, function(success, results)
                     if success and #results > 0 then
                         local updatingAssets = {}
 
@@ -105,19 +41,7 @@ function CreateLoanTasks()
                             table.insert(updatingAssets, v.AssetIdentifier)
                         end
 
-                        Database.Game:update({
-                            collection = 'loans',
-                            query = {
-                                AssetIdentifier = {
-                                    ['$in'] = updatingAssets
-                                }
-                            },
-                            update = {
-                                ['$set'] = {
-                                    Defaulted = true,
-                                }
-                            }
-                        }, function(success, updated)
+                        MySQL.update('UPDATE loans SET Defaulted = 1 WHERE AssetIdentifier IN (' .. string.rep('?,', #updatingAssets - 1) .. '?)', updatingAssets, function(success, updated)
                             if success then
                                 Logger:Info('Loans', '^2' .. #results .. '^7 Loans Have Just Been Defaulted')
                                 for k, v in ipairs(results) do
@@ -143,19 +67,7 @@ function CreateLoanTasks()
                 end)
 
                 -- Notify if someone just missed a payment.
-                Database.Game:find({
-                    collection = 'loans',
-                    query = {
-                        ['$expr'] = {
-                            ['$lt'] = {
-                                "$MissedPayments",
-                                "$MissablePayments"
-                            }
-                        },
-                        Defaulted = false,
-                        LastMissedPayment = TASK_RUN_TIMESTAMP,
-                    }
-                }, function(success, results)
+                MySQL.query('SELECT * FROM loans WHERE MissedPayments < MissablePayments AND Defaulted = 0 AND LastMissedPayment = ?', {TASK_RUN_TIMESTAMP}, function(success, results)
                     if success and #results > 0 then
                         Logger:Info('Loans', '^2' .. #results .. '^7 Loan Payments Were Just Missed')
                         for k, v in ipairs(results) do
@@ -177,28 +89,7 @@ function CreateLoanTasks()
     Tasks:Register('loan_reminder', 120, function()
         local TASK_RUN_TIMESTAMP = os.time()
         -- Get All Loans That are Due Soon
-        Database.Game:find({
-            collection = 'loans',
-            query = {
-                Remaining = {
-                    ['$gt'] = 0,
-                },
-                Defaulted = false,
-                ['$or'] = {
-                    { -- The payment is due soon
-                        NextPayment = {
-                            ['$gt'] = 0,
-                            ['$lte'] = (TASK_RUN_TIMESTAMP + (60 * 60 * 6)), -- Payment is due within the next 6 hours
-                        }
-                    },
-                    { -- The last payment was missed, annoy them by constantly sending them notifications
-                        MissedPayments = {
-                            ['$gt'] = 0,
-                        }
-                    },
-                }
-            }
-        }, function(success, results)
+        MySQL.query('SELECT * FROM loans WHERE Remaining > 0 AND Defaulted = 0 AND (NextPayment > 0 AND NextPayment <= ? OR MissedPayments > 0)', {TASK_RUN_TIMESTAMP + (60 * 60 * 6)}, function(success, results)
             print("this might hitch the server (loan_reminder task)")
             if success and #results > 0 then
                 for k, v in ipairs(results) do

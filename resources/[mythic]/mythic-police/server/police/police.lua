@@ -438,19 +438,7 @@ POLICE = {
 		return false
 	end,
 	RunPlate = function(self, source, plate, wasEntity)
-		Database.Game:find({
-			collection = 'vehicles',
-			query = {
-				["$or"] = {
-					{
-						RegisteredPlate = plate,
-					},
-					{
-						FakePlate = plate,
-					}
-				},
-			},
-		}, function(success, results)
+		MySQL.query('SELECT * FROM vehicles WHERE RegisteredPlate = ? OR FakePlate = ?', {plate, plate}, function(success, results)
 			if not success or #results == 0 then
 				local stolen = Radar:CheckPlate(plate)
 				if stolen then

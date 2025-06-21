@@ -3,14 +3,22 @@ local showroomsLoaded = false
 DEALERSHIPS.Showroom = {
     Load = function(self)
         local p = promise.new()
-        Database.Game:find({
-            collection = 'dealer_showrooms',
-        }, function(success, results)
+        MySQL.query('SELECT * FROM dealer_showrooms', {}, function(success, results)
             local showRoomData = {}
-            if success and #results > 0 then
+            if success and results and #results > 0 then
                 for k, v in ipairs(results) do
                     if _dealerships[v.dealership] then
-                        showRoomData[v.dealership] = v.showroom or {}
+                        -- Decode JSON showroom data if it exists
+                        if v.showroom and type(v.showroom) == "string" then
+                            local decoded = json.decode(v.showroom)
+                            if decoded then
+                                showRoomData[v.dealership] = decoded
+                            else
+                                showRoomData[v.dealership] = {}
+                            end
+                        else
+                            showRoomData[v.dealership] = v.showroom or {}
+                        end
                     end
                 end
 
@@ -29,18 +37,10 @@ DEALERSHIPS.Showroom = {
             end
             
             local p = promise.new()
-            Database.Game:findOneAndUpdate({
-                collection = 'dealer_showrooms',
-                query = { dealership = dealershipId },
-                update = {
-                    ['$set'] = {
-                        dealership = dealershipId,
-                        showroom = showroom,
-                    }
-                },
-                options = {
-                    upsert = true,
-                }
+            MySQL.insert('INSERT INTO dealer_showrooms (dealership, showroom) VALUES (?, ?) ON DUPLICATE KEY UPDATE showroom = ?', {
+                dealershipId,
+                json.encode(showroom),
+                json.encode(showroom)
             }, function(success, result)
                 if success then
                     -- FiveM is dumb
@@ -51,6 +51,7 @@ DEALERSHIPS.Showroom = {
                     TriggerClientEvent('Dealerships:Client:ShowroomUpdate', -1, dealershipId)
                     p:resolve(showroom)
                 else
+                    Logger:Error("Dealerships", "Failed to update dealer showroom", { console = true })
                     p:resolve(false)
                 end
             end)

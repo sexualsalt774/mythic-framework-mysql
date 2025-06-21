@@ -10,13 +10,8 @@ end
 function IsAccountNumberInUse(account)
     local p = promise.new()
 
-    Database.Game:find({
-        collection = 'bank_accounts',
-        query = {
-            Account = account
-        }
-    }, function(success, results)
-        if success and #results > 0 then
+    MySQL.query('SELECT COUNT(*) as count FROM bank_accounts WHERE Account = ?', {account}, function(result)
+        if result and result[1] and result[1].count > 0 then
             p:resolve(true)
         else
             p:resolve(false)

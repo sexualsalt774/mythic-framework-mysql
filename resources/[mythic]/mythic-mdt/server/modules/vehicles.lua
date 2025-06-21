@@ -1,52 +1,14 @@
 _MDT.Vehicles = {
 	Search = function(self, term)
 		local p = promise.new()
-		Database.Game:find({
-			collection = 'vehicles',
-			query = {
-				["$or"] = {
-					{
-						['Owner.Type'] = 0,
-						['$expr'] = {
-							['$regexMatch'] = {
-								input = {
-									['$toString'] = '$Owner.Id'
-								},
-								regex = term,
-								options = "i",
-							}
-						}
-					},
-					{
-						VIN = {
-							['$regex'] = term,
-							['$options'] = "i",
-						}
-					},
-					{
-						RegisteredPlate = {
-							["$regex"] = term,
-							["$options"] = "i",
-						},
-					},
-					{
-						["$expr"] = {
-							["$regexMatch"] = {
-								input = {
-									["$concat"] = { "$Make", " ", "$Model" },
-								},
-								regex = term,
-								options = "i",
-							},
-						},
-					},
-				},
-			},
-			options = {
-				limit = 24,
-			},
+		MySQL.query('SELECT * FROM vehicles WHERE (JSON_EXTRACT(Owner, "$.Type") = 0 AND CAST(JSON_EXTRACT(Owner, "$.Id") AS CHAR) LIKE ?) OR VIN LIKE ? OR RegisteredPlate LIKE ? OR CONCAT(Make, " ", Model) LIKE ? LIMIT 24', {
+			'%' .. term .. '%',
+			'%' .. term .. '%',
+			'%' .. term .. '%',
+			'%' .. term .. '%'
 		}, function(success, results)
 			if not success then
+				Logger:Error("MDT", "Failed to search vehicles", { console = true })
 				p:resolve(false)
 				return
 			end
@@ -57,12 +19,7 @@ _MDT.Vehicles = {
 	end,
 	View = function(self, VIN)
 		local p = promise.new()
-		Database.Game:findOne({
-			collection = 'vehicles',
-			query = {
-				VIN = VIN,
-			},
-		}, function(success, results)
+		MySQL.query('SELECT * FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
 			if not success or #results <= 0 then
 				p:resolve(false)
 				return
@@ -70,6 +27,11 @@ _MDT.Vehicles = {
 			local vehicle = results[1]
 
 			if vehicle.Owner then
+				-- Decode JSON Owner data if it's a string
+				if type(vehicle.Owner) == "string" then
+					vehicle.Owner = json.decode(vehicle.Owner)
+				end
+				
 				if vehicle.Owner.Type == 0 then
 					vehicle.Owner.Person = MDT.People:View(vehicle.Owner.Id)
 				elseif vehicle.Owner.Type == 1 or vehicle.Owner.Type == 2 then
@@ -94,56 +56,71 @@ _MDT.Vehicles = {
 	Flags = {
 		Add = function(self, VIN, data, plate)
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'vehicles',
-				query = {
-					VIN = VIN,
-				},
-				update = {
-					["$push"] = {
-						Flags = data,
-					},
-				},
-			}, function(success, result)
-				if success and data.radarFlag and plate then
-					Radar:AddFlaggedPlate(plate, 'Vehicle Flagged in MDT')
+			
+			-- Get current flags and add new one
+			MySQL.query('SELECT Flags FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
+				if success and #results > 0 then
+					local currentFlags = results[1].Flags or {}
+					if type(currentFlags) == "string" then
+						currentFlags = json.decode(currentFlags) or {}
+					end
+					
+					table.insert(currentFlags, data)
+					
+					MySQL.update('UPDATE vehicles SET Flags = ? WHERE VIN = ?', {
+						json.encode(currentFlags),
+						VIN
+					}, function(updateSuccess, result)
+						if updateSuccess and data.radarFlag and plate then
+							Radar:AddFlaggedPlate(plate, 'Vehicle Flagged in MDT')
+						end
+						p:resolve(updateSuccess)
+					end)
+				else
+					Logger:Error("MDT", "Failed to get vehicle flags", { console = true })
+					p:resolve(false)
 				end
-				p:resolve(success)
 			end)
 			return Citizen.Await(p)
 		end,
 		Remove = function(self, VIN, flag)
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'vehicles',
-				query = {
-					VIN = VIN,
-				},
-				update = {
-					["$pull"] = {
-						Flags = {
-							Type = flag
-						},
-					},
-				},
-			}, function(success, result)
-				p:resolve(success)
+			
+			-- Get current flags and remove the specified one
+			MySQL.query('SELECT Flags FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
+				if success and #results > 0 then
+					local currentFlags = results[1].Flags or {}
+					if type(currentFlags) == "string" then
+						currentFlags = json.decode(currentFlags) or {}
+					end
+					
+					-- Remove flags with matching Type
+					local newFlags = {}
+					for k, v in ipairs(currentFlags) do
+						if v.Type ~= flag then
+							table.insert(newFlags, v)
+						end
+					end
+					
+					MySQL.update('UPDATE vehicles SET Flags = ? WHERE VIN = ?', {
+						json.encode(newFlags),
+						VIN
+					}, function(updateSuccess, result)
+						p:resolve(updateSuccess)
+					end)
+				else
+					Logger:Error("MDT", "Failed to get vehicle flags for removal", { console = true })
+					p:resolve(false)
+				end
 			end)
 			return Citizen.Await(p)
 		end,
 	},
 	UpdateStrikes = function(self, VIN, strikes)
 		local p = promise.new()
-		Database.Game:updateOne({
-			collection = 'vehicles',
-			query = {
-				VIN = VIN,
-			},
-			update = {
-				["$set"] = {
-					Strikes = strikes,
-				},
-			},
+		MySQL.update('UPDATE vehicles SET Strikes = ? WHERE VIN = ?', {
+			json.encode(strikes),
+			VIN
 		}, function(success, result)
 			p:resolve(success)
 		end)
@@ -151,28 +128,23 @@ _MDT.Vehicles = {
 	end,
 	GetStrikes = function(self, VIN)
 		local p = promise.new()
-		Database.Game:findOne({
-			collection = 'vehicles',
-			query = {
-				VIN = VIN,
-			},
-			options = {
-				projection = {
-					VIN = 1,
-					Strikes = 1,
-					RegisteredPlate = 1,
-				}
-			}
-		}, function(success, results)
+		MySQL.query('SELECT VIN, Strikes, RegisteredPlate FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
 			if success then
 				local veh = results[1]
 				local strikes = 0
-				if veh and veh.Strikes and #veh.Strikes > 0 then
-					strikes = #veh.Strikes
+				if veh and veh.Strikes then
+					local strikesData = veh.Strikes
+					if type(strikesData) == "string" then
+						strikesData = json.decode(strikesData) or {}
+					end
+					if #strikesData > 0 then
+						strikes = #strikesData
+					end
 				end
 
 				p:resolve(strikes)
 			else
+				Logger:Error("MDT", "Failed to get vehicle strikes", { console = true })
 				p:resolve(0)
 			end
 		end)

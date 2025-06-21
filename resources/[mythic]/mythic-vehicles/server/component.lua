@@ -149,15 +149,64 @@ function SaveVehicle(VIN)
 
         veh:SetData('LastSave', os.time())
 
-        Database.Game:updateOne({
-            collection = 'vehicles',
-            query = {
-                VIN = VIN,
-            },
-            update = {
-                ["$set"] = data,
-            },
-        }, function(success, res)
+        -- Build dynamic UPDATE query for individual fields
+        local setClause = {}
+        local values = {}
+        
+        -- Handle different field types
+        local fieldMappings = {
+            Type = data.Type,
+            Vehicle = data.Vehicle,
+            RegisteredPlate = data.RegisteredPlate,
+            FakePlate = data.FakePlate,
+            Fuel = data.Fuel,
+            Make = data.Make,
+            Model = data.Model,
+            Class = data.Class,
+            Value = data.Value,
+            FirstSpawn = data.FirstSpawn,
+            RegistrationDate = data.RegistrationDate,
+            Mileage = data.Mileage,
+            DirtLevel = data.DirtLevel,
+            Seized = data.Seized,
+            SeizedTime = data.SeizedTime,
+            LastSave = data.LastSave
+        }
+        
+        -- Handle JSON fields
+        if data.Owner then
+            table.insert(setClause, "Owner = ?")
+            table.insert(values, json.encode(data.Owner))
+        end
+        if data.Storage then
+            table.insert(setClause, "Storage = ?")
+            table.insert(values, json.encode(data.Storage))
+        end
+        if data.Properties then
+            table.insert(setClause, "Properties = ?")
+            table.insert(values, json.encode(data.Properties))
+        end
+        if data.Flags then
+            table.insert(setClause, "Flags = ?")
+            table.insert(values, json.encode(data.Flags))
+        end
+        if data.Strikes then
+            table.insert(setClause, "Strikes = ?")
+            table.insert(values, json.encode(data.Strikes))
+        end
+        
+        -- Handle regular fields
+        for field, value in pairs(fieldMappings) do
+            if value ~= nil then
+                table.insert(setClause, field .. " = ?")
+                table.insert(values, value)
+            end
+        end
+        
+        table.insert(values, VIN)
+        local query = 'UPDATE vehicles SET ' .. table.concat(setClause, ', ') .. ' WHERE VIN = ?'
+
+        MySQL.update(query, values, function(success, res)
             p:resolve(success)
         end)
 
@@ -332,14 +381,30 @@ VEHICLE = {
                     DirtLevel = 0.0,
                 }
 
-                Database.Game:insertOne({
-                    collection = 'vehicles',
-                    document = doc,
-                }, function(success, insertedAmount, insertedIds)
-                    if success and insertedAmount > 0 then
-                        doc._id = insertedIds[1]
+                MySQL.insert('INSERT INTO vehicles (Type, Vehicle, VIN, RegisteredPlate, FakePlate, Fuel, Owner, Storage, Make, Model, Class, Value, FirstSpawn, Properties, RegistrationDate, Mileage, DirtLevel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+                    doc.Type,
+                    doc.Vehicle,
+                    doc.VIN,
+                    doc.RegisteredPlate,
+                    doc.FakePlate,
+                    doc.Fuel,
+                    json.encode(doc.Owner),
+                    json.encode(doc.Storage),
+                    doc.Make,
+                    doc.Model,
+                    doc.Class,
+                    doc.Value,
+                    doc.FirstSpawn,
+                    json.encode(doc.Properties),
+                    doc.RegistrationDate,
+                    doc.Mileage,
+                    doc.DirtLevel
+                }, function(success, result)
+                    if success then
+                        doc.id = result.insertId
                         cb(true, doc)
                     else
+                        Logger:Error("Vehicles", "Failed to insert vehicle", { console = true })
                         cb(false)
                     end
                 end)
@@ -356,14 +421,25 @@ VEHICLE = {
         end,
 
         GetVIN = function(self, VIN, cb)
-            Database.Game:findOne({
-                collection = 'vehicles',
-                query = {
-                    VIN = VIN,
-                }
-            }, function(success, results)
+            MySQL.query('SELECT * FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
                 if success and #results > 0 then
                     local vehicle = results[1]
+                    -- Decode JSON fields if they're strings
+                    if vehicle.Owner and type(vehicle.Owner) == "string" then
+                        vehicle.Owner = json.decode(vehicle.Owner)
+                    end
+                    if vehicle.Storage and type(vehicle.Storage) == "string" then
+                        vehicle.Storage = json.decode(vehicle.Storage)
+                    end
+                    if vehicle.Properties and type(vehicle.Properties) == "string" then
+                        vehicle.Properties = json.decode(vehicle.Properties)
+                    end
+                    if vehicle.Flags and type(vehicle.Flags) == "string" then
+                        vehicle.Flags = json.decode(vehicle.Flags)
+                    end
+                    if vehicle.Strikes and type(vehicle.Strikes) == "string" then
+                        vehicle.Strikes = json.decode(vehicle.Strikes)
+                    end
                     cb(vehicle)
                 else
                     cb(false)
@@ -371,49 +447,57 @@ VEHICLE = {
             end)
         end,
         GetAll = function(self, vehType, ownerType, ownerId, cb, storageType, storageId, ignoreSpawned, checkFleetOwner)
-            local orQuery = {}
+            local whereClause = "1=1"
+            local params = {}
 
             if ownerType and ownerId then
-                table.insert(orQuery, {
-                    ['Owner.Type'] = ownerType,
-                    ['Owner.Id'] = ownerId,
-                })
+                whereClause = whereClause .. " AND JSON_EXTRACT(Owner, '$.Type') = ? AND JSON_EXTRACT(Owner, '$.Id') = ?"
+                table.insert(params, ownerType)
+                table.insert(params, ownerId)
             end
 
             if checkFleetOwner and checkFleetOwner.Id then
-                table.insert(orQuery, {
-                    ['Owner.Type'] = 1,
-                    ['Owner.Id'] = checkFleetOwner.Id,
-                    ['Owner.Workplace'] = {
-                        ['$in'] = { checkFleetOwner.Workplace, false },
-                    },
-                    ['Owner.Level'] = {
-                        ['$lte'] = type(checkFleetOwner.Level) == 'number' and checkFleetOwner.Level or 0,
-                    },
-                })
+                whereClause = whereClause .. " AND JSON_EXTRACT(Owner, '$.Type') = 1 AND JSON_EXTRACT(Owner, '$.Id') = ? AND (JSON_EXTRACT(Owner, '$.Workplace') = ? OR JSON_EXTRACT(Owner, '$.Workplace') IS NULL) AND JSON_EXTRACT(Owner, '$.Level') <= ?"
+                table.insert(params, checkFleetOwner.Id)
+                table.insert(params, checkFleetOwner.Workplace)
+                table.insert(params, type(checkFleetOwner.Level) == 'number' and checkFleetOwner.Level or 0)
             end
 
-            local query = {
-                ['$or'] = #orQuery > 0 and orQuery or nil,
-            }
-
             if storageType and storageId then
-                query['Storage.Type'] = storageType
-                query['Storage.Id'] = storageId
+                whereClause = whereClause .. " AND JSON_EXTRACT(Storage, '$.Type') = ? AND JSON_EXTRACT(Storage, '$.Id') = ?"
+                table.insert(params, storageType)
+                table.insert(params, storageId)
             end
             
             if type(vehType) == 'number' then
-                query['Type'] = vehType
+                whereClause = whereClause .. " AND Type = ?"
+                table.insert(params, vehType)
             end
 
-            Database.Game:find({
-                collection = 'vehicles',
-                query = query,
-            }, function(success, results)
+            local query = "SELECT * FROM vehicles WHERE " .. whereClause
+
+            MySQL.query(query, params, function(success, results)
                 if success then
                     local vehicles = {}
                     for k, v in ipairs(results) do
                         if not ignoreSpawned or (ignoreSpawned and not Vehicles.Owned:GetActive(v.VIN)) then
+                            -- Decode JSON fields if they're strings
+                            if v.Owner and type(v.Owner) == "string" then
+                                v.Owner = json.decode(v.Owner)
+                            end
+                            if v.Storage and type(v.Storage) == "string" then
+                                v.Storage = json.decode(v.Storage)
+                            end
+                            if v.Properties and type(v.Properties) == "string" then
+                                v.Properties = json.decode(v.Properties)
+                            end
+                            if v.Flags and type(v.Flags) == "string" then
+                                v.Flags = json.decode(v.Flags)
+                            end
+                            if v.Strikes and type(v.Strikes) == "string" then
+                                v.Strikes = json.decode(v.Strikes)
+                            end
+                            
                             v.Spawned = Vehicles.Owned:GetActive(v.VIN)
                             if v.Storage and v.Storage.Type == 2 then
                                 local prop = Properties:Get(v.Storage.Id)
@@ -427,6 +511,7 @@ VEHICLE = {
 
                     cb(vehicles)
                 else
+                    Logger:Error("Vehicles", "Failed to get vehicles", { console = true })
                     cb(false)
                 end
             end)
@@ -632,24 +717,38 @@ VEHICLE = {
             end,
             GetCount = function(self, propertyId, ignoreVIN)
                 local p = promise.new()
-                local query = {
-                    ['Storage.Type'] = 2,
-                    ['Storage.Id'] = propertyId
-                }
+                local whereClause = "1=1"
+                local params = {}
 
-                if ignoreVIN then
-                    query['VIN'] = {
-                        ['$ne'] = ignoreVIN
-                    }
+                if ownerType and ownerId then
+                    whereClause = whereClause .. " AND JSON_EXTRACT(Owner, '$.Type') = ? AND JSON_EXTRACT(Owner, '$.Id') = ?"
+                    table.insert(params, ownerType)
+                    table.insert(params, ownerId)
                 end
 
-                Database.Game:count({
-                    collection = 'vehicles',
-                    query = query,
-                }, function(success, count)
-                    if success then
-                        p:resolve(count)
+                if storageType and storageId then
+                    whereClause = whereClause .. " AND JSON_EXTRACT(Storage, '$.Type') = ? AND JSON_EXTRACT(Storage, '$.Id') = ?"
+                    table.insert(params, storageType)
+                    table.insert(params, storageId)
+                end
+                
+                if type(vehType) == 'number' then
+                    whereClause = whereClause .. " AND Type = ?"
+                    table.insert(params, vehType)
+                end
+
+                if ignoreVIN then
+                    whereClause = whereClause .. " AND VIN != ?"
+                    table.insert(params, ignoreVIN)
+                end
+
+                local query = "SELECT COUNT(*) as count FROM vehicles WHERE " .. whereClause
+
+                MySQL.query(query, params, function(success, results)
+                    if success and #results > 0 then
+                        p:resolve(results[1].count)
                     else
+                        Logger:Error("Vehicles", "Failed to count vehicles", { console = true })
                         p:resolve(false)
                     end
                 end)
@@ -687,22 +786,16 @@ VEHICLE = {
                             }
                         end
 
-                        Database.Game:updateOne({
-                            collection = 'vehicles',
-                            query = {
-                                VIN = VIN,
-                            },
-                            update = {
-                                ['$set'] = {
-                                    Seized = seizeState,
-                                    SeizedTime = (seizeState and os.time() or false),
-                                    Storage = updatingStorage
-                                }
-                            }
+                        MySQL.update('UPDATE vehicles SET Seized = ?, SeizedTime = ?, Storage = ? WHERE VIN = ?', {
+                            seizeState,
+                            seizeState and os.time() or false,
+                            json.encode(updatingStorage),
+                            VIN
                         }, function(success, updated)
                             if success and updated > 0 then
                                 p:resolve(true)
                             else
+                                Logger:Error("Vehicles", "Failed to seize vehicle", { console = true })
                                 p:resolve(false)
                             end
                         end)

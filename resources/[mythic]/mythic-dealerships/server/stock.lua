@@ -1,12 +1,9 @@
 DEALERSHIPS.Stock = {
     FetchAll = function(self)
         local p = promise.new()
-        Database.Game:find({
-            collection = 'dealer_stock',
-            query = {}
-        }, function(success, result)
-            if success then
-                p:resolve(result)
+        MySQL.query('SELECT * FROM dealer_stock', {}, function(results)
+            if results then
+                p:resolve(results)
             else
                 p:resolve(false)
             end
@@ -15,14 +12,9 @@ DEALERSHIPS.Stock = {
     end,
     FetchDealer = function(self, dealerId)
         local p = promise.new()
-        Database.Game:find({
-            collection = 'dealer_stock',
-            query = {
-                dealership = dealerId,
-            }
-        }, function(success, result)
-            if success then
-                p:resolve(result)
+        MySQL.query('SELECT * FROM dealer_stock WHERE dealership = ?', {dealerId}, function(results)
+            if results then
+                p:resolve(results)
             else
                 p:resolve(false)
             end
@@ -31,15 +23,9 @@ DEALERSHIPS.Stock = {
     end,
     FetchDealerVehicle = function(self, dealerId, vehModel)
         local p = promise.new()
-        Database.Game:findOne({
-            collection = 'dealer_stock',
-            query = {
-                dealership = dealerId,
-                vehicle = vehModel,
-            }
-        }, function(success, result)
-            if success and #result > 0 then
-                p:resolve(result[1])
+        MySQL.query('SELECT * FROM dealer_stock WHERE dealership = ? AND vehicle = ? LIMIT 1', {dealerId, vehModel}, function(results)
+            if results and #results > 0 then
+                p:resolve(results[1])
             else
                 p:resolve(false)
             end
@@ -60,23 +46,10 @@ DEALERSHIPS.Stock = {
             local isStocked = Dealerships.Stock:FetchDealerVehicle(dealerId, vehModel)
             local p = promise.new()
             if isStocked then -- The vehicle is already stocked
-                Database.Game:updateOne({
-                    collection = 'dealer_stock',
-                    query = {
-                        dealership = dealerId,
-                        vehicle = vehModel,
-                    },
-                    update = {
-                        ['$inc'] = {
-                            quantity = quantity,
-                        },
-                        ['$set'] = {
-                            data = vehData,
-                            lastStocked = os.time(),
-                        }
-                    }
-                }, function(success, result)
-                    if success and result > 0 then
+                MySQL.update('UPDATE dealer_stock SET quantity = quantity + ?, data = ?, lastStocked = ? WHERE dealership = ? AND vehicle = ?', {
+                    quantity, json.encode(vehData), os.time(), dealerId, vehModel
+                }, function(affectedRows)
+                    if affectedRows and affectedRows > 0 then
                         p:resolve({
                             success = true,
                             existed = true,
@@ -86,18 +59,10 @@ DEALERSHIPS.Stock = {
                     end
                 end)
             else
-                Database.Game:insertOne({
-                    collection = 'dealer_stock',
-                    document = {
-                        dealership = dealerId,
-                        vehicle = vehModel,
-                        modelType = modelType,
-                        data = vehData,
-                        quantity = quantity,
-                        lastStocked = os.time(),
-                    }
-                }, function(success, result)
-                    if success and result > 0 then
+                MySQL.insert('INSERT INTO dealer_stock (dealership, vehicle, modelType, data, quantity, lastStocked) VALUES (?, ?, ?, ?, ?, ?)', {
+                    dealerId, vehModel, modelType, json.encode(vehData), quantity, os.time()
+                }, function(insertId)
+                    if insertId then
                         p:resolve({
                             success = true,
                             existed = false,
@@ -116,22 +81,10 @@ DEALERSHIPS.Stock = {
             local isStocked = Dealerships.Stock:FetchDealerVehicle(dealerId, vehModel)
             if isStocked then -- The vehicle is already stocked
                 local p = promise.new()
-                Database.Game:updateOne({
-                    collection = 'dealer_stock',
-                    query = {
-                        dealership = dealerId,
-                        vehicle = vehModel,
-                    },
-                    update = {
-                        ['$inc'] = {
-                            quantity = amount,
-                        },
-                        ['$set'] = {
-                            lastStocked = os.time(),
-                        }
-                    }
-                }, function(success, result)
-                    if success and result > 0 then
+                MySQL.update('UPDATE dealer_stock SET quantity = quantity + ?, lastStocked = ? WHERE dealership = ? AND vehicle = ?', {
+                    amount, os.time(), dealerId, vehModel
+                }, function(affectedRows)
+                    if affectedRows and affectedRows > 0 then
                         p:resolve({ success = true })
                     else
                         p:resolve(false)
@@ -149,45 +102,26 @@ DEALERSHIPS.Stock = {
             local isStocked = Dealerships.Stock:FetchDealerVehicle(dealerId, vehModel)
             if isStocked then -- The vehicle is already stocked
                 local p = promise.new()
-                Database.Game:updateOne({
-                    collection = 'dealer_stock',
-                    query = {
-                        dealership = dealerId,
-                        vehicle = vehModel,
-                    },
-                    update = {
-                        ['$set'] = setting
-                    }
-                }, function(success, result)
-                    if success and result > 0 then
-                        p:resolve({ success = true })
+                
+                -- Build dynamic UPDATE query
+                local setClause = {}
+                local values = {}
+                for key, value in pairs(setting) do
+                    if type(value) == "table" then
+                        table.insert(setClause, key .. " = ?")
+                        table.insert(values, json.encode(value))
                     else
-                        p:resolve(false)
-                    end
-                end)
-                return Citizen.Await(p)
-            else
-                return false
+                        table.insert(setClause, key .. " = ?")
+                        table.insert(values, value)
             end
         end
-        return false
-    end,
-    Update = function(self, dealerId, vehModel, setting)
-        if _dealerships[dealerId] and vehModel and type(setting) == "table" then
-            local isStocked = Dealerships.Stock:FetchDealerVehicle(dealerId, vehModel)
-            if isStocked then
-                local p = promise.new()
-                Database.Game:updateOne({
-                    collection = 'dealer_stock',
-                    query = {
-                        dealership = dealerId,
-                        vehicle = vehModel,
-                    },
-                    update = {
-                        ['$set'] = setting
-                    }
-                }, function(success, result)
-                    if success and result > 0 then
+                table.insert(values, dealerId)
+                table.insert(values, vehModel)
+                
+                local query = 'UPDATE dealer_stock SET ' .. table.concat(setClause, ', ') .. ' WHERE dealership = ? AND vehicle = ?'
+                
+                MySQL.update(query, values, function(affectedRows)
+                    if affectedRows and affectedRows > 0 then
                         p:resolve({ success = true })
                     else
                         p:resolve(false)
@@ -222,20 +156,10 @@ DEALERSHIPS.Stock = {
                 local newQuantity = isStocked.quantity - quantity
                 if newQuantity >= 0 then
                     local p = promise.new()
-                    Database.Game:updateOne({
-                        collection = 'dealer_stock',
-                        query = {
-                            dealership = dealerId,
-                            vehicle = vehModel,
-                        },
-                        update = {
-                            ['$set'] = {
-                                quantity = newQuantity,
-                                lastPurchase = os.time(),
-                            }
-                        }
-                    }, function(success, result)
-                        if success and result > 0 then
+                    MySQL.update('UPDATE dealer_stock SET quantity = ?, lastPurchase = ? WHERE dealership = ? AND vehicle = ?', {
+                        newQuantity, os.time(), dealerId, vehModel
+                    }, function(affectedRows)
+                        if affectedRows and affectedRows > 0 then
                             p:resolve(newQuantity)
                         else
                             p:resolve(false)

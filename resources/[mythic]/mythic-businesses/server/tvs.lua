@@ -8,11 +8,8 @@ AddEventHandler('Businesses:Server:Startup', function()
             end
         end
 
-        Database.Game:find({
-            collection = 'business_tvs',
-            query = {}
-        }, function(success, results)
-            if success and #results > 0 then
+        MySQL.query('SELECT * FROM business_tvs', {}, function(success, results)
+            if success and results and #results > 0 then
                 for k, v in pairs(results) do
                     if v.tv and _tvData[v.tv] then
                         GlobalState[string.format('TVsLink:%s', v.tv)] = v.link
@@ -45,24 +42,15 @@ end)
 function SetBusinessTVLink(tvId, link)
     local p = promise.new()
 
-    Database.Game:findOneAndUpdate({
-        collection = 'business_tvs',
-        query = {
-            tv = tvId,
-        },
-        update = {
-            ['$set'] = {
-                link = link,
-            },
-        },
-        options = {
-            returnDocument = 'after',
-            upsert = true,
-        }
-    }, function(success, results)
-        if success and results then
-            p:resolve(results.link)
+    MySQL.insert('INSERT INTO business_tvs (tv, link) VALUES (?, ?) ON DUPLICATE KEY UPDATE link = ?', {
+        tvId,
+        link,
+        link
+    }, function(success, result)
+        if success then
+            p:resolve(link)
         else
+            Logger:Error("TVs", "Failed to update TV link", { console = true })
             p:resolve(false)
         end
     end)

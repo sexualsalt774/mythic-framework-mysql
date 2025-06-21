@@ -14,16 +14,15 @@ _MDT.Misc = {
 		end,
 		Charge = function(self, data)
 			local p = promise.new()
-			Database.Game:insertOne({
-				collection = 'mdt_charges',
-				document = data,
-			}, function (success, result, insertIds)
-				if not success then
+			MySQL.insert('INSERT INTO mdt_charges (title, description, type, fine, jail, points) VALUES (?, ?, ?, ?, ?, ?)', {
+				data.title, data.description, data.type, data.fine, data.jail, data.points
+			}, function(insertId)
+				if not insertId then
 					p:resolve(false)
 					return
 				end
 
-				data._id = insertIds[1]
+				data.id = insertId
 				table.insert(_charges, data)
 				for user, _ in pairs(_onDutyUsers) do
 					TriggerClientEvent("MDT:Client:AddData", user, "charges", data)
@@ -31,7 +30,7 @@ _MDT.Misc = {
 				for user, _ in pairs(_onDutyLawyers) do
 					TriggerClientEvent("MDT:Client:AddData", user, "charges", data)
 				end
-				p:resolve(insertIds[1])
+				p:resolve(insertId)
 			end)
 			return Citizen.Await(p)
 		end,
@@ -87,28 +86,15 @@ _MDT.Misc = {
 	Update = {
 		Charge = function(self, id, data)
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'mdt_charges',
-				query = {
-					_id = id,
-				},
-                update = {
-                    ["$set"] = {
-						title = data.title,
-						description = data.description,
-						type = data.type,
-						fine = data.fine,
-						jail = data.jail,
-						points = data.points,
-					},
-                },
-			}, function (success, result)
-				if not success then
+			MySQL.update('UPDATE mdt_charges SET title = ?, description = ?, type = ?, fine = ?, jail = ?, points = ? WHERE id = ?', {
+				data.title, data.description, data.type, data.fine, data.jail, data.points, id
+			}, function(affectedRows)
+				if not affectedRows or affectedRows == 0 then
 					p:resolve(false)
 					return
 				end
 				for k, v in ipairs(_charges) do
-					if (v._id == id) then
+					if (v.id == id) then
 						_charges[k] = data
 						break
 					end

@@ -11,6 +11,7 @@ SPAWN = {
         DoScreenFadeOut(500)
         while not IsScreenFadedOut() do Wait(10) end
         Callbacks:ServerCallback('Ped:CheckPed', {}, function(hasPed)
+            print(json.encode(hasPed, {indent = true}))
             data.Ped = hasPed.ped
             if not hasPed.existed then
                 cb()

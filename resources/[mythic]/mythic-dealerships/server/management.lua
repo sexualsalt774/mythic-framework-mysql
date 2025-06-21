@@ -3,15 +3,22 @@ _managementData = {}
 DEALERSHIPS.Management = {
     LoadData = function(self)
         local p = promise.new()
-        Database.Game:find({
-            collection = 'dealer_data',
-            query = {}
-        }, function(success, results)
+        MySQL.query('SELECT * FROM dealer_data', {}, function(success, results)
             if success then
                 local fuckface = {}
-                for k, v in ipairs(results) do
-                    if v.dealership then
-                        fuckface[v.dealership] = v
+                if results and #results > 0 then
+                    for k, v in ipairs(results) do
+                        if v.dealership then
+                            -- Decode JSON data if it exists
+                            if v.data and type(v.data) == "string" then
+                                local decoded = json.decode(v.data)
+                                if decoded then
+                                    v = decoded
+                                    v.dealership = results[k].dealership -- Preserve dealership ID
+                                end
+                            end
+                            fuckface[v.dealership] = v
+                        end
                     end
                 end
 
@@ -24,6 +31,7 @@ DEALERSHIPS.Management = {
                 end
                 p:resolve(true)
             else
+                Logger:Error("Dealerships", "Failed to load dealer data", { console = true })
                 p:resolve(false)
             end
         end)
@@ -38,22 +46,20 @@ DEALERSHIPS.Management = {
             dealerData[key] = val
 
             local p = promise.new()
-            Database.Game:updateOne({
-                collection = 'dealer_data',
-                query = {
-                    dealership = dealerId,
-                },
-                update = {
-                    ['$set'] = dealerData
-                },
-                options = {
-                    upsert = true,
-                }
-            }, function(success, results)
+            
+            -- Convert dealerData to JSON for storage
+            local jsonData = json.encode(dealerData)
+            
+            MySQL.insert('INSERT INTO dealer_data (dealership, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = ?', {
+                dealerId,
+                jsonData,
+                jsonData
+            }, function(success, result)
                 if success then
                     _managementData[dealerId] = dealerData
                     p:resolve(_managementData[dealerId])
                 else
+                    Logger:Error("Dealerships", "Failed to update dealer data", { console = true })
                     p:resolve(false)
                 end
             end)
@@ -73,22 +79,20 @@ DEALERSHIPS.Management = {
             end
 
             local p = promise.new()
-            Database.Game:updateOne({
-                collection = 'dealer_data',
-                query = {
-                    dealership = dealerId,
-                },
-                update = {
-                    ['$set'] = dealerData
-                },
-                options = {
-                    upsert = true,
-                }
-            }, function(success, results)
+            
+            -- Convert dealerData to JSON for storage
+            local jsonData = json.encode(dealerData)
+            
+            MySQL.insert('INSERT INTO dealer_data (dealership, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = ?', {
+                dealerId,
+                jsonData,
+                jsonData
+            }, function(success, result)
                 if success then
                     _managementData[dealerId] = dealerData
                     p:resolve(_managementData[dealerId])
                 else
+                    Logger:Error("Dealerships", "Failed to update dealer data", { console = true })
                     p:resolve(false)
                 end
             end)

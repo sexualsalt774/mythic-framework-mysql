@@ -80,12 +80,17 @@ PROPERTIES = {
 						}
 					}
 	
-					Database.Game:insertOne({
-						collection = 'properties',
-						document = doc,
-					}, function(success, result, insertedIds)
+					MySQL.insert('INSERT INTO properties (type, label, price, sold, owner, location, upgrades) VALUES (?, ?, ?, ?, ?, ?, ?)', {
+						doc.type,
+						doc.label,
+						doc.price,
+						doc.sold,
+						json.encode(doc.owner),
+						json.encode(doc.location),
+						json.encode(doc.upgrades)
+					}, function(success, result)
 						if success then
-							doc.id = insertedIds[1]
+							doc.id = result.insertId
 							doc.interior = interior
 							doc.locked = true
 	
@@ -120,16 +125,9 @@ PROPERTIES = {
 			end
 
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						['location.front'] = pos,
-					},
-				},
+			MySQL.update('UPDATE properties SET location = JSON_SET(location, "$.front", ?) WHERE id = ?', {
+				json.encode(pos),
+				id
 			}, function(success, results)
 				if success then
 					if _properties[id] and _properties[id].location then
@@ -149,16 +147,9 @@ PROPERTIES = {
 			end
 
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						['location.backdoor'] = pos,
-					},
-				},
+			MySQL.update('UPDATE properties SET location = JSON_SET(location, "$.backdoor", ?) WHERE id = ?', {
+				json.encode(pos),
+				id
 			}, function(success, results)
 				if success then
 					if _properties[id] and _properties[id].location then
@@ -178,16 +169,9 @@ PROPERTIES = {
 			end
 
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						['location.garage'] = pos,
-					},
-				},
+			MySQL.update('UPDATE properties SET location = JSON_SET(location, "$.garage", ?) WHERE id = ?', {
+				json.encode(pos),
+				id
 			}, function(success, results)
 				if success then
 					if _properties[id] and _properties[id].location then
@@ -207,16 +191,9 @@ PROPERTIES = {
 			end
 
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						label = label,
-					},
-				},
+			MySQL.update('UPDATE properties SET label = ? WHERE id = ?', {
+				label,
+				id
 			}, function(success, results)
 				if success then
 					if _properties[id] and _properties[id].label then
@@ -236,16 +213,9 @@ PROPERTIES = {
 			end
 
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						price = price,
-					},
-				},
+			MySQL.update('UPDATE properties SET price = ? WHERE id = ?', {
+				price,
+				id
 			}, function(success, results)
 				if success then
 					if _properties[id] and _properties[id].price then
@@ -265,16 +235,9 @@ PROPERTIES = {
 			end
 
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						[string.format('data.%s', key)] = value,
-					},
-				},
+			MySQL.update('UPDATE properties SET data = JSON_SET(COALESCE(data, "{}"), "$.' .. key .. '", ?) WHERE id = ?', {
+				json.encode(value),
+				id
 			}, function(success, results)
 				if success then
 					if _properties[id] then
@@ -291,12 +254,7 @@ PROPERTIES = {
 		end,
 		Delete = function(self, id)
 			local p = promise.new()
-			Database.Game:deleteOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-			}, function(success, result)
+			MySQL.query('DELETE FROM properties WHERE id = ?', {id}, function(success, result)
 				if success then
 					_properties[id] = nil
 
@@ -323,16 +281,9 @@ PROPERTIES = {
 					end
 
 					local p = promise.new()
-					Database.Game:updateOne({
-						collection = 'properties',
-						query = {
-							_id = id,
-						},
-						update = {
-							["$set"] = {
-								[string.format('upgrades.%s', upgrade)] = level,
-							},
-						},
+					MySQL.update('UPDATE properties SET upgrades = JSON_SET(COALESCE(upgrades, "{}"), "$.' .. upgrade .. '", ?) WHERE id = ?', {
+						level,
+						id
 					}, function(success, results)
 						if success then
 							if _properties[id] then
@@ -385,16 +336,9 @@ PROPERTIES = {
 
 				if intData and intData.type == property.type then
 					local p = promise.new()
-					Database.Game:updateOne({
-						collection = 'properties',
-						query = {
-							_id = id,
-						},
-						update = {
-							["$set"] = {
-								["upgrades.interior"] = interior,
-							},
-						},
+					MySQL.update('UPDATE properties SET upgrades = JSON_SET(COALESCE(upgrades, "{}"), "$.interior", ?) WHERE id = ?', {
+						interior,
+						id
 					}, function(success, results)
 						if success then
 							if _properties[id] then
@@ -415,21 +359,7 @@ PROPERTIES = {
 	Commerce = {
 		Sell = function(self, id)
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						sold = false,
-						owner = false,
-					},
-					["$unset"] = {
-						keys = true,
-					},
-				},
-			}, function(success, results)
+			MySQL.update('UPDATE properties SET sold = false, owner = false, keys = NULL WHERE id = ?', {id}, function(success, results)
 				if success and _properties[id] then
 					_properties[id].sold = false
 
@@ -457,21 +387,14 @@ PROPERTIES = {
 		end,
 		Buy = function(self, id, owner, payment)
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						soldAt = os.time(),
-						sold = true,
-						owner = owner,
-						keys = {
-							[owner.Char] = owner,
-						},
-					},
-				},
+			MySQL.update('UPDATE properties SET soldAt = ?, sold = true, owner = ?, keys = ? WHERE id = ?', {
+				os.time(),
+				true,
+				json.encode(owner),
+				json.encode({
+					[owner.Char] = owner,
+				}),
+				id
 			}, function(success, results)
 				if success then
 					_properties[id].sold = true
@@ -480,7 +403,7 @@ PROPERTIES = {
 					}
 					_properties[id].soldAt = os.time()
 
-					table.insert(GlobalState[string.format("Char:Properties:%s", owner.Char)], propertyId)
+					table.insert(GlobalState[string.format("Char:Properties:%s", owner.Char)], id)
 
 					TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
 				end
@@ -495,17 +418,10 @@ PROPERTIES = {
 			end
 
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						foreclosed = state,
-						foreclosedTime = state and os.time() or false,
-					},
-				},
+			MySQL.update('UPDATE properties SET foreclosed = ?, foreclosedTime = ? WHERE id = ?', {
+				state,
+				state and os.time() or false,
+				id
 			}, function(success, results)
 				if success then
 					if _properties[id] then
@@ -558,45 +474,60 @@ PROPERTIES = {
 		Give = function(self, charData, id, isOwner, permissions, updating)
 			local p = promise.new()
 
-			Database.Game:findOneAndUpdate({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$set"] = {
-						[string.format("keys.%s", charData.ID)] = {
-							Char = charData.ID,
-							First = charData.First,
-							Last = charData.Last,
-							SID = charData.SID,
-							Owner = isOwner,
-							Permissions = permissions,
-						},
-					},
-				},
-				options = {
-					returnDocument = 'after',
-				},
-			}, function(success, result)
+			MySQL.update('UPDATE properties SET keys = JSON_SET(COALESCE(keys, "{}"), "$.' .. charData.ID .. '", ?) WHERE id = ?', {
+				json.encode({
+					Char = charData.ID,
+					First = charData.First,
+					Last = charData.Last,
+					SID = charData.SID,
+					Owner = isOwner,
+					Permissions = permissions,
+				}),
+				id
+			}, function(success, results)
 				if success then
-					_properties[id] = doPropertyThings(result)
+					-- Fetch the updated property to get the result
+					MySQL.query('SELECT * FROM properties WHERE id = ?', {id}, function(success2, result)
+						if success2 and #result > 0 then
+							local property = result[1]
+							-- Decode JSON fields
+							if property.location then
+								property.location = json.decode(property.location)
+							end
+							if property.upgrades then
+								property.upgrades = json.decode(property.upgrades)
+							end
+							if property.data then
+								property.data = json.decode(property.data)
+							end
+							if property.keys then
+								property.keys = json.decode(property.keys)
+							end
+							if property.owner then
+								property.owner = json.decode(property.owner)
+							end
+							
+							_properties[id] = doPropertyThings(property)
 
-					TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
+							TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
 
-					if not updating then
-						if GlobalState[string.format("Char:Properties:%s", charData.ID)] ~= nil then
-							local t = GlobalState[string.format("Char:Properties:%s", charData.ID)]
-							table.insert(t, id)
-							GlobalState[string.format("Char:Properties:%s", charData.ID)] = t
-						else
-							GlobalState[string.format("Char:Properties:%s", charData.ID)] = {
-								id,
-							}
+							if not updating then
+								if GlobalState[string.format("Char:Properties:%s", charData.ID)] ~= nil then
+									local t = GlobalState[string.format("Char:Properties:%s", charData.ID)]
+									table.insert(t, id)
+									GlobalState[string.format("Char:Properties:%s", charData.ID)] = t
+								else
+									GlobalState[string.format("Char:Properties:%s", charData.ID)] = {
+										id,
+									}
+								end
+							end
 						end
-					end
+						p:resolve(success2)
+					end)
+				else
+					p:resolve(success)
 				end
-				p:resolve(success)
 
 				if charData.Source then
 					TriggerClientEvent("Properties:Client:AddBlips", charData.Source)
@@ -608,38 +539,52 @@ PROPERTIES = {
 		Take = function(self, target, id)
 			local p = promise.new()
 
-			Database.Game:findOneAndUpdate({
-				collection = 'properties',
-				query = {
-					_id = id,
-				},
-				update = {
-					["$unset"] = {
-						[string.format("keys.%s", target)] = true,
-					},
-				},
-				options = {
-					returnDocument = 'after',
-				},
-			}, function(success, result)
+			MySQL.update('UPDATE properties SET keys = JSON_REMOVE(COALESCE(keys, "{}"), "$.' .. target .. '") WHERE id = ?', {
+				id
+			}, function(success, results)
 				if success then
-					_properties[id] = doPropertyThings(result)
+					-- Fetch the updated property to get the result
+					MySQL.query('SELECT * FROM properties WHERE id = ?', {id}, function(success2, result)
+						if success2 and #result > 0 then
+							local property = result[1]
+							-- Decode JSON fields
+							if property.location then
+								property.location = json.decode(property.location)
+							end
+							if property.upgrades then
+								property.upgrades = json.decode(property.upgrades)
+							end
+							if property.data then
+								property.data = json.decode(property.data)
+							end
+							if property.keys then
+								property.keys = json.decode(property.keys)
+							end
+							if property.owner then
+								property.owner = json.decode(property.owner)
+							end
+							
+							_properties[id] = doPropertyThings(property)
 
-					TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
+							TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
 
-					local t = GlobalState[string.format("Char:Properties:%s", target)]
-					if t ~= nil then
-						for k, v in ipairs(t) do
-							if v == id then
-								table.remove(t, k)
-								break
+							local t = GlobalState[string.format("Char:Properties:%s", target)]
+							if t ~= nil then
+								for k, v in ipairs(t) do
+									if v == id then
+										table.remove(t, k)
+										break
+									end
+								end
+
+								GlobalState[string.format("Char:Properties:%s", target)] = t
 							end
 						end
-
-						GlobalState[string.format("Char:Properties:%s", target)] = t
-					end
+						p:resolve(success2)
+					end)
+				else
+					p:resolve(success)
 				end
-				p:resolve(success)
 			end)
 			return Citizen.Await(p)
 		end,

@@ -1,53 +1,45 @@
 _MDT.Properties = {
 	Search = function(self, term)
 		local p = promise.new()
-		Database.Game:find({
-			collection = 'properties',
-			query = {
-                type = {
-                    ['$nin'] = {
-                        'container',
-                    }
-                },
-				unlisted = {
-					["$ne"] = true,
-				},
-				["$or"] = {
-					{
-						['$expr'] = {
-							['$regexMatch'] = {
-								input = {
-									['$toString'] = '$owner.SID'
-								},
-								regex = term,
-								options = "i",
-							}
-						}
-					},
-					{
-						["$expr"] = {
-							["$regexMatch"] = {
-								input = {
-									["$concat"] = { "$owner.First", " ", "$owner.Last" },
-								},
-								regex = term,
-								options = "i",
-							},
-						},
-					},
-					{
-						label = {
-							['$regex'] = term,
-							['$options'] = "i",
-						}
-					},
-				},
-			},
-		}, function(success, results)
+		
+		-- Convert MongoDB query to MySQL with JSON functions
+		local query = [[
+			SELECT * FROM properties 
+			WHERE type != 'container' 
+			AND (unlisted IS NULL OR unlisted = 0)
+			AND (
+				JSON_EXTRACT(owner, '$.SID') LIKE ? 
+				OR CONCAT(JSON_EXTRACT(owner, '$.First'), ' ', JSON_EXTRACT(owner, '$.Last')) LIKE ? 
+				OR label LIKE ?
+			)
+		]]
+		
+		local searchTerm = '%' .. term .. '%'
+		MySQL.query(query, {searchTerm, searchTerm, searchTerm}, function(success, results)
 			if not success then
 				p:resolve(false)
 				return
 			end
+			
+			-- Decode JSON fields for each result
+			for k, v in pairs(results) do
+				if v.location then
+					v.location = json.decode(v.location)
+				end
+				if v.upgrades then
+					v.upgrades = json.decode(v.upgrades)
+				end
+				if v.data then
+					v.data = json.decode(v.data)
+				end
+				if v.keys then
+					v.keys = json.decode(v.keys)
+				end
+				if v.owner then
+					v.owner = json.decode(v.owner)
+				end
+			end
+			
 			p:resolve(results)
 		end)
 		GlobalState['MDT:Metric:Search'] = GlobalState['MDT:Metric:Search'] + 1
@@ -55,12 +47,7 @@ _MDT.Properties = {
 	end,
 	-- View = function(self, VIN)
 	-- 	local p = promise.new()
-	-- 	Database.Game:findOne({
-	-- 		collection = 'vehicles',
-	-- 		query = {
-	-- 			VIN = VIN,
-	-- 		},
-	-- 	}, function(success, results)
+	-- 	MySQL.query('SELECT * FROM vehicles WHERE VIN = ? LIMIT 1', {VIN}, function(success, results)
 	-- 		if not success or #results <= 0 then
 	-- 			p:resolve(false)
 	-- 			return
@@ -68,6 +55,11 @@ _MDT.Properties = {
 	-- 		local vehicle = results[1]
 
 	-- 		if vehicle.Owner then
+	-- 			-- Decode JSON Owner data if it's a string
+	-- 			if type(vehicle.Owner) == "string" then
+	-- 				vehicle.Owner = json.decode(vehicle.Owner)
+	-- 			end
+				
 	-- 			if vehicle.Owner.Type == 0 then
 	-- 				vehicle.Owner.Person = MDT.People:View(vehicle.Owner.Id)
 	-- 			elseif vehicle.Owner.Type == 1 then

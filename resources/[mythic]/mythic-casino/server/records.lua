@@ -5,41 +5,58 @@ function UpdateCharacterCasinoStats(source, statType, isWin, amount)
         if char then
             local p = promise.new()
 
-            local update = {
-                ["$push"] = {
-                    [statType] = {
+            -- Get current stats first
+            MySQL.query('SELECT * FROM casino_statistics WHERE SID = ?', {char:GetData("SID")}, function(success, results)
+                if success then
+                    local currentStats = results[1] or {}
+                    local stats = currentStats.stats or {}
+                    
+                    -- Update the specific stat type
+                    if not stats[statType] then
+                        stats[statType] = {}
+                    end
+                    table.insert(stats[statType], {
                         Win = isWin,
                         Amount = amount,
-                    },
-                },
-            }
+                    })
 
-            if isWin then
-                update["$inc"] = {
-                    TotalAmountWon = amount,
-                    [string.format("AmountWon.%s", statType)] = amount,
-                }
-            else
-                update["$inc"] = {
-                    TotalAmountLost = amount,
-                    [string.format("AmountLost.%s", statType)] = amount,
-                }
-            end
+                    -- Update totals
+                    local totalAmountWon = (currentStats.TotalAmountWon or 0)
+                    local totalAmountLost = (currentStats.TotalAmountLost or 0)
+                    local amountWon = currentStats.AmountWon or {}
+                    local amountLost = currentStats.AmountLost or {}
 
-            Database.Game:findOneAndUpdate({
-                collection = 'casino_statistics',
-                query = {
-                    SID = char:GetData("SID"),
-                },
-                update = update,
-                options = {
-                    returnDocument = "after",
-                    upsert = true,
-                }
-            }, function(success, results)
-                if success and results then
-                    p:resolve(results)
+                    if isWin then
+                        totalAmountWon = totalAmountWon + amount
+                        amountWon[statType] = (amountWon[statType] or 0) + amount
+                    else
+                        totalAmountLost = totalAmountLost + amount
+                        amountLost[statType] = (amountLost[statType] or 0) + amount
+                    end
+
+                    -- Insert or update
+                    MySQL.insert('INSERT INTO casino_statistics (SID, stats, TotalAmountWon, TotalAmountLost, AmountWon, AmountLost) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE stats = ?, TotalAmountWon = ?, TotalAmountLost = ?, AmountWon = ?, AmountLost = ?', {
+                        char:GetData("SID"),
+                        json.encode(stats),
+                        totalAmountWon,
+                        totalAmountLost,
+                        json.encode(amountWon),
+                        json.encode(amountLost),
+                        json.encode(stats),
+                        totalAmountWon,
+                        totalAmountLost,
+                        json.encode(amountWon),
+                        json.encode(amountLost)
+                    }, function(insertSuccess, result)
+                        if insertSuccess then
+                            p:resolve(true)
+                        else
+                            Logger:Error("Casino", "Failed to update casino statistics", { console = true })
+                            p:resolve(false)
+                        end
+                    end)
                 else
+                    Logger:Error("Casino", "Failed to get casino statistics", { console = true })
                     p:resolve(false)
                 end
             end)
@@ -58,22 +75,24 @@ function SaveCasinoBigWin(source, machine, prize, data)
         if char then
             local p = promise.new()
 
-            Database.Game:insertOne({
-                collection = 'casino_bigwins',
-                document = {
-                    Type = machine,
-                    Time = os.time(),
-                    Winner = {
-                        SID = char:GetData("SID"),
-                        First = char:GetData("First"),
-                        Last = char:GetData("Last"),
-                        ID = char:GetData("ID"),
-                    },
-                    Prize = prize,
-                    MetaData = data,
-                }
+            MySQL.insert('INSERT INTO casino_bigwins (Type, Time, Winner, Prize, MetaData) VALUES (?, ?, ?, ?, ?)', {
+                machine,
+                os.time(),
+                json.encode({
+                    SID = char:GetData("SID"),
+                    First = char:GetData("First"),
+                    Last = char:GetData("Last"),
+                    ID = char:GetData("ID"),
+                }),
+                prize,
+                json.encode(data or {})
             }, function(success, result)
-                p:resolve(success)
+                if success then
+                    p:resolve(true)
+                else
+                    Logger:Error("Casino", "Failed to save casino big win", { console = true })
+                    p:resolve(false)
+                end
             end)
 
             local res = Citizen.Await(p)

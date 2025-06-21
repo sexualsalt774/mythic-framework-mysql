@@ -170,11 +170,13 @@ function RegisterBankingCallbacks()
 				end
 			end
 
-			-- local accountTransactions = FindBankAccountTransactions({
-			-- 	Account = {
-			-- 		["$in"] = availableAccountTransactions,
-			-- 	},
-			-- })
+			-- Below gets commented out later
+			local accountTransactions = FindBankAccountTransactions({
+				Account = {
+					["$in"] = availableAccountTransactions,
+				},
+			})
+			-- Above gets comments out later
 
 			for k, v in ipairs(availableAccountTransactions) do
 				local accountTransactions = FindBankAccountTransactions({
