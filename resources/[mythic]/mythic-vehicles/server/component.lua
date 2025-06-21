@@ -404,8 +404,8 @@ VEHICLE = {
                     doc.Mileage,
                     doc.DirtLevel
                 }, function(result)
-                    if result and result.insertId then
-                        doc.id = result.insertId
+                    if result then
+                        doc.id = result
                         cb(true, doc)
                     else
                         Logger:Error("Vehicles", "Failed to insert vehicle", { console = true })
