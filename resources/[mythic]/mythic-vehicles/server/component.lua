@@ -207,7 +207,7 @@ function SaveVehicle(VIN)
         local query = 'UPDATE vehicles SET ' .. table.concat(setClause, ', ') .. ' WHERE VIN = ?'
 
         MySQL.update(query, values, function(result)
-            if result and result.affectedRows > 0 then
+            if result and result > 0 then
                 p:resolve(true)
             else
                 Logger:Error("Vehicles", "Failed to save vehicle", { console = true })
