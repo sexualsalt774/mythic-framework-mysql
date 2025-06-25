@@ -14,7 +14,6 @@ function FetchCharacterJobsFromDB(stateId)
 end
 
 function RegisterJobChatCommands()
-
     Chat:RegisterAdminCommand('givejob', function(source, args, rawCommand)
         local target, jobId, gradeId, workplaceId = table.unpack(args)
         Chat.Send.System:Single(source, string.format('%s %s %s %s', target, jobId, gradeId, workplaceId))
@@ -23,16 +22,20 @@ function RegisterJobChatCommands()
 
         if target and jobId and gradeId then
             local jobExists = Jobs:DoesExist(jobId, workplaceId, gradeId)
-            Chat.Send.System:Single(source, string.format('%s %s %s %s', 'does this shit work?', jobExists, jobExists, jobExists)))
+            Chat.Send.System:Single(source,
+                string.format('%s %s %s %s', 'does this shit work?', jobExists, jobExists, jobExists))
             if jobExists then
                 local success = Jobs:GiveJob(target, jobId, workplaceId, gradeId)
                 Chat.Send.System:Single(source, success)
                 if success then
                     Chat.Send.System:Single(source, jobExists.Workplace)
                     if jobExists.Workplace then
-                        Chat.Send.System:Single(source, string.format('Gave State ID: %s Job: %s - %s - %s', target, jobExists.Name, jobExists.Workplace.Name, jobExists.Grade.Name))
+                        Chat.Send.System:Single(source,
+                            string.format('Gave State ID: %s Job: %s - %s - %s', target, jobExists.Name,
+                                jobExists.Workplace.Name, jobExists.Grade.Name))
                     else
-                        Chat.Send.System:Single(source, string.format('Gave State ID: %s Job: %s - %s', target, jobExists.Name, jobExists.Grade.Name))
+                        Chat.Send.System:Single(source,
+                            string.format('Gave State ID: %s Job: %s - %s', target, jobExists.Name, jobExists.Grade.Name))
                     end
                 else
                     Chat.Send.System:Single(source, 'Error Giving Job - Maybe that State ID Doesn\'t Exist')
@@ -47,9 +50,9 @@ function RegisterJobChatCommands()
     end, {
         help = 'Give Player a Job',
         params = {
-            { name = 'State ID', help = 'Character State ID' },
-            { name = 'Job ID', help = 'Job (e.g. police)' },
-            { name = 'Grade ID', help = 'Grade (e.g. chief)' },
+            { name = 'State ID',     help = 'Character State ID' },
+            { name = 'Job ID',       help = 'Job (e.g. police)' },
+            { name = 'Grade ID',     help = 'Grade (e.g. chief)' },
             { name = 'Workplace ID', help = 'Workplace (e.g lspd)' },
         }
     }, -1)
@@ -58,7 +61,7 @@ function RegisterJobChatCommands()
         local target, jobId = math.tointeger(args[1]), args[2]
         local success = Jobs:RemoveJob(target, jobId)
         if success then
-            Chat.Send.System:Single(source, 'Successfully Removed Job From State ID:'.. target)
+            Chat.Send.System:Single(source, 'Successfully Removed Job From State ID:' .. target)
         else
             Chat.Send.System:Single(source, 'Error Removing Job - State ID Doesn\'t Exist or Maybe They Don\'t that Job')
         end
@@ -66,7 +69,7 @@ function RegisterJobChatCommands()
         help = 'Remove A Job From a Character',
         params = {
             { name = 'State ID', help = 'Character State ID' },
-            { name = 'Job ID', help = 'Job ID (e.g. Police)' },
+            { name = 'Job ID',   help = 'Job ID (e.g. Police)' },
         }
     }, 2)
 
@@ -81,7 +84,8 @@ function RegisterJobChatCommands()
                     Owner = target
                 })
                 if success then
-                    Chat.Send.System:Single(source, string.format('Set Owner of %s (%s) to State ID %s', jobExists.Name, jobExists.Id, target))
+                    Chat.Send.System:Single(source,
+                        string.format('Set Owner of %s (%s) to State ID %s', jobExists.Name, jobExists.Id, target))
                 else
                     Chat.Send.System:Single(source, 'Error Setting Job Owner')
                 end
@@ -94,7 +98,7 @@ function RegisterJobChatCommands()
     end, {
         help = 'Sets the Owner of a Company',
         params = {
-            { name = 'Job ID', help = 'Job (e.g. burgershot)' },
+            { name = 'Job ID',   help = 'Job (e.g. burgershot)' },
             { name = 'State ID', help = 'Owner\'s State ID' },
         }
     }, 2)
@@ -117,7 +121,7 @@ function RegisterJobChatCommands()
     Chat:RegisterAdminCommand('checkjobs', function(source, args, rawCommand)
         local target = math.tointeger(args[1])
         local player
-        if not args[1] then 
+        if not args[1] then
             player = Fetch:Source(source)
         else
             player = Fetch:SID(target)
@@ -140,9 +144,12 @@ function RegisterJobChatCommands()
             if #charJobs > 0 then
                 for k, v in ipairs(charJobs) do
                     if v.Workplace then
-                        Chat.Send.System:Single(source, string.format('State ID: %s - Job #%s: %s - %s - %s', stateId, k, v.Name, v.Workplace.Name, v.Grade.Name))
+                        Chat.Send.System:Single(source,
+                            string.format('State ID: %s - Job #%s: %s - %s - %s', stateId, k, v.Name, v.Workplace.Name,
+                                v.Grade.Name))
                     else
-                        Chat.Send.System:Single(source, string.format('State ID: %s - Job #%s: %s - %s', stateId, k, v.Name, v.Grade.Name))
+                        Chat.Send.System:Single(source,
+                            string.format('State ID: %s - Job #%s: %s - %s', stateId, k, v.Name, v.Grade.Name))
                     end
                 end
             else
@@ -176,9 +183,13 @@ function RegisterJobChatCommands()
         local jobId = args[1]
         local jobExists = Jobs:Get(jobId)
         if jobExists then
-            Chat.Send.System:Single(source, string.format('Before Job: %s -  %s On Duty', jobExists.Name, GlobalState[string.format('Duty:%s', jobId)]))
+            Chat.Send.System:Single(source,
+                string.format('Before Job: %s -  %s On Duty', jobExists.Name,
+                    GlobalState[string.format('Duty:%s', jobId)]))
             Jobs.Duty:RefreshDutyData(jobId)
-            Chat.Send.System:Single(source, string.format('After Job: %s -  %s On Duty', jobExists.Name, GlobalState[string.format('Duty:%s', jobId)]))
+            Chat.Send.System:Single(source,
+                string.format('After Job: %s -  %s On Duty', jobExists.Name, GlobalState
+                    [string.format('Duty:%s', jobId)]))
         end
     end, {
         help = 'Test',
