@@ -158,6 +158,16 @@ AddEventHandler("Characters:Client:Updated", function(key)
 	_settings = LocalPlayer.state.Character:GetData("PhoneSettings")
 	Phone.Data:Set("player", LocalPlayer.state.Character:GetData())
 
+	if key == "Apps" then
+		local userApps = LocalPlayer.state.Character:GetData("Apps")
+		if (userApps) then
+			SendNUIMessage({
+				type = "SET_USER_APPS",
+				data = userApps,
+			})
+		end
+	end
+
 	if
 		key == "States"
 		and LocalPlayer.state.phoneOpen
@@ -203,6 +213,13 @@ RegisterNetEvent("Phone:Client:SetApps", function(apps)
 	SendNUIMessage({
 		type = "SET_APPS",
 		data = apps,
+	})
+end)
+
+RegisterNetEvent("Phone:Client:SetUserApps", function(userApps)
+	SendNUIMessage({
+		type = "SET_USER_APPS",
+		data = userApps,
 	})
 end)
 
@@ -265,23 +282,15 @@ function IsInCall()
 end
 
 function TogglePhone()
-	print("TogglePhone called") -- Debug log
 	if not _openCd then
-		print("Not in cooldown") -- Debug log
 		if not Hud:IsDisabled() then
-			print("HUD not disabled") -- Debug log
-			print("Jail status:", Jail:IsJailed()) -- Debug log
-			print("Character states:", json.encode(LocalPlayer.state.Character:GetData("States") or {})) -- Debug log
 			if not Jail:IsJailed() and hasValue(LocalPlayer.state.Character:GetData("States"), "PHONE") then
-				print("Opening phone") -- Debug log
 				Phone:Open()
 			else
-				print("Cannot open phone - showing error") -- Debug log
 				Notification:Error("You Don't Have a Phone", 2000)
 				LocalPlayer.state.phoneOpen = false
 			end
 		else
-			print("HUD disabled, closing phone") -- Debug log
 			Phone:Close()
 		end
 

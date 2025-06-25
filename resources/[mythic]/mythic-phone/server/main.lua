@@ -147,7 +147,6 @@ end)
 AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		Phone:UpdateJobData(source)
-		TriggerClientEvent("Phone:Client:SetApps", source, PHONE_APPS)
 
 		local char = Fetch:Source(source):GetData("Character")
 		local myPerms = char:GetData("PhonePermissions")
@@ -224,30 +223,8 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 			char:SetData("PhonePermissions", myPerms)
 		end
 
-
-		-- Phone:UpdateJobData(source)
-		-- TriggerClientEvent("Phone:Client:SetApps", source, PHONE_APPS)
-
-		-- local char = Fetch:Source(source):GetData("Character")
-		-- local myPerms = char:GetData("PhonePermissions")
-		-- local modified = false
-		-- for app, perms in pairs(defaultPermissions) do
-		-- 	if myPerms[app] == nil then
-		-- 		myPerms[app] = perms
-		-- 		modified = true
-		-- 	else
-		-- 		for perm, state in pairs(perms) do
-		-- 			if myPerms[app][perm] == nil then
-		-- 				myPerms[app][perm] = state
-		-- 				modified = true
-		-- 			end
-		-- 		end
-		-- 	end
-		-- end
-
-		-- if modified then
-		-- 	char:SetData("PhonePermissions", myPerms)
-		-- end
+		TriggerClientEvent("Phone:Client:SetApps", source, PHONE_APPS)
+		TriggerClientEvent("Phone:Client:SetUserApps", source, myApps)
 	end, 1)
 	Middleware:Add("Phone:UIReset", function(source)
 		Phone:UpdateJobData(source)
