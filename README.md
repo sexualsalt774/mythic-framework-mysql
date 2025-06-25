@@ -10,7 +10,9 @@ All Credits goto the original authors
 ---
 
 ## Issues
-- `cant use phone`
+
+### 🚨 Critical Issues
+- `mythic-phone` loads of SQL issues atm
 
 
 ---
