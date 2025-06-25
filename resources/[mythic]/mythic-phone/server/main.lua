@@ -130,15 +130,15 @@ AddEventHandler("Core:Shared:Ready", function()
 		TriggerEvent("Phone:Server:RegisterCallbacks")
 
 		Reputation:Create("Racing", "LS Underground", {
-			{ label = "Rank 1", value = 1000 },
-			{ label = "Rank 2", value = 2500 },
-			{ label = "Rank 3", value = 5000 },
-			{ label = "Rank 4", value = 10000 },
-			{ label = "Rank 5", value = 25000 },
-			{ label = "Rank 6", value = 50000 },
-			{ label = "Rank 7", value = 100000 },
-			{ label = "Rank 8", value = 250000 },
-			{ label = "Rank 9", value = 500000 },
+			{ label = "Rank 1",  value = 1000 },
+			{ label = "Rank 2",  value = 2500 },
+			{ label = "Rank 3",  value = 5000 },
+			{ label = "Rank 4",  value = 10000 },
+			{ label = "Rank 5",  value = 25000 },
+			{ label = "Rank 6",  value = 50000 },
+			{ label = "Rank 7",  value = 100000 },
+			{ label = "Rank 8",  value = 250000 },
+			{ label = "Rank 9",  value = 500000 },
 			{ label = "Rank 10", value = 1000000 },
 		}, true)
 	end)
@@ -152,15 +152,38 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 		local char = Fetch:Source(source):GetData("Character")
 		local myPerms = char:GetData("PhonePermissions")
 		local mySettings = char:GetData("PhoneSettings")
+		local myApps = char:GetData("Apps")
 		local modified = false
-		
-		-- Ensure PhoneSettings are properly initialized
+
+		if type(myApps) ~= "table" then
+			myApps = defaultApps()
+			char:SetData("Apps", myApps)
+			modified = true
+		else
+			if type(myApps.installed) ~= "table" then
+				myApps.installed = {}
+				for k, v in pairs(PHONE_APPS) do
+					if not v.canUninstall then
+						table.insert(myApps.installed, v.name)
+					end
+				end
+				modified = true
+			end
+			if type(myApps.home) ~= "table" then
+				myApps.home = table.copy(myApps.installed)
+				modified = true
+			end
+			if type(myApps.dock) ~= "table" then
+				myApps.dock = { "contacts", "phone", "messages" }
+				modified = true
+			end
+		end
+
 		if type(mySettings) ~= "table" then
 			mySettings = table.copy(defaultSettings)
 			char:SetData("PhoneSettings", mySettings)
 			modified = true
 		else
-			-- Fill in any missing default settings
 			for k, v in pairs(defaultSettings) do
 				if mySettings[k] == nil then
 					mySettings[k] = v
@@ -168,13 +191,12 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 				end
 			end
 		end
-		
+
 		if modified then
 			char:SetData("PhoneSettings", mySettings)
 		end
 
 		if type(myPerms) ~= "table" then
-			-- Only deep copy if missing
 			myPerms = {}
 			for app, perms in pairs(defaultPermissions) do
 				myPerms[app] = {}
@@ -184,7 +206,6 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 			end
 			modified = true
 		else
-			-- Only fill in missing apps/perms
 			for app, perms in pairs(defaultPermissions) do
 				if type(myPerms[app]) ~= "table" then
 					myPerms[app] = {}
@@ -198,7 +219,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 				end
 			end
 		end
-		
+
 		if modified then
 			char:SetData("PhonePermissions", myPerms)
 		end
@@ -328,23 +349,25 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 					},
 				}
 			end
-			MySQL.query('SELECT * FROM characters WHERE ' .. buildWhereClause(query), buildWhereParams(query), function(results)
-				if #results > 0 then
-					cb(false)
-				else
-					local upd = {
-						["Alias." .. data.app] = data.alias,
-					}
-					if data?.alias?.name ~= nil then
-						upd = {
-							["Alias." .. data.app .. ".name"] = data.alias.name,
+			MySQL.query('SELECT * FROM characters WHERE ' .. buildWhereClause(query), buildWhereParams(query),
+				function(results)
+					if #results > 0 then
+						cb(false)
+					else
+						local upd = {
+							["Alias." .. data.app] = data.alias,
 						}
+						if data?.alias?.name ~= nil then
+							upd = {
+								["Alias." .. data.app .. ".name"] = data.alias.name,
+							}
+						end
+						MySQL.update('UPDATE characters SET Alias = ? WHERE ID = ?',
+							{ json.encode(upd), char:GetData('ID') }, function(affectedRows)
+								cb(affectedRows > 0)
+							end)
 					end
-					MySQL.update('UPDATE characters SET Alias = ? WHERE ID = ?', { json.encode(upd), char:GetData('ID') }, function(affectedRows)
-						cb(affectedRows > 0)
-					end)
-				end
-			end)
+				end)
 		else
 			alias[data.app] = data.alias
 			char:SetData("Alias", alias)
