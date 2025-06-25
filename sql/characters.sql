@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `LaptopPermissions` JSON DEFAULT NULL,
   `LaptopApps` JSON DEFAULT NULL,
   `Apps` JSON DEFAULT NULL,
+  `Wardrobe` JSON DEFAULT NULL,
   `PreviewPed` VARCHAR(64) DEFAULT NULL,
   `PreviewData` JSON DEFAULT NULL,
   `Animations` JSON DEFAULT NULL,

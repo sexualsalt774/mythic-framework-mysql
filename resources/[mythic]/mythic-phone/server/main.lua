@@ -151,8 +151,28 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 
 		local char = Fetch:Source(source):GetData("Character")
 		local myPerms = char:GetData("PhonePermissions")
+		local mySettings = char:GetData("PhoneSettings")
 		local modified = false
 		
+		-- Ensure PhoneSettings are properly initialized
+		if type(mySettings) ~= "table" then
+			mySettings = table.copy(defaultSettings)
+			char:SetData("PhoneSettings", mySettings)
+			modified = true
+		else
+			-- Fill in any missing default settings
+			for k, v in pairs(defaultSettings) do
+				if mySettings[k] == nil then
+					mySettings[k] = v
+					modified = true
+				end
+			end
+		end
+		
+		if modified then
+			char:SetData("PhoneSettings", mySettings)
+		end
+
 		if type(myPerms) ~= "table" then
 			-- Only deep copy if missing
 			myPerms = {}

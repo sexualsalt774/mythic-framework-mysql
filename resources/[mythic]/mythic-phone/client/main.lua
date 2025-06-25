@@ -265,15 +265,23 @@ function IsInCall()
 end
 
 function TogglePhone()
+	print("TogglePhone called") -- Debug log
 	if not _openCd then
+		print("Not in cooldown") -- Debug log
 		if not Hud:IsDisabled() then
+			print("HUD not disabled") -- Debug log
+			print("Jail status:", Jail:IsJailed()) -- Debug log
+			print("Character states:", json.encode(LocalPlayer.state.Character:GetData("States") or {})) -- Debug log
 			if not Jail:IsJailed() and hasValue(LocalPlayer.state.Character:GetData("States"), "PHONE") then
+				print("Opening phone") -- Debug log
 				Phone:Open()
 			else
+				print("Cannot open phone - showing error") -- Debug log
 				Notification:Error("You Don't Have a Phone", 2000)
 				LocalPlayer.state.phoneOpen = false
 			end
 		else
+			print("HUD disabled, closing phone") -- Debug log
 			Phone:Close()
 		end
 

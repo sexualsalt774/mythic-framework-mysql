@@ -118,14 +118,37 @@ function RegisterCallbacks()
 		for _, v in ipairs(extra) do
 			for k2, v2 in pairs(v) do
 				if k2 ~= 'ID' then
-					doc[k2] = v2
+					if not v2 then
+						doc[k2] = nil
+					elseif v2 == false then
+						doc[k2] = nil
+					else
+						doc[k2] = v2
+					end
 				end
 			end
 		end
 
-		MySQL.insert('INSERT INTO characters (User, First, Last, Phone, Gender, Bio, Origin, DOB, LastPlayed, Jobs, SID, Cash, New, Apartment, Licenses) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
-			doc.User, doc.First, doc.Last, doc.Phone, doc.Gender, doc.Bio, doc.Origin, doc.DOB, doc.LastPlayed, json.encode(doc.Jobs), doc.SID, doc.Cash, doc.New, doc.Apartment, json.encode(doc.Licenses)
-		}, function(result)
+		-- Build dynamic INSERT query
+		local fields = {}
+		local values = {}
+		local placeholders = {}
+		
+		-- Process fields in order to maintain field-value alignment
+		for field, value in pairs(doc) do
+			table.insert(fields, field)
+			table.insert(placeholders, "?")
+			
+			if type(value) == "table" then
+				table.insert(values, json.encode(value))
+			else
+				table.insert(values, value)
+			end
+		end
+		
+		local query = string.format('INSERT INTO characters (%s) VALUES (%s)', table.concat(fields, ', '), table.concat(placeholders, ', '))
+		
+		MySQL.insert(query, values, function(result)
 			if result and type(result) == "number" and result > 0 then
 				doc.ID = result
 				TriggerEvent('Characters:Server:CharacterCreated', doc)
