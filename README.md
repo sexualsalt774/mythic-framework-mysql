@@ -15,27 +15,14 @@ All Credits goto the original authors
 
 ---
 
-## ✅ Completed
-
-- `All Database.Auth Calls are converted to MySQL (oxmysql)`
+## ⚠️ Completed (with issues)
 
 - `mythic-admin`
 - `mythic-dealerships`
 - `mythic-weed`
 - `mythic-billboards`
 - `mythic-scenes`
-
----
-
-
-## No Database
-
 - `mythic-weapons`
-
----
-
-## 🛠️ Roadmap (In Progress)
-
 - `mythic-loadscreen`
 - `mythic-base`
 - `mythic-queue`
