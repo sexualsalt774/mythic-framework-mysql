@@ -12,6 +12,7 @@ COMPONENTS.DataStore = {
 			Owner = owner,
 			Key = key,
 			SetData = function(self, var, data)
+				-- maybe put a false to nil check here should probably work the same aswell
 				_stores[self.Owner][self.Key][var] = data
 
 				if self.Key == "Character" and IsDuplicityVersion() then
