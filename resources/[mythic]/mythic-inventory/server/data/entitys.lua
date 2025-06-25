@@ -475,18 +475,6 @@ _entityTypes = {
 		},
 	},
 	{
-		id = 54,
-		slots = 52,
-		capacity = 300,
-		name = "Avast Arcade Safe",
-		restriction = {
-			job = {
-				id = "avast_arcade",
-				permissionKey = "JOB_ACCESS_SAFE",
-			},
-		},
-	},
-	{
 		id = 55,
 		slots = 52,
 		capacity = 300,
@@ -753,18 +741,6 @@ _entityTypes = {
 		restriction = {
 			job = {
 				id = "pizza_this",
-			},
-		},
-	},
-
-	{
-		id = 78,
-		slots = 80,
-		capacity = 1000,
-		name = "Avast Arcade Fridge",
-		restriction = {
-			job = {
-				id = "avast_arcade",
 			},
 		},
 	},
@@ -1240,7 +1216,7 @@ _entityTypes = {
 		},
 	},
 
-	
+
 	{
 		id = 119,
 		slots = 120,

@@ -13,14 +13,14 @@ AddEventHandler("Core:Shared:Ready", function()
 		"Callbacks",
 		"Inventory",
 		"Targeting",
-        "Notification",
+		"Notification",
 		"Jobs",
 		"Blips",
 	}, function(error)
 		if error then
 		end
 		RetrieveComponents()
-        Startup()
+		Startup()
 	end)
 end)
 
@@ -35,10 +35,10 @@ function Startup()
 		minZ = 12.37,
 		maxZ = 15.77
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'burgershot' },
 			jobPerms = {
 				{
@@ -46,11 +46,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'burgershot' },
 			jobPerms = {
 				{
@@ -58,19 +58,19 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("lasttrain-clockinoff", "clock", vector3(-384.8, 268.03, 86.46), 1, 0.8, {
 		heading = 305,
-        --debugPoly = true,
+		--debugPoly = true,
 		minZ = 86.41,
 		maxZ = 87.41
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'lasttrain' },
 			jobPerms = {
 				{
@@ -78,11 +78,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'lasttrain' },
 			jobPerms = {
 				{
@@ -90,8 +90,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("triad-clockinoff", "clock", vector3(-830.56, -730.64, 28.06), 1, 1, {
 		heading = 0,
@@ -99,10 +99,10 @@ function Startup()
 		minZ = 27.06,
 		maxZ = 28.66
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'triad' },
 			jobPerms = {
 				{
@@ -110,11 +110,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'triad' },
 			jobPerms = {
 				{
@@ -122,8 +122,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("uwu-clockinoff", "clock", vector3(-593.97, -1053.52, 22.34), 0.6, 2.8, {
 		heading = 90,
@@ -131,10 +131,10 @@ function Startup()
 		minZ = 21.94,
 		maxZ = 23.94
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'uwu' },
 			jobPerms = {
 				{
@@ -142,11 +142,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'uwu' },
 			jobPerms = {
 				{
@@ -154,8 +154,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("pizza_this-clockinoff", "clock", vector3(804.4, -760.87, 31.27), 1, 1, {
 		heading = 0,
@@ -163,10 +163,10 @@ function Startup()
 		minZ = 30.27,
 		maxZ = 32.07
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'pizza_this' },
 			jobPerms = {
 				{
@@ -174,11 +174,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'pizza_this' },
 			jobPerms = {
 				{
@@ -186,41 +186,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
-
-	Targeting.Zones:AddBox("avast_arcade-clockinoff", "clock", vector3(-1659.51, -1061.26, 12.16), 1, 1, {
-		name = "duty",
-		heading = 46,
-		--debugPoly=true,
-		minZ = 11.56,
-		maxZ = 13.36
-	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
-			data = { job = 'avast_arcade' },
-			jobPerms = {
-				{
-					job = 'avast_arcade',
-					reqOffDuty = true,
-				}
-			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
-			data = { job = 'avast_arcade' },
-			jobPerms = {
-				{
-					job = 'avast_arcade',
-					reqDuty = true,
-				}
-			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("bballs-clockinoff", "bowling-ball", vector3(755.73, -775.51, 26.34), 1.0, 0.6, {
 		heading = 0,
@@ -228,10 +195,10 @@ function Startup()
 		minZ = 26.34,
 		maxZ = 27.14
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'bowling' },
 			jobPerms = {
 				{
@@ -239,11 +206,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'bowling' },
 			jobPerms = {
 				{
@@ -251,18 +218,18 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
+		},
 		{
 			icon = "tv",
-            text = "Set TV Link",
-            event = "Bowling:Client:SetTV",
+			text = "Set TV Link",
+			event = "Bowling:Client:SetTV",
 			jobPerms = {
 				{
 					job = 'bowling',
 					reqDuty = true,
 				}
 			},
-        },
+		},
 		{
 			icon = "bowling-ball",
 			text = "Reset All Lanes",
@@ -276,17 +243,17 @@ function Startup()
 			},
 		},
 		{
-            icon = "bowling-ball",
-            text = "Clear Pins",
-            event = "Bowling:Client:ClearPins",
+			icon = "bowling-ball",
+			text = "Clear Pins",
+			event = "Bowling:Client:ClearPins",
 			jobPerms = {
 				{
 					job = 'bowling',
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("beanmachine-clockinoff", "clock", vector3(126.86, -1035.47, 29.28), 2.0, 0.4, {
 		heading = 340,
@@ -294,10 +261,10 @@ function Startup()
 		minZ = 28.48,
 		maxZ = 31.48
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'beanmachine' },
 			jobPerms = {
 				{
@@ -305,11 +272,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'beanmachine' },
 			jobPerms = {
 				{
@@ -317,8 +284,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("vu-clockinoff", "clock", vector3(133.06, -1286.17, 29.27), 0.9, 0.7, {
 		heading = 30,
@@ -326,10 +293,10 @@ function Startup()
 		minZ = 29.07,
 		maxZ = 30.07
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'unicorn' },
 			jobPerms = {
 				{
@@ -337,11 +304,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'unicorn' },
 			jobPerms = {
 				{
@@ -349,8 +316,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("vu-clockinoff2", "clock", vector3(102.0, -1299.66, 28.77), 1, 1, {
 		heading = 30,
@@ -358,10 +325,10 @@ function Startup()
 		minZ = 28.37,
 		maxZ = 30.77
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'unicorn' },
 			jobPerms = {
 				{
@@ -369,11 +336,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'unicorn' },
 			jobPerms = {
 				{
@@ -381,8 +348,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("bakery-clockinoff", "clock", vector3(-1264.53, -291.36, 37.39), 0.6, 1, {
 		heading = 20,
@@ -390,10 +357,10 @@ function Startup()
 		minZ = 36.39,
 		maxZ = 37.99
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'bakery' },
 			jobPerms = {
 				{
@@ -401,11 +368,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'bakery' },
 			jobPerms = {
 				{
@@ -413,8 +380,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("noodle-clockinoff", "clock", vector3(-1185.77, -1149.25, 7.67), 0.8, 2, {
 		heading = 15,
@@ -422,10 +389,10 @@ function Startup()
 		minZ = 6.67,
 		maxZ = 8.87
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'noodle' },
 			jobPerms = {
 				{
@@ -433,11 +400,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'noodle' },
 			jobPerms = {
 				{
@@ -445,8 +412,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("tequila-clockinoff", "clock", vector3(-562.95, 283.25, 82.18), 1, 1, {
 		heading = 0,
@@ -454,10 +421,10 @@ function Startup()
 		minZ = 81.58,
 		maxZ = 83.38
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'tequila' },
 			jobPerms = {
 				{
@@ -465,11 +432,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'tequila' },
 			jobPerms = {
 				{
@@ -477,8 +444,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("rockford_records-clockinoff", "clock", vector3(-1004.61, -269.61, 39.04), 1.2, 2.2, {
 		heading = 20,
@@ -486,10 +453,10 @@ function Startup()
 		minZ = 38.44,
 		maxZ = 40.24
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'rockford_records' },
 			jobPerms = {
 				{
@@ -497,11 +464,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'rockford_records' },
 			jobPerms = {
 				{
@@ -509,8 +476,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("rockford_records-clockinoff2", "clock", vector3(-990.76, -279.55, 38.2), 0.8, 3.0, {
 		heading = 25,
@@ -518,10 +485,10 @@ function Startup()
 		minZ = 37.6,
 		maxZ = 39.4
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'rockford_records' },
 			jobPerms = {
 				{
@@ -529,11 +496,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'rockford_records' },
 			jobPerms = {
 				{
@@ -541,8 +508,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 
 	Targeting.Zones:AddBox("prego-clockinoff", "clock", vector3(-1122.19, -1456.06, 5.11), 0.6, 1.6, {
 		heading = 35,
@@ -550,10 +517,10 @@ function Startup()
 		minZ = 4.71,
 		maxZ = 6.71
 	}, {
-        {
-            icon = "clipboard-check",
-            text = "Clock In",
-            event = "Restaurant:Client:ClockIn",
+		{
+			icon = "clipboard-check",
+			text = "Clock In",
+			event = "Restaurant:Client:ClockIn",
 			data = { job = 'prego' },
 			jobPerms = {
 				{
@@ -561,11 +528,11 @@ function Startup()
 					reqOffDuty = true,
 				}
 			},
-        },
-        {
-            icon = "clipboard",
-            text = "Clock Out",
-            event = "Restaurant:Client:ClockOut",
+		},
+		{
+			icon = "clipboard",
+			text = "Clock Out",
+			event = "Restaurant:Client:ClockOut",
 			data = { job = 'prego' },
 			jobPerms = {
 				{
@@ -573,8 +540,8 @@ function Startup()
 					reqDuty = true,
 				}
 			},
-        },
-    }, 3.0, true)
+		},
+	}, 3.0, true)
 end
 
 _RESTAURANT = {}
@@ -623,11 +590,13 @@ RegisterNetEvent("Restaurant:Client:CreatePoly", function(pickups, warmersList, 
 				{
 					icon = "money-check-dollar",
 					isEnabled = function(data)
-						return GlobalState[string.format("PendingContactless:%s", data.id)] and GlobalState[string.format("PendingContactless:%s", data.id)] > 0
+						return GlobalState[string.format("PendingContactless:%s", data.id)] and
+						GlobalState[string.format("PendingContactless:%s", data.id)] > 0
 					end,
 					textFunc = function(data)
 						if GlobalState[string.format("PendingContactless:%s", data.id)] and GlobalState[string.format("PendingContactless:%s", data.id)] > 0 then
-							return string.format("Pay Contactless ($%s)", GlobalState[string.format("PendingContactless:%s", data.id)])
+							return string.format("Pay Contactless ($%s)",
+								GlobalState[string.format("PendingContactless:%s", data.id)])
 						end
 					end,
 					event = "Businesses:Client:PayContactlessPayment",

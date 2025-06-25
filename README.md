@@ -84,7 +84,6 @@ All Credits goto the original authors
 - `mythic-radio`
 - `mythic-phone`
 - `mythic-casino`
-- `mythic-arcade`
 
 ---
 

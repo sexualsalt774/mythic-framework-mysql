@@ -73,7 +73,6 @@ AddEventHandler("Characters:Client:Spawn", function()
     --Blips:Add("redline-performance", "Mechanic: Redline Performance", vector3(-600.028, -929.695, 23.866), 483, 59, 0.6, 2, 11)
     Blips:Add("pizza_this", "Pizza This", vector3(793.905, -758.289, 26.779), 267, 52, 0.5, 2, 11)
     Blips:Add("uwu_cafe", "UwU Cafe", vector3(-581.098, -1070.048, 22.330), 621, 34, 0.6, 2, 11)
-    --Blips:Add("arcade", "Business: Arcade", vector3(-1651.675, -1082.294, 13.156), 484, 58, 0.8, 2, 11)
 
     --Blips:Add("tuna", "Business: McDougle Motors", vector3(161.992, -3036.946, 6.683), 611, 83, 0.6, 2, 11)
     Blips:Add("triad", "Triad Records", vector3(-832.578, -698.627, 27.280), 614, 76, 0.5, 2, 11)
@@ -126,67 +125,69 @@ AddEventHandler("Characters:Client:Spawn", function()
 end)
 
 RegisterNetEvent("Businesses:Client:CreatePoly", function(pickups, onSpawn)
-	for k, v in ipairs(pickups) do
-		local data = GlobalState[string.format("Businesses:Pickup:%s", v)]
-		if data ~= nil then
-			Targeting.Zones:AddBox(data.id, "box-archive", data.coords, data.width, data.length, data.options, {
-				{
-					icon = "box-archive",
-					text = string.format("Pickup Order (#%s)", data.num),
-					event = "Businesses:Client:Pickup",
-					data = data.data,
-				},
+    for k, v in ipairs(pickups) do
+        local data = GlobalState[string.format("Businesses:Pickup:%s", v)]
+        if data ~= nil then
+            Targeting.Zones:AddBox(data.id, "box-archive", data.coords, data.width, data.length, data.options, {
                 {
-					icon = "credit-card",
-					text = "Set Contactless Payment",
-					event = "Businesses:Client:CreateContactlessPayment",
-					isEnabled = function(data)
-						return not GlobalState[string.format("PendingContactless:%s", data.id)]
-					end,
-					data = data,
-					jobPerms = {
-						{
-							job = data.job,
-							reqDuty = true,
-						}
-					},
-				},
-				{
-					icon = "credit-card",
-					text = "Clear Contactless Payment",
-					event = "Businesses:Client:ClearContactlessPayment",
-					isEnabled = function(data)
-						return GlobalState[string.format("PendingContactless:%s", data.id)]
-					end,
-					data = data,
-					jobPerms = {
-						{
-							job = data.job,
-							reqDuty = true,
-						}
-					},
-				},
-				{
-					icon = "money-check-dollar",
-					isEnabled = function(data)
-						return GlobalState[string.format("PendingContactless:%s", data.id)] and GlobalState[string.format("PendingContactless:%s", data.id)] > 0
-					end,
-					textFunc = function(data)
-						if GlobalState[string.format("PendingContactless:%s", data.id)] and GlobalState[string.format("PendingContactless:%s", data.id)] > 0 then
-							return string.format("Pay Contactless ($%s)", GlobalState[string.format("PendingContactless:%s", data.id)])
-						end
-					end,
-					event = "Businesses:Client:PayContactlessPayment",
-					data = data,
+                    icon = "box-archive",
+                    text = string.format("Pickup Order (#%s)", data.num),
+                    event = "Businesses:Client:Pickup",
+                    data = data.data,
+                },
+                {
+                    icon = "credit-card",
+                    text = "Set Contactless Payment",
+                    event = "Businesses:Client:CreateContactlessPayment",
+                    isEnabled = function(data)
+                        return not GlobalState[string.format("PendingContactless:%s", data.id)]
+                    end,
+                    data = data,
+                    jobPerms = {
+                        {
+                            job = data.job,
+                            reqDuty = true,
+                        }
+                    },
+                },
+                {
+                    icon = "credit-card",
+                    text = "Clear Contactless Payment",
+                    event = "Businesses:Client:ClearContactlessPayment",
+                    isEnabled = function(data)
+                        return GlobalState[string.format("PendingContactless:%s", data.id)]
+                    end,
+                    data = data,
+                    jobPerms = {
+                        {
+                            job = data.job,
+                            reqDuty = true,
+                        }
+                    },
+                },
+                {
+                    icon = "money-check-dollar",
+                    isEnabled = function(data)
+                        return GlobalState[string.format("PendingContactless:%s", data.id)] and
+                        GlobalState[string.format("PendingContactless:%s", data.id)] > 0
+                    end,
+                    textFunc = function(data)
+                        if GlobalState[string.format("PendingContactless:%s", data.id)] and GlobalState[string.format("PendingContactless:%s", data.id)] > 0 then
+                            return string.format("Pay Contactless ($%s)",
+                                GlobalState[string.format("PendingContactless:%s", data.id)])
+                        end
+                    end,
+                    event = "Businesses:Client:PayContactlessPayment",
+                    data = data,
                     item = "phone",
-				},
-			}, 2.0, true)
-		end
-	end
+                },
+            }, 2.0, true)
+        end
+    end
 end)
 
 AddEventHandler("Businesses:Client:Pickup", function(entity, data)
-	Inventory.Dumbfuck:Open(data.inventory)
+    Inventory.Dumbfuck:Open(data.inventory)
 end)
 
 function GetBusinessClockInMenu(businessName)
@@ -195,25 +196,25 @@ function GetBusinessClockInMenu(businessName)
             icon = "clipboard-check",
             text = "Clock In",
             event = "Businesses:Client:ClockIn",
-			data = { job = businessName },
-			jobPerms = {
-				{
-					job = businessName,
-					reqOffDuty = true,
-				}
-			},
+            data = { job = businessName },
+            jobPerms = {
+                {
+                    job = businessName,
+                    reqOffDuty = true,
+                }
+            },
         },
         {
             icon = "clipboard",
             text = "Clock Out",
             event = "Businesses:Client:ClockOut",
-			data = { job = businessName },
-			jobPerms = {
-				{
-					job = businessName,
-					reqDuty = true,
-				}
-			},
+            data = { job = businessName },
+            jobPerms = {
+                {
+                    job = businessName,
+                    reqDuty = true,
+                }
+            },
         },
     }
 end
@@ -224,44 +225,44 @@ AddEventHandler("Businesses:Client:Startup", function()
         --debugPoly=true,
         minZ = 28.7,
         maxZ = 30.3
-	}, GetBusinessClockInMenu("digitalden"), 3.0, true)
+    }, GetBusinessClockInMenu("digitalden"), 3.0, true)
 
     Targeting.Zones:AddBox("securoserv-clockinoff", "clock", vector3(19.99, -119.98, 56.22), 2, 1.0, {
         heading = 340,
         --debugPoly=true,
         minZ = 55.22,
         maxZ = 57.42
-	}, GetBusinessClockInMenu("securoserv"), 3.0, true)
+    }, GetBusinessClockInMenu("securoserv"), 3.0, true)
 
     Targeting.Zones:AddBox("ferrari_pawn-clockinoff", "clock", vector3(167.95, -1314.62, 29.36), 1.0, 2, {
         heading = 334,
         --debugPoly=true,
         minZ = 28.76,
         maxZ = 30.56
-	}, {
+    }, {
         {
             icon = "clipboard-check",
             text = "Clock In",
             event = "Businesses:Client:ClockIn",
-			data = { job = "ferrari_pawn" },
-			jobPerms = {
-				{
-					job = "ferrari_pawn",
-					reqOffDuty = true,
-				}
-			},
+            data = { job = "ferrari_pawn" },
+            jobPerms = {
+                {
+                    job = "ferrari_pawn",
+                    reqOffDuty = true,
+                }
+            },
         },
         {
             icon = "clipboard",
             text = "Clock Out",
             event = "Businesses:Client:ClockOut",
-			data = { job = "ferrari_pawn" },
-			jobPerms = {
-				{
-					job = "ferrari_pawn",
-					reqDuty = true,
-				}
-			},
+            data = { job = "ferrari_pawn" },
+            jobPerms = {
+                {
+                    job = "ferrari_pawn",
+                    reqDuty = true,
+                }
+            },
         },
         {
             icon = "tv",
@@ -269,10 +270,10 @@ AddEventHandler("Businesses:Client:Startup", function()
             event = "Billboards:Client:SetLink",
             data = { id = "business_ferrari" },
             jobPerms = {
-				{
-					job = "ferrari_pawn",
-					reqDuty = true,
-				}
+                {
+                    job = "ferrari_pawn",
+                    reqDuty = true,
+                }
             },
         },
     }, 3.0, true)
@@ -282,44 +283,44 @@ AddEventHandler("Businesses:Client:Startup", function()
         --debugPoly=true,
         minZ = 46.03,
         maxZ = 47.23
-	}, GetBusinessClockInMenu("sagma"), 3.0, true)
+    }, GetBusinessClockInMenu("sagma"), 3.0, true)
 
     Targeting.Zones:AddBox("sagma-clockinoff2", "clock", vector3(-491.26, 31.8, 46.3), 1, 1, {
         heading = 355,
         --debugPoly=true,
         minZ = 46.1,
         maxZ = 47.1
-	}, GetBusinessClockInMenu("sagma"), 3.0, true)
+    }, GetBusinessClockInMenu("sagma"), 3.0, true)
 
     Targeting.Zones:AddBox("tuner-tvs", "tv", vector3(125.35, -3014.88, 7.04), 0.8, 2.0, {
         heading = 0,
         --debugPoly=true,
         minZ = 6.64,
         maxZ = 7.64,
-	}, {
+    }, {
         {
             icon = "tv",
             text = "Set TV Link",
             event = "Billboards:Client:SetLink",
             data = { id = "business_tuner" },
             jobPerms = {
-				{
-					job = "tuna",
-					reqDuty = true,
-				}
+                {
+                    job = "tuna",
+                    reqDuty = true,
+                }
             },
         },
     }, 3.0, true)
 end)
 
 AddEventHandler("Businesses:Client:ClockIn", function(_, data)
-	if data and data.job then
-		Jobs.Duty:On(data.job)
-	end
+    if data and data.job then
+        Jobs.Duty:On(data.job)
+    end
 end)
 
 AddEventHandler("Businesses:Client:ClockOut", function(_, data)
-	if data and data.job then
-		Jobs.Duty:Off(data.job)
-	end
+    if data and data.job then
+        Jobs.Duty:Off(data.job)
+    end
 end)

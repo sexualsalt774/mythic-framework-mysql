@@ -40,7 +40,7 @@ _jobSpawns = {
                 location = {
                     x = 153.016,
                     y = -3014.284,
-                    z =  7.541,
+                    z = 7.541,
                     h = 2.959
                 },
             },
@@ -68,8 +68,8 @@ _jobSpawns = {
                 label = "uWu Cafe",
                 workplace = false,
                 location = {
-                    x = -586.828, 
-                    y = -1049.504, 
+                    x = -586.828,
+                    y = -1049.504,
                     z = 22.344,
                     h = 174.409
                 },
@@ -87,21 +87,6 @@ _jobSpawns = {
                     y = -761.943,
                     z = 31.266,
                     h = 82.291
-                },
-            },
-        }
-    },
-    ["avast_arcade"] = {
-        icon = "gamepad",
-        locations = {
-            {
-                label = "Avast Arcade",
-                workplace = false,
-                location = {
-                    x = -1646.069,
-                    y = -1073.171,
-                    z = 13.760,
-                    h = 51.197
                 },
             },
         }

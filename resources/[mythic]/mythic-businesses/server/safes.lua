@@ -1,26 +1,5 @@
 AddEventHandler("Businesses:Server:Startup", function()
 	Inventory.Poly:Create({
-		id = "avast_arcade_safe",
-		type = "box",
-		coords = vector3(-1648.3, -1072.7, 13.76),
-		width = 1.0,
-		length = 0.6,
-		options = {
-			heading = 320,
-			--debugPoly=true,
-			minZ = 11.96,
-			maxZ = 14.56,
-		},
-		data = {
-			business = "avast_arcade",
-            inventory = {
-                invType = 54,
-                owner = "avast-arcade-safe",
-            },
-		},
-	})
-
-	Inventory.Poly:Create({
 		id = "pizza_this_safe",
 		type = "box",
 		coords = vector3(796.54, -749.24, 31.27),
@@ -55,10 +34,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "sterling_construction",
-            inventory = {
-                invType = 52,
-                owner = "sterling-construction-safe",
-            },
+			inventory = {
+				invType = 52,
+				owner = "sterling-construction-safe",
+			},
 		},
 	})
 
@@ -76,10 +55,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "sterling_construction",
-            inventory = {
-                invType = 63,
-                owner = "sterling-construction-storage",
-            },
+			inventory = {
+				invType = 63,
+				owner = "sterling-construction-storage",
+			},
 		},
 	})
 
@@ -97,10 +76,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "redline",
-            inventory = {
-                invType = 51,
-                owner = "redline-safe",
-            },
+			inventory = {
+				invType = 51,
+				owner = "redline-safe",
+			},
 		},
 	})
 
@@ -118,10 +97,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "redline",
-            inventory = {
-                invType = 51,
-                owner = "redline-safe2",
-            },
+			inventory = {
+				invType = 51,
+				owner = "redline-safe2",
+			},
 		},
 	})
 
@@ -139,10 +118,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "blackline",
-            inventory = {
-                invType = 64,
-                owner = "blackline-storage",
-            },
+			inventory = {
+				invType = 64,
+				owner = "blackline-storage",
+			},
 		},
 	})
 
@@ -160,10 +139,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "uwu",
-            inventory = {
-                invType = 55,
-                owner = "uwu-safe",
-            },
+			inventory = {
+				invType = 55,
+				owner = "uwu-safe",
+			},
 		},
 	})
 
@@ -181,10 +160,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "uwu",
-            inventory = {
-                invType = 69,
-                owner = "uwu_warehouse_storage",
-            },
+			inventory = {
+				invType = 69,
+				owner = "uwu_warehouse_storage",
+			},
 		},
 	})
 
@@ -202,10 +181,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "pdm",
-            inventory = {
-                invType = 56,
-                owner = "pdm-safe",
-            },
+			inventory = {
+				invType = 56,
+				owner = "pdm-safe",
+			},
 		},
 	})
 
@@ -223,10 +202,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "tuna",
-            inventory = {
-                invType = 65,
-                owner = "tuna-safe",
-            },
+			inventory = {
+				invType = 65,
+				owner = "tuna-safe",
+			},
 		},
 	})
 
@@ -244,10 +223,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "tuna",
-            inventory = {
-                invType = 65,
-                owner = "tuna-safe_2",
-            },
+			inventory = {
+				invType = 65,
+				owner = "tuna-safe_2",
+			},
 		},
 	})
 
@@ -265,10 +244,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "triad",
-            inventory = {
-                invType = 66,
-                owner = "triad-safe",
-            },
+			inventory = {
+				invType = 66,
+				owner = "triad-safe",
+			},
 		},
 	})
 
@@ -286,10 +265,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "bobs",
-            inventory = {
-                invType = 67,
-                owner = "bobs-safe",
-            },
+			inventory = {
+				invType = 67,
+				owner = "bobs-safe",
+			},
 		},
 	})
 
@@ -307,10 +286,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "dgang",
-            inventory = {
-                invType = 70,
-                owner = "dmansion_safe_1",
-            },
+			inventory = {
+				invType = 70,
+				owner = "dmansion_safe_1",
+			},
 		},
 	})
 
@@ -328,10 +307,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "dgang",
-            inventory = {
-                invType = 70,
-                owner = "dmansion_safe_2",
-            },
+			inventory = {
+				invType = 70,
+				owner = "dmansion_safe_2",
+			},
 		},
 	})
 
@@ -349,10 +328,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "dgang",
-            inventory = {
-                invType = 70,
-                owner = "dmansion_safe_3",
-            },
+			inventory = {
+				invType = 70,
+				owner = "dmansion_safe_3",
+			},
 		},
 	})
 
@@ -370,10 +349,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "dgang",
-            inventory = {
-                invType = 70,
-                owner = "dmansion_safe_4",
-            },
+			inventory = {
+				invType = 70,
+				owner = "dmansion_safe_4",
+			},
 		},
 	})
 
@@ -391,10 +370,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "dgang",
-            inventory = {
-                invType = 70,
-                owner = "dmansion_safe_5",
-            },
+			inventory = {
+				invType = 70,
+				owner = "dmansion_safe_5",
+			},
 		},
 	})
 
@@ -412,10 +391,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "dgang",
-            inventory = {
-                invType = 70,
-                owner = "dmansion_safe_6",
-            },
+			inventory = {
+				invType = 70,
+				owner = "dmansion_safe_6",
+			},
 		},
 	})
 
@@ -433,10 +412,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "hayes",
-            inventory = {
-                invType = 75,
-                owner = "hayes_safe",
-            },
+			inventory = {
+				invType = 75,
+				owner = "hayes_safe",
+			},
 		},
 	})
 
@@ -454,10 +433,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "unicorn",
-            inventory = {
-                invType = 85,
-                owner = "unicorn_safe",
-            },
+			inventory = {
+				invType = 85,
+				owner = "unicorn_safe",
+			},
 		},
 	})
 
@@ -475,10 +454,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "dynasty8",
-            inventory = {
-                invType = 86,
-                owner = "dynasty8_safe",
-            },
+			inventory = {
+				invType = 86,
+				owner = "dynasty8_safe",
+			},
 		},
 	})
 
@@ -496,10 +475,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "tirenutz",
-            inventory = {
-                invType = 93,
-                owner = "nutz_safe",
-            },
+			inventory = {
+				invType = 93,
+				owner = "nutz_safe",
+			},
 		},
 	})
 
@@ -517,10 +496,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "weed",
-            inventory = {
-                invType = 94,
-                owner = "weed_storage",
-            },
+			inventory = {
+				invType = 94,
+				owner = "weed_storage",
+			},
 		},
 	})
 
@@ -538,10 +517,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "weed",
-            inventory = {
-                invType = 95,
-                owner = "weed_safe",
-            },
+			inventory = {
+				invType = 95,
+				owner = "weed_safe",
+			},
 		},
 	})
 
@@ -559,10 +538,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "tequila",
-            inventory = {
-                invType = 97,
-                owner = "tequila_safe",
-            },
+			inventory = {
+				invType = 97,
+				owner = "tequila_safe",
+			},
 		},
 	})
 
@@ -580,31 +559,31 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "digitalden",
-            inventory = {
-                invType = 102,
-                owner = "digitalden_safe",
-            },
+			inventory = {
+				invType = 102,
+				owner = "digitalden_safe",
+			},
 		},
 	})
 
-    Inventory.Poly:Create({
+	Inventory.Poly:Create({
 		id = "superperformance_safe",
 		type = "box",
 		coords = vector3(268.22, -1786.8, 31.27),
 		length = 1.0,
 		width = 1.0,
 		options = {
-            heading = 50,
-            --debugPoly=true,
-            minZ = 30.27,
-            maxZ = 33.07
+			heading = 50,
+			--debugPoly=true,
+			minZ = 30.27,
+			maxZ = 33.07
 		},
 		data = {
 			business = "superperformance",
-            inventory = {
-                invType = 104,
-                owner = "superperformance_safe",
-            },
+			inventory = {
+				invType = 104,
+				owner = "superperformance_safe",
+			},
 		},
 	})
 
@@ -622,10 +601,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "noodle",
-            inventory = {
-                invType = 105,
-                owner = "noodle_safe",
-            },
+			inventory = {
+				invType = 105,
+				owner = "noodle_safe",
+			},
 		},
 	})
 
@@ -643,10 +622,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "autoexotics",
-            inventory = {
-                invType = 108,
-                owner = "autoexotics_safe",
-            },
+			inventory = {
+				invType = 108,
+				owner = "autoexotics_safe",
+			},
 		},
 	})
 
@@ -664,10 +643,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "rockford_records",
-            inventory = {
-                invType = 111,
-                owner = "rockford_records_safe",
-            },
+			inventory = {
+				invType = 111,
+				owner = "rockford_records_safe",
+			},
 		},
 	})
 
@@ -685,10 +664,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "securoserv",
-            inventory = {
-                invType = 114,
-                owner = "securoserv_safe",
-            },
+			inventory = {
+				invType = 114,
+				owner = "securoserv_safe",
+			},
 		},
 	})
 
@@ -706,10 +685,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "ferrari_pawn",
-            inventory = {
-                invType = 118,
-                owner = "ferrari_pawn_safe",
-            },
+			inventory = {
+				invType = 118,
+				owner = "ferrari_pawn_safe",
+			},
 		},
 	})
 
@@ -727,10 +706,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "ottos",
-            inventory = {
-                invType = 121,
-                owner = "ottos_autos_safe",
-            },
+			inventory = {
+				invType = 121,
+				owner = "ottos_autos_safe",
+			},
 		},
 	})
 
@@ -748,10 +727,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "ottos",
-            inventory = {
-                invType = 121,
-                owner = "ottos_autos_safe2",
-            },
+			inventory = {
+				invType = 121,
+				owner = "ottos_autos_safe2",
+			},
 		},
 	})
 
@@ -769,10 +748,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "dreamworks",
-            inventory = {
-                invType = 124,
-                owner = "dreamworks_safe",
-            },
+			inventory = {
+				invType = 124,
+				owner = "dreamworks_safe",
+			},
 		},
 	})
 
@@ -790,9 +769,9 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "dreamworks",
-            inventory = {
-                invType = 124,
-                owner = "dreamworks_safe2",
+			inventory = {
+				invType = 124,
+				owner = "dreamworks_safe2",
 			}
 		}
 	})
@@ -811,10 +790,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "casino",
-            inventory = {
-                invType = 127,
-                owner = "casino_safe",
-            },
+			inventory = {
+				invType = 127,
+				owner = "casino_safe",
+			},
 		},
 	})
 
@@ -832,10 +811,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "casino",
-            inventory = {
-                invType = 127,
-                owner = "casino_safe2",
-            },
+			inventory = {
+				invType = 127,
+				owner = "casino_safe2",
+			},
 		},
 	})
 
@@ -853,10 +832,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "prego",
-            inventory = {
-                invType = 131,
-                owner = "prego_safe",
-            },
+			inventory = {
+				invType = 131,
+				owner = "prego_safe",
+			},
 		},
 	})
 
@@ -874,10 +853,10 @@ AddEventHandler("Businesses:Server:Startup", function()
 		},
 		data = {
 			business = "triad_boxing",
-            inventory = {
-                invType = 137,
-                owner = "triad_boxing_storage",
-            },
+			inventory = {
+				invType = 137,
+				owner = "triad_boxing_storage",
+			},
 		},
 	})
 end)
