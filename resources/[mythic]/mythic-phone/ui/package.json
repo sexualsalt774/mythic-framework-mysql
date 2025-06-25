@@ -92,7 +92,6 @@
 	},
 	"devDependencies": {
 	  "@babel/core": "^7.15.0",
-	  "@babel/polyfill": "^7.12.1",
 	  "@babel/preset-env": "^7.15.0",
 	  "@babel/preset-react": "^7.13.13",
 	  "babel-loader": "^8.2.2",
