@@ -102,22 +102,19 @@ WEAPONS = {
 						isScratched = false
 					end
 	
-					Database.Game:insertOne({
-						collection = 'firearms',
-						document = {
-							Serial = sn,
-							Item = item.name,
-							Model = model,
-							Owner = {
-								Char = char:GetData("ID"),
-								SID = char:GetData("SID"),
-								First = char:GetData("First"),
-								Last = char:GetData("Last"),
-							},
-							PurchaseTime = (os.time() * 1000),
-							Scratched = isScratched,
-						},
-					}, function(success)
+					MySQL.prepare('INSERT INTO firearms (Serial, Item, Model, Owner, PurchaseTime, Scratched) VALUES (?, ?, ?, ?, ?, ?)', {
+						sn,
+						item.name,
+						model,
+						json.encode({
+							Char = char:GetData("ID"),
+							SID = char:GetData("SID"),
+							First = char:GetData("First"),
+							Last = char:GetData("Last"),
+						}),
+						(os.time() * 1000),
+						isScratched
+					}, function(result)
 						p:resolve(true)
 					end)
 	
@@ -148,19 +145,16 @@ WEAPONS = {
 				}
 			end
 
-			Database.Game:insertOne({
-				collection = 'firearms',
-				document = {
-					Serial = sn,
-					Item = item.name,
-					Model = model,
-					Owner = {
-						Company = isCompanyOwned.name,
-					},
-					PurchaseTime = (os.time() * 1000),
-					Scratched = isScratched,
-				},
-			}, function(success)
+			MySQL.prepare('INSERT INTO firearms (Serial, Item, Model, Owner, PurchaseTime, Scratched) VALUES (?, ?, ?, ?, ?, ?)', {
+				sn,
+				item.name,
+				model,
+				json.encode({
+					Company = isCompanyOwned.name,
+				}),
+				(os.time() * 1000),
+				isScratched
+			}, function(result)
 				p:resolve(true)
 			end)
 

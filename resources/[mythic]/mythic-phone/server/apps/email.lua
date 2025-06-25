@@ -1,18 +1,10 @@
 PHONE.Email = {
 	Read = function(self, charId, id)
-		Database.Game:update({
-			collection = 'character_emails',
-			query = {
-				owner = owner,
-				_id = id,
-			},
-			update = {
-				["$set"] = {
-					unread = false,
-				},
-			},
-		}, function(success, res)
-			return res > 0
+		MySQL.update("UPDATE character_emails SET unread = 0 WHERE owner = ? AND id = ?", {
+			charId,
+			id,
+		}, function(affectedRows)
+			return affectedRows > 0
 		end)
 	end,
 	Send = function(self, serverId, sender, time, subject, body, flags)
@@ -29,28 +21,29 @@ PHONE.Email = {
 					unread = true,
 					flags = flags,
 				}
-				Database.Game:insertOne({
-					collection = 'character_emails',
-					document = doc,
-				}, function(success, res, insertedIds)
-					if not success then
-						return
+				MySQL.insert("INSERT INTO character_emails (owner, sender, time, subject, body, unread, flags) VALUES (?, ?, ?, ?, ?, ?, ?)", {
+					doc.owner,
+					doc.sender,
+					doc.time,
+					doc.subject,
+					doc.body,
+					doc.unread,
+					json.encode(doc.flags or {}),
+				}, function(insertId)
+					if insertId then
+						doc.id = insertId
+						TriggerClientEvent("Phone:Client:Email:Receive", serverId, doc)
 					end
-					doc._id = insertedIds[1]
-					TriggerClientEvent("Phone:Client:Email:Receive", serverId, doc)
 				end)
 			end
 		end
 	end,
 	Delete = function(self, charId, id)
-		Database.Game:deleteOne({
-			collection = 'character_emails',
-			query = {
-				owner = charId,
-				_id = id,
-			},
-		}, function(success)
-			if success then
+		MySQL.update("DELETE FROM character_emails WHERE owner = ? AND id = ?", {
+			charId,
+			id,
+		}, function(affectedRows)
+			if affectedRows > 0 then
 				local char = Fetch:ID(charId)
 				if char then
 					TriggerClientEvent("Phone:Client:Email:Delete", char:GetData("Source"), id)
@@ -63,24 +56,18 @@ PHONE.Email = {
 AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		Database.Game:find({
-			collection = 'character_emails',
-			query = {
-				owner = char:GetData("ID"),
-			},
-		}, function(success, emails)
-			TriggerClientEvent("Phone:Client:SetData", source, "emails", emails)
+		MySQL.query("SELECT * FROM character_emails WHERE owner = ? ORDER BY time DESC", {
+			char:GetData("ID"),
+		}, function(emails)
+			TriggerClientEvent("Phone:Client:SetData", source, "emails", emails or {})
 		end)
 	end, 2)
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		Database.Game:find({
-			collection = 'character_emails',
-			query = {
-				owner = char:GetData("ID"),
-			},
-		}, function(success, emails)
-			TriggerClientEvent("Phone:Client:SetData", source, "emails", emails)
+		MySQL.query("SELECT * FROM character_emails WHERE owner = ? ORDER BY time DESC", {
+			char:GetData("ID"),
+		}, function(emails)
+			TriggerClientEvent("Phone:Client:SetData", source, "emails", emails or {})
 		end)
 	end, 2)
 	Middleware:Add("Phone:CharacterCreated", function(source, cData)
@@ -142,30 +129,25 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		if plyr ~= nil then
 			local char = plyr:GetData("Character")
 			if char ~= nil then
-				Database.Game:find({
-					collection = 'character_emails',
-					query = {
-						owner = char:GetData("ID"),
-						["flags.expires"] = {
-							["$lt"] = os.time() * 1e3,
-						},
-					},
-				}, function(success, res)
-					Database.Game:delete({
-						collection = 'character_emails',
-						query = {
-							owner = char:GetData("ID"),
-							["flags.expires"] = {
-								["$lt"] = os.time() * 1e3,
-							},
-						},
-					}, function(success2, res2)
+				MySQL.query("SELECT id FROM character_emails WHERE owner = ? AND JSON_EXTRACT(flags, '$.expires') < ?", {
+					char:GetData("ID"),
+					os.time() * 1000,
+				}, function(expiredEmails)
+					if expiredEmails and #expiredEmails > 0 then
 						local ids = {}
-						for k, v in ipairs(res) do
-							table.insert(ids, v._id)
+						for k, v in ipairs(expiredEmails) do
+							table.insert(ids, v.id)
 						end
-						cb(ids)
-					end)
+						
+						MySQL.update("DELETE FROM character_emails WHERE owner = ? AND JSON_EXTRACT(flags, '$.expires') < ?", {
+							char:GetData("ID"),
+							os.time() * 1000,
+						}, function(result)
+							cb(ids)
+						end)
+					else
+						cb({})
+					end
 				end)
 			end
 		end

@@ -420,8 +420,8 @@ PED = {
 			charId,
 			json.encode(ped),
 			json.encode(ped)
-		}, function(success, result)
-			if success then
+		}, function(insertId)
+			if insertId then
 				char:SetData("Ped", ped)
 				p:resolve(true)
 			else

@@ -36,16 +36,15 @@ _MDT.Misc = {
 		end,
 		Tag = function(self, data)
 			local p = promise.new()
-			Database.Game:insertOne({
-				collection = 'mdt_tags',
-				document = data,
-			}, function (success, result, insertIds)
-				if not success then
+			MySQL.insert("INSERT INTO mdt_tags (name, requiredPermission, restrictViewing, style) VALUES (?, ?, ?, ?)", {
+				data.name, data.requiredPermission, data.restrictViewing, data.style
+			}, function (insertId)
+				if not insertId then
 					p:resolve(false)
 					return
 				end
 
-				data._id = insertIds[1]
+				data.id = insertId
 				table.insert(_tags, data)
 				for user, _ in pairs(_onDutyUsers) do
 					TriggerClientEvent("MDT:Client:AddData", user, "tags", data)
@@ -53,22 +52,21 @@ _MDT.Misc = {
 				for user, _ in pairs(_onDutyLawyers) do
 					TriggerClientEvent("MDT:Client:AddData", user, "tags", data)
 				end
-				p:resolve(insertIds[1])
+				p:resolve(insertId)
 			end)
 			return Citizen.Await(p)
 		end,
 		Notice = function(self, data)
 			local p = promise.new()
-			Database.Game:insertOne({
-				collection = 'mdt_notices',
-				document = data,
-			}, function (success, result, insertIds)
-				if not success then
+			MySQL.insert("INSERT INTO mdt_notices (title, content, author, date) VALUES (?, ?, ?, ?)", {
+				data.title, data.content, data.author, data.date
+			}, function (insertId)
+				if not insertId then
 					p:resolve(false)
 					return
 				end
 
-				data._id = insertIds[1]
+				data.id = insertId
 				table.insert(_notices, data)
 
 				for user, _ in pairs(_onDutyUsers) do
@@ -78,7 +76,7 @@ _MDT.Misc = {
 					TriggerClientEvent("MDT:Client:AddData", user, "notices", data)
 				end
 
-				p:resolve(insertIds[1])
+				p:resolve(insertId)
 			end)
 			return Citizen.Await(p)
 		end,
@@ -117,27 +115,16 @@ _MDT.Misc = {
 		end,
 		Tag = function(self, id, data)
 			local p = promise.new()
-			Database.Game:updateOne({
-				collection = 'mdt_tags',
-				query = {
-					_id = id,
-				},
-                update = {
-                    ["$set"] = {
-						name = data.name,
-						requiredPermission = data.requiredPermission,
-						restrictViewing = data.restrictViewing,
-						style = data.style,
-					},
-                },
-			}, function (success, result)
-				if not success then
+			MySQL.update("UPDATE mdt_tags SET name = ?, requiredPermission = ?, restrictViewing = ?, style = ? WHERE id = ?", {
+				data.name, data.requiredPermission, data.restrictViewing, data.style, id
+			}, function (result)
+				if not result or result.affectedRows == 0 then
 					p:resolve(false)
 					return
 				end
 
 				for k, v in ipairs(_tags) do
-					if (v._id == id) then
+					if (v.id == id) then
 						_tags[k] = data
 						break
 					end
@@ -170,19 +157,14 @@ _MDT.Misc = {
 		end,
 		Tag = function(self, id)
 			local p = promise.new()
-			Database.Game:deleteOne({
-				collection = 'mdt_tags',
-				query = {
-					_id = id,
-				},
-			}, function (success, deleted)
-				if not success then
+			MySQL.update("DELETE FROM mdt_tags WHERE id = ?", {id}, function (result)
+				if not result or result.affectedRows == 0 then
 					p:resolve(false)
 					return
 				end
 
 				for k, v in ipairs(_tags) do
-					if (v._id == id) then
+					if (v.id == id) then
 						table.remove(_tags, k)
 						break
 					end
@@ -200,19 +182,14 @@ _MDT.Misc = {
 		end,
 		Notice = function(self, id)
 			local p = promise.new()
-			Database.Game:deleteOne({
-				collection = 'mdt_notices',
-				query = {
-					_id = id,
-				},
-			}, function (success, deleted)
-				if not success then
+			MySQL.update("DELETE FROM mdt_notices WHERE id = ?", {id}, function (result)
+				if not result or result.affectedRows == 0 then
 					p:resolve(false)
 					return
 				end
 
 				for k, v in ipairs(_notices) do
-					if (v._id == id) then
+					if (v.id == id) then
 						table.remove(_notices, k)
 						break
 					end

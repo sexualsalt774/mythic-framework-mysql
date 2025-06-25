@@ -231,128 +231,110 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 			end
 
 			if data.data.suspect.SID and not sentencedSuspects[data.report][data.data.suspect.SID] then
-				Database.Game:updateOne({
-					collection = 'mdt_reports',
-					query = {
-						ID = data.report,
-					}, 
-					update = {
-						['$set'] = {
-							['suspects.$[sus].sentence'] = {
-								time = os.time() * 1000,
-								fine = data.fine,
-								jail = data.jail,
-								months = data.jail,
-								revoked = data.sentence.revoke,
-								doc = data.sentence.doc,
-								reduction = {
-									type = data.sentence.type,
-									value = data.sentence.value,
-								},
-								parole = data.parole,
-								sentencedBy = {
-									SID = char:GetData('SID'),
-									First = char:GetData('First'),
-									Last = char:GetData('Last'),
-									Callsign = char:GetData('Callsign'),
-								}
-							},
-						}
-					},
-					options = {
-						arrayFilters = {
-							{ ['sus.suspect.SID'] = data.data.suspect.SID }
+				-- Update report with sentence
+				MySQL.update("UPDATE mdt_reports SET suspects = JSON_SET(suspects, '$[*].sentence', ?) WHERE ID = ?", {
+					json.encode({
+						time = os.time() * 1000,
+						fine = data.fine,
+						jail = data.jail,
+						months = data.jail,
+						revoked = data.sentence.revoke,
+						doc = data.sentence.doc,
+						reduction = {
+							type = data.sentence.type,
+							value = data.sentence.value,
 						},
-						upsert = false,
-					}
-				}, function(success, updated)
-					if success then
+						parole = data.parole,
+						sentencedBy = {
+							SID = char:GetData('SID'),
+							First = char:GetData('First'),
+							Last = char:GetData('Last'),
+							Callsign = char:GetData('Callsign'),
+						}
+					}),
+					data.report,
+				}, function(result)
+					if result and result.affectedRows > 0 then
 						sentencedSuspects[data.report][data.data.suspect.SID] = true
 
-						Database.Game:updateOne({
-							collection = 'character_convictions',
-							query = {
-								SID = data.data.suspect.SID,
-							},
-							update = {
-								['$push'] = {
-									Charges = {
-										['$each'] = data.data.charges,
-									},
-									Convictions = {
-										time = os.time() * 1000,
-										report = data.report,
-										fine = data.fine,
-										jail = data.jail,
-										parole = data.parole,
-									},
-								}
-							},
-							options = {
-								upsert = true,
-							}
-						})
-	
-						local p = promise.new()
-	
-						if data.parole ~= nil then
-							MySQL.update('UPDATE characters SET Parole = ? WHERE SID = ?', { data.parole, data.data.suspect.SID }, function(success)
-								p:resolve(success)
-							end)
-						end
+						-- Update character convictions
+						MySQL.update("INSERT INTO character_convictions (SID, Charges, Convictions) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE Charges = JSON_MERGE(Charges, ?), Convictions = JSON_ARRAY_APPEND(Convictions, '$', ?)", {
+							data.data.suspect.SID,
+							json.encode(data.data.charges),
+							json.encode({
+								time = os.time() * 1000,
+								report = data.report,
+								fine = data.fine,
+								jail = data.jail,
+								parole = data.parole,
+							}),
+							json.encode(data.data.charges),
+							json.encode({
+								time = os.time() * 1000,
+								report = data.report,
+								fine = data.fine,
+								jail = data.jail,
+								parole = data.parole,
+							}),
+						}, function(convictionResult)
+							local p = promise.new()
 
-						Citizen.Await(p)
-
-						if data.sentence.revoke then
-							local needsUpdate = false
-							local licenseUpdate = {
-								['$set'] = {}
-							}
-							for k, v in pairs(data.sentence.revoke) do
-								if v then
-									needsUpdate = true
-									if k == 'drivers' then
-										licenseUpdate['$set']['Licenses.Drivers.Active'] = false
-										licenseUpdate['$set']['Licenses.Drivers.Suspended'] = true
-									elseif k == 'weapons' then
-										licenseUpdate['$set']['Licenses.Weapons.Active'] = false
-										licenseUpdate['$set']['Licenses.Weapons.Suspended'] = true
-									elseif k == 'hunting' then
-										licenseUpdate['$set']['Licenses.Hunting.Active'] = false
-										licenseUpdate['$set']['Licenses.Hunting.Suspended'] = true
-									elseif k == 'fishing' then
-										licenseUpdate['$set']['Licenses.Fishing.Active'] = false
-										licenseUpdate['$set']['Licenses.Fishing.Suspended'] = true
-									end
-								end
+							if data.parole ~= nil then
+								MySQL.update('UPDATE characters SET Parole = ? WHERE SID = ?', { data.parole, data.data.suspect.SID }, function(affectedRows)
+									p:resolve(affectedRows > 0)
+								end)
 							end
-	
-							if needsUpdate then
-								local p2 = promise.new()
-								MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ? RETURNING *', { json.encode(licenseUpdate['$set']), data.data.suspect.SID }, function(results)
-									if results and results[1] then
-										local plyr = Fetch:SID(results[1].SID)
-										if plyr then
-											local char = plyr:GetData('Character')
-											if char then
-												char:SetData('Licenses', results[1].Licenses)
-											end
+
+							Citizen.Await(p)
+
+							if data.sentence.revoke then
+								local needsUpdate = false
+								local licenseUpdate = {}
+								for k, v in pairs(data.sentence.revoke) do
+									if v then
+										needsUpdate = true
+										if k == 'drivers' then
+											licenseUpdate['Licenses.Drivers.Active'] = false
+											licenseUpdate['Licenses.Drivers.Suspended'] = true
+										elseif k == 'weapons' then
+											licenseUpdate['Licenses.Weapons.Active'] = false
+											licenseUpdate['Licenses.Weapons.Suspended'] = true
+										elseif k == 'hunting' then
+											licenseUpdate['Licenses.Hunting.Active'] = false
+											licenseUpdate['Licenses.Hunting.Suspended'] = true
+										elseif k == 'fishing' then
+											licenseUpdate['Licenses.Fishing.Active'] = false
+											licenseUpdate['Licenses.Fishing.Suspended'] = true
 										end
 									end
-	
-									p2:resolve(results)
-								end)
-	
-								Citizen.Await(p2)
+								end
+
+								if needsUpdate then
+									local p2 = promise.new()
+									MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ?', { json.encode(licenseUpdate), data.data.suspect.SID }, function(affectedRows)
+										if affectedRows > 0 then
+											local plyr = Fetch:SID(data.data.suspect.SID)
+											if plyr then
+												local char = plyr:GetData('Character')
+												if char then
+													char:SetData('Licenses', licenseUpdate)
+												end
+											end
+										end
+
+										p2:resolve(affectedRows)
+									end)
+
+									Citizen.Await(p2)
+								end
 							end
-						end
-	
-						GlobalState["MDT:Metric:Arrests"] = GlobalState["MDT:Metric:Arrests"] + 1
-	
-						cb(true)
-						_editingReports[data.report] = nil
+
+							GlobalState["MDT:Metric:Arrests"] = GlobalState["MDT:Metric:Arrests"] + 1
+
+							cb(true)
+							_editingReports[data.report] = nil
+						end)
 					else
-						_editingReports[data.report] = nil
 						cb(false)
 					end
 				end)
@@ -427,31 +409,23 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 		local char = Fetch:Source(source):GetData("Character")
 
 		if char and CheckMDTPermissions(source, true) then
-			Database.Game:findOne({
-				collection = 'character_convictions',
-				query = {
-					SID = data.SID,
-				},
-			}, function(success, results)
-				if success and results and #results > 0 and results[1]?.SID then
-					local old = results[1]
-
-					old._id = nil
+			MySQL.single("SELECT * FROM character_convictions WHERE SID = ?", {data.SID}, function(result)
+				if result and result.SID then
+					local old = result
+					old.id = nil
 					old.Time = os.time()
 					old.ClearedBy = char:GetData("SID")
 
-					Database.Game:insertOne({
-						collection = 'character_convictions_expunged',
-						document = old,
-					}, function(success, result, insertId)
-						if success then
-							Database.Game:deleteOne({
-								collection = 'character_convictions',
-								query = {
-									SID = data.SID,
-								},
-							}, function(success, deleted)
-								cb(success)
+					MySQL.insert("INSERT INTO character_convictions_expunged (SID, Charges, Convictions, Time, ClearedBy) VALUES (?, ?, ?, ?, ?)", {
+						old.SID,
+						old.Charges,
+						old.Convictions,
+						old.Time,
+						old.ClearedBy,
+					}, function(insertId)
+						if insertId then
+							MySQL.update("DELETE FROM character_convictions WHERE SID = ?", {data.SID}, function(affectedRows)
+								cb(affectedRows > 0)
 							end)
 						else
 							cb(false)

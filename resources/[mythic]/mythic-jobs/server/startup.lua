@@ -174,13 +174,13 @@ function RunStartup()
 
     if #queries > 0 then
         local p = promise.new()
-        MySQL.transaction(queries, function(success)
-            if success then
-                Logger:Info('Jobs', 'Processed ^2' .. #queries .. '^7 Default Jobs (batched)')
+        MySQL.transaction(queries, function(result)
+            if result then
+                Logger:Info("Jobs", "Successfully migrated job data")
             else
-                Logger:Error('Jobs', 'Failed to process default jobs in batch')
+                Logger:Error("Jobs", "Failed to migrate job data")
             end
-            p:resolve(success)
+            p:resolve(result)
         end)
         Citizen.Await(p)
     end

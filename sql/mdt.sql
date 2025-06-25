@@ -1,0 +1,101 @@
+-- MDT (Police Computer) System
+CREATE TABLE IF NOT EXISTS `mdt_reports` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `report_id` VARCHAR(50) UNIQUE NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `content` TEXT,
+  `author` JSON,
+  `suspects` JSON,
+  `evidence` JSON,
+  `charges` JSON DEFAULT NULL,
+  `status` VARCHAR(50) NOT NULL DEFAULT 'open',
+  `primaries` VARCHAR(100),
+  `time` BIGINT,
+  `history` JSON DEFAULT '[]',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_author` (`author`),
+  KEY `idx_status` (`status`),
+  KEY `idx_created_at` (`created_at`)
+);
+
+CREATE TABLE IF NOT EXISTS `mdt_metrics` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `date` VARCHAR(20) UNIQUE NOT NULL,
+  `arrests` INT DEFAULT 0,
+  `reports` INT DEFAULT 0,
+  `warrants` INT DEFAULT 0,
+  `bolos` INT DEFAULT 0,
+  `searches` INT DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS `mdt_tags` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(100) NOT NULL,
+  `requiredPermission` VARCHAR(100),
+  `restrictViewing` BOOLEAN DEFAULT FALSE,
+  `style` JSON,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS `mdt_notices` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `title` VARCHAR(255) NOT NULL,
+  `content` TEXT,
+  `author` JSON,
+  `date` BIGINT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS `mdt_warrants` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `warrant_id` VARCHAR(50) UNIQUE NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `description` TEXT,
+  `suspect` JSON,
+  `author` JSON,
+  `state` VARCHAR(50) DEFAULT 'active',
+  `created` BIGINT,
+  `expires` BIGINT,
+  `history` JSON DEFAULT '[]',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_state` (`state`),
+  KEY `idx_expires` (`expires`)
+);
+
+CREATE TABLE IF NOT EXISTS `mdt_charges` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `title` VARCHAR(255) NOT NULL,
+  `type` INT NOT NULL DEFAULT 1,
+  `jail` INT NOT NULL DEFAULT 0,
+  `fine` INT NOT NULL DEFAULT 0,
+  `description` TEXT NOT NULL,
+  `points` INT NOT NULL DEFAULT 0,
+  `default` BOOLEAN NOT NULL DEFAULT FALSE,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS `character_convictions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `SID` VARCHAR(50) UNIQUE NOT NULL,
+  `Charges` JSON DEFAULT '[]',
+  `Convictions` JSON DEFAULT '[]',
+  `Time` BIGINT,
+  `ClearedBy` VARCHAR(50),
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS `character_convictions_expunged` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `SID` INT NOT NULL,
+  `convictions` JSON NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uk_sid` (`SID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1; 

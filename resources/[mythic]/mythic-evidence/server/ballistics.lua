@@ -19,35 +19,19 @@ function RegisterBallisticsCallbacks()
 
 					if firearmRecord then
 						if not firearmRecord.FiledByPolice then
-							local update
 							if item.MetaData.ScratchedSerialNumber then
 								policeWeapId = string.format('PWI-%s', Sequence:Get('PoliceWeaponId'))
-
-								update = {
-									['$set'] = {
-										FiledByPolice = true,
-										PoliceWeaponId = policeWeapId,
-									}
-								}
-
 								Inventory:SetMetaDataKey(item.id, 'PoliceWeaponId', policeWeapId)
+								MySQL.prepare('UPDATE firearms SET FiledByPolice = 1, PoliceWeaponId = ? WHERE Serial = ?', {policeWeapId, firearmRecord.Serial}, function(affectedRows)
+									if affectedRows and affectedRows > 0 then
+										cb(true, false, GetMatchingEvidenceProjectiles(firearmRecord.Serial), policeWeapId)
+									else
+										cb(false)
+									end
+								end)
 							elseif item.MetaData.SerialNumber then
-								update = {
-									['$set'] = {
-										FiledByPolice = true,
-									}
-								}
-							end
-
-							if update then
-								Database.Game:updateOne({
-									collection = 'firearms',
-									query = {
-										Serial = firearmRecord.Serial
-									},
-									update = update,
-								}, function(success, updated)
-									if success and updated > 0 then
+								MySQL.prepare('UPDATE firearms SET FiledByPolice = 1 WHERE Serial = ?', {firearmRecord.Serial}, function(affectedRows)
+									if affectedRows and affectedRows > 0 then
 										cb(true, false, GetMatchingEvidenceProjectiles(firearmRecord.Serial), policeWeapId)
 									else
 										cb(false)
@@ -147,11 +131,15 @@ function GetFirearmsRecord(serialNumber, scratched, filedOnly)
 		query.FiledByPolice = true
 	end
 
-	Database.Game:findOne({
-		collection = 'firearms',
-		query = query,
-	}, function(success, results)
-		if success and #results > 0 and results[1] then
+	-- Replace with MySQL
+	local whereFields = {}
+	local whereValues = {}
+	for k, v in pairs(query) do
+		table.insert(whereFields, k .. ' = ?')
+		table.insert(whereValues, v)
+	end
+	MySQL.prepare('SELECT * FROM firearms WHERE ' .. table.concat(whereFields, ' AND ') .. ' LIMIT 1', whereValues, function(results)
+		if results and #results > 0 then
 			p:resolve(results[1])
 		else
 			p:resolve(false)
@@ -163,60 +151,46 @@ end
 
 function GetEvidenceProjectileRecord(evidenceId)
 	local p = promise.new()
-
-	Database.Game:findOne({
-		collection = 'firearms_projectiles',
-		query = {
-			Id = evidenceId,
-		}
-	}, function(success, results)
-		if success and #results > 0 and results[1] then
+	MySQL.prepare('SELECT * FROM firearms_projectiles WHERE EvidenceId = ? LIMIT 1', {evidenceId}, function(results)
+		if results and #results > 0 then
 			p:resolve(results[1])
 		else
 			p:resolve(false)
 		end
 	end)
-
 	return Citizen.Await(p)
 end
 
 function CreateEvidenceProjectileRecord(document)
 	local p = promise.new()
-	Database.Game:insertOne({
-		collection = 'firearms_projectiles',
-		document = document,
-	}, function(success, result, insertId)
-		if success then
+	MySQL.prepare('INSERT INTO firearms_projectiles (EvidenceId, Weapon, Coords, AmmoType) VALUES (?, ?, ?, ?)', {
+		document.Id,
+		json.encode(document.Weapon),
+		json.encode(document.Coords),
+		document.AmmoType
+	}, function(result)
+		if result then
 			p:resolve(document)
 		else
 			p:resolve(false)
 		end
 	end)
-
 	return Citizen.Await(p)
 end
 
 function GetMatchingEvidenceProjectiles(weaponSerial)
 	local p = promise.new()
-
-	Database.Game:find({
-		collection = 'firearms_projectiles',
-		query = {
-			['Weapon.serial'] = weaponSerial,
-		}
-	}, function(success, results)
-		if success and #results > 0 then
+	MySQL.prepare('SELECT EvidenceId FROM firearms_projectiles WHERE JSON_EXTRACT(Weapon, "$.serial") = ?', {weaponSerial}, function(results)
+		if results and #results > 0 then
 			local foundEvidence = {}
-
 			for k, v in ipairs(results) do
-				table.insert(foundEvidence, v.Id)
+				table.insert(foundEvidence, v.EvidenceId)
 			end
 			p:resolve(foundEvidence)
 		else
 			p:resolve({})
 		end
 	end)
-
 	return Citizen.Await(p)
 end
 

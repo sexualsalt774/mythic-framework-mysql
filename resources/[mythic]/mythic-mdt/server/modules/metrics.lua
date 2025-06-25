@@ -4,18 +4,13 @@ _MDT.Metrics = {
 	end,
 	Get = function(self, key)
 		local p = promise.new()
-		Database.Game:findOne({
-			collection = 'mdt_metrics',
-			query = {
-				date = key,
-			},
-		}, function(success, results)
-			if not success or #results == 0 then
+		MySQL.single("SELECT * FROM mdt_metrics WHERE date = ?", {key}, function(result)
+			if not result then
 				p:resolve(false)
 				return
 			end
 
-			p:resolve(results[1])
+			p:resolve(result)
 		end)
 		return Citizen.Await(p)
 	end,

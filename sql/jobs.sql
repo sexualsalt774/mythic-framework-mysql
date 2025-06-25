@@ -1,0 +1,20 @@
+-- Jobs System Tables
+DROP TABLE IF EXISTS `jobs`;
+CREATE TABLE IF NOT EXISTS `jobs` (
+  `_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `Type` VARCHAR(50) NOT NULL,
+  `Id` VARCHAR(100) NOT NULL,
+  `Name` VARCHAR(255) NOT NULL,
+  `Salary` INT NOT NULL DEFAULT 0,
+  `SalaryTier` INT NOT NULL DEFAULT 1,
+  `Grades` JSON DEFAULT NULL,
+  `Workplaces` JSON DEFAULT NULL,
+  `Data` JSON DEFAULT NULL,
+  `Owner` INT DEFAULT NULL,
+  `LastUpdated` INT NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uk_job_id` (`Id`),
+  KEY `idx_type` (`Type`),
+  KEY `idx_last_updated` (`LastUpdated`)
+) ENGINE = InnoDB DEFAULT CHARSET = latin1;

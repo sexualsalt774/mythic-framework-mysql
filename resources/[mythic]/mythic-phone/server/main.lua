@@ -320,8 +320,8 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 							["Alias." .. data.app .. ".name"] = data.alias.name,
 						}
 					end
-					MySQL.update('UPDATE characters SET Alias = ? WHERE ID = ?', { json.encode(upd), char:GetData('ID') }, function(success)
-						cb(success)
+					MySQL.update('UPDATE characters SET Alias = ? WHERE ID = ?', { json.encode(upd), char:GetData('ID') }, function(affectedRows)
+						cb(affectedRows > 0)
 					end)
 				end
 			end)

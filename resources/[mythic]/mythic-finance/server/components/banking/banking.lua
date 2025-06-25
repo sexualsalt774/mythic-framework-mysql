@@ -25,12 +25,11 @@ end
 function FindBankAccount(query)
     local p = promise.new()
 
-    Database.Game:findOne({
-        collection = 'bank_accounts',
-        query = query,
-    }, function(success, results)
-        if success and #results > 0 then
-            p:resolve(results[1])
+    MySQL.single("SELECT * FROM bank_accounts WHERE Account = ? OR Name = ? OR Owner = ? LIMIT 1", {
+        query.Account or query.Name or query.Owner, query.Account or query.Name or query.Owner, query.Account or query.Name or query.Owner
+    }, function(result)
+        if result then
+            p:resolve(result)
         else
             p:resolve(false)
         end
@@ -43,11 +42,10 @@ end
 function FindBankAccounts(query)
     local p = promise.new()
 
-    Database.Game:find({
-        collection = 'bank_accounts',
-        query = query,
-    }, function(success, results)
-        if success and #results > 0 then
+    MySQL.query("SELECT * FROM bank_accounts WHERE Account = ? OR Name = ? OR Owner = ?", {
+        query.Account or query.Name or query.Owner, query.Account or query.Name or query.Owner, query.Account or query.Name or query.Owner
+    }, function(results)
+        if results and #results > 0 then
             p:resolve(results)
         else
             p:resolve(false)
@@ -74,12 +72,11 @@ function CreateBankAccount(document)
         document.Balance = 0
     end
 
-    Database.Game:insertOne({
-        collection = 'bank_accounts',
-        document = document,
-    }, function(success, inserted, insertedIds)
-        if success and inserted > 0 then
-            document._id = insertedIds[1]
+    MySQL.insert("INSERT INTO bank_accounts (Account, Name, Balance, Type, Owner, JobAccess, JointOwners) VALUES (?, ?, ?, ?, ?, ?, ?)", {
+        document.Account, document.Name, document.Balance, document.Type, document.Owner, json.encode(document.JobAccess or {}), json.encode(document.JointOwners or {})
+    }, function(insertId)
+        if insertId then
+            document.id = insertId
             p:resolve(document)
         else
             p:resolve(false)
@@ -93,16 +90,17 @@ end
 function UpdateBankAccount(searchQuery, updateQuery)
     local p = promise.new()
 
-    Database.Game:findOneAndUpdate({
-        collection = 'bank_accounts',
-        query = searchQuery,
-        update = updateQuery,
-        options = {
-            returnDocument = 'after',
-        }
-    }, function(success, results)
-        if success and results then
-            p:resolve(results)
+    MySQL.update("UPDATE bank_accounts SET Balance = ?, Name = ?, JobAccess = ?, JointOwners = ? WHERE Account = ?", {
+        updateQuery.Balance or updateQuery['$set'].Balance, 
+        updateQuery.Name or updateQuery['$set'].Name, 
+        json.encode(updateQuery.JobAccess or updateQuery['$set'].JobAccess or {}), 
+        json.encode(updateQuery.JointOwners or updateQuery['$set'].JointOwners or {}),
+        searchQuery.Account
+    }, function(result)
+        if result and result.affectedRows > 0 then
+            MySQL.single("SELECT * FROM bank_accounts WHERE Account = ?", {searchQuery.Account}, function(updatedResult)
+                p:resolve(updatedResult)
+            end)
         else
             p:resolve(false)
         end
@@ -115,17 +113,10 @@ end
 function FindBankAccountTransactions(query)
     local p = promise.new()
 
-    Database.Game:find({
-        collection = 'bank_accounts_transactions',
-        query = query,
-        options = {
-            limit = 80,
-            sort = {
-                Timestamp = -1
-            }
-        }
-    }, function(success, results)
-        if success and #results > 0 then
+    MySQL.query("SELECT * FROM bank_accounts_transactions WHERE Account = ? ORDER BY Timestamp DESC LIMIT 80", {
+        query.Account
+    }, function(results)
+        if results and #results > 0 then
             p:resolve(results)
         else
             p:resolve(false)

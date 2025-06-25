@@ -1,17 +1,11 @@
 PHONE.Contacts = {
 	IsContact = function(self, myId, targetNumber)
 		local p = promise.new()
-		Database.Game:findOne({
-			collection = 'phone_contacts',
-			query = {
-				character = myId,
-				number = targetNumber,
-			},
-		}, function(success, results)
-			if not success then
-				return p:resolve(nil)
-			end
-			p:resolve(results[1])
+		MySQL.single("SELECT * FROM phone_contacts WHERE character = ? AND number = ? LIMIT 1", {
+			myId,
+			targetNumber,
+		}, function(result)
+			p:resolve(result)
 		end)
 		return Citizen.Await(p)
 	end,
@@ -20,24 +14,18 @@ PHONE.Contacts = {
 AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		Database.Game:find({
-			collection = 'phone_contacts',
-			query = {
-				character = char:GetData("ID"),
-			},
-		}, function(success, contacts)
-			TriggerClientEvent("Phone:Client:SetData", source, "contacts", contacts)
+		MySQL.query("SELECT * FROM phone_contacts WHERE character = ?", {
+			char:GetData("ID"),
+		}, function(contacts)
+			TriggerClientEvent("Phone:Client:SetData", source, "contacts", contacts or {})
 		end)
 	end, 2)
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		Database.Game:find({
-			collection = 'phone_contacts',
-			query = {
-				character = char:GetData("ID"),
-			},
-		}, function(success, contacts)
-			TriggerClientEvent("Phone:Client:SetData", source, "contacts", contacts)
+		MySQL.query("SELECT * FROM phone_contacts WHERE character = ?", {
+			char:GetData("ID"),
+		}, function(contacts)
+			TriggerClientEvent("Phone:Client:SetData", source, "contacts", contacts or {})
 		end)
 	end, 2)
 end)
@@ -48,14 +36,19 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local char = Fetch:Source(src):GetData("Character")
 		if char then
 			data.character = char:GetData("ID")
-			Database.Game:insertOne({
-				collection = 'phone_contacts',
-				document = data,
-			}, function(success, result, insertedIds)
-				if not success then
-					return cb(nil)
+			MySQL.insert("INSERT INTO phone_contacts (character, name, number, color, avatar, favorite) VALUES (?, ?, ?, ?, ?, ?)", {
+				data.character,
+				data.name,
+				data.number,
+				data.color,
+				data.avatar,
+				data.favorite or false,
+			}, function(insertId)
+				if insertId then
+					cb(insertId)
+				else
+					cb(nil)
 				end
-				cb(insertedIds[1])
 			end)
 		else
 			cb(nil)
@@ -71,26 +64,20 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local char = Fetch:Source(src):GetData("Character")
 		if char then
 			data.character = char:GetData("ID")
-			Database.Game:updateOne({
-				collection = 'phone_contacts',
-				query = {
-					character = char:GetData("ID"),
-					_id = data.id,
-				},
-				update = {
-					["$set"] = {
-						name = data.name,
-						number = data.number,
-						color = data.color,
-						avatar = data.avatar,
-						favorite = data.favorite,
-					},
-				},
-			}, function(success, results)
-				if not success then
-					return cb(nil)
+			MySQL.update("UPDATE phone_contacts SET name = ?, number = ?, color = ?, avatar = ?, favorite = ? WHERE character = ? AND id = ?", {
+				data.name,
+				data.number,
+				data.color,
+				data.avatar,
+				data.favorite or false,
+				char:GetData("ID"),
+				data.id,
+			}, function(affectedRows)
+				if affectedRows > 0 then
+					cb(true)
+				else
+					cb(nil)
 				end
-				cb(true)
 			end)
 		else
 			cb(nil)
@@ -101,14 +88,11 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local src = source
 		local char = Fetch:Source(src):GetData("Character")
 		if char and data then
-			Database.Game:deleteOne({
-				collection = 'phone_contacts',
-				query = {
-					character = char:GetData("ID"),
-					_id = tostring(data),
-				},
-			}, function(success, results)
-				cb(success)
+			MySQL.update("DELETE FROM phone_contacts WHERE character = ? AND id = ?", {
+				char:GetData("ID"),
+				data,
+			}, function(affectedRows)
+				cb(affectedRows > 0)
 			end)
 		else
 			cb(false)

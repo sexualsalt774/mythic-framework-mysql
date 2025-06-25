@@ -7,12 +7,15 @@ PHONE.Documents = {
             doc.owner = char:GetData("ID")
             doc.time = os.time()
 
-			Database.Game:insertOne({
-				collection = 'character_documents',
-				document = doc,
-			}, function(success, res, insertedIds)
-                if success then
-                    doc._id = insertedIds[1]
+			MySQL.insert("INSERT INTO character_documents (owner, title, content, time, sharedWith) VALUES (?, ?, ?, ?, ?)", {
+				doc.owner,
+				doc.title,
+				doc.content,
+				doc.time,
+				json.encode(doc.sharedWith or {}),
+			}, function(insertId)
+                if insertId then
+                    doc.id = insertId
                     p:resolve(doc)
                 else
                     p:resolve(false)
@@ -28,34 +31,31 @@ PHONE.Documents = {
 		if char ~= nil and type(doc) == "table" then
             local p = promise.new()
 
-			Database.Game:findOneAndUpdate({
-				collection = 'character_documents',
-                query = {
-                    owner = char:GetData("ID"),
-                    _id = id,
-                },
-				update = {
-                    ["$set"] = {
-                        title = doc.title,
-                        content = doc.content,
-                        time = os.time(),
-                    }
-                },
-                options = {
-                    returnDocument = 'after',
-                }
-			}, function(success, res)
-                p:resolve(success)
-
-                if res and res.sharedWith then
-                    for k, v in ipairs(res.sharedWith) do
-                        if v.ID then
-                            local char = Fetch:ID(v.ID)
-                            if char then
-                                TriggerClientEvent("Phone:Client:UpdateData", char:GetData("Source"), "myDocuments", res._id, res)
+			MySQL.update("UPDATE character_documents SET title = ?, content = ?, time = ? WHERE owner = ? AND id = ?", {
+				doc.title,
+				doc.content,
+				os.time(),
+				char:GetData("ID"),
+				id,
+			}, function(affectedRows)
+                if affectedRows > 0 then
+                    -- Get updated document
+                    MySQL.single("SELECT * FROM character_documents WHERE id = ?", {id}, function(res)
+                        p:resolve(true)
+                        if res and res.sharedWith then
+                            local sharedWith = json.decode(res.sharedWith or '[]')
+                            for k, v in ipairs(sharedWith) do
+                                if v.ID then
+                                    local char = Fetch:ID(v.ID)
+                                    if char then
+                                        TriggerClientEvent("Phone:Client:UpdateData", char:GetData("Source"), "myDocuments", res.id, res)
+                                    end
+                                end
                             end
                         end
-                    end
+                    end)
+                else
+                    p:resolve(false)
                 end
 			end)
 
@@ -68,54 +68,37 @@ PHONE.Documents = {
         if char ~= nil then
             local p = promise.new()
 
-            Database.Game:findOne({
-                collection = 'character_documents',
-                query = {
-                    _id = id,
-                }
-            }, function(success, results)
-                if success and #results > 0 then
-                    local doc = results[1]
-                    if doc then
-                        if doc.owner == char:GetData("ID") then
-                            Database.Game:deleteOne({
-                                collection = 'character_documents',
-                                query = {
-                                    _id = id,
-                                },
-                            }, function(success)
-                                p:resolve(success)
-
-                                if success then
-                                    if success and doc and doc.sharedWith then
-                                        for k, v in ipairs(doc.sharedWith) do
-                                            if v.ID then
-                                                local char = Fetch:ID(v.ID)
-                                                if char then
-                                                    TriggerClientEvent("Phone:Client:RemoveData", char:GetData("Source"), "myDocuments", doc._id)
-                                                end
-                                            end
+            MySQL.single("SELECT * FROM character_documents WHERE id = ?", {id}, function(doc)
+                if doc then
+                    if doc.owner == char:GetData("ID") then
+                        MySQL.update("DELETE FROM character_documents WHERE id = ?", {id}, function(affectedRows)
+                            p:resolve(affectedRows > 0)
+                            if affectedRows > 0 and doc.sharedWith then
+                                local sharedWith = json.decode(doc.sharedWith or '[]')
+                                for k, v in ipairs(sharedWith) do
+                                    if v.ID then
+                                        local char = Fetch:ID(v.ID)
+                                        if char then
+                                            TriggerClientEvent("Phone:Client:RemoveData", char:GetData("Source"), "myDocuments", doc.id)
                                         end
                                     end
                                 end
-                            end)
-                        else
-                            Database.Game:updateOne({
-                                collection = 'character_documents',
-                                query = {
-                                    _id = id,
-                                },
-                                update = {
-                                    ["$pull"] = {
-                                        sharedWith = { ID = char:GetData("ID") }
-                                    }
-                                },
-                            }, function(success, updated)
-                                p:resolve(success)
-                            end)
-                        end
+                            end
+                        end)
                     else
-                        p:resolve(false)
+                        -- Remove from sharedWith
+                        local sharedWith = json.decode(doc.sharedWith or '[]')
+                        for i = #sharedWith, 1, -1 do
+                            if sharedWith[i].ID == char:GetData("ID") then
+                                table.remove(sharedWith, i)
+                            end
+                        end
+                        MySQL.update("UPDATE character_documents SET sharedWith = ? WHERE id = ?", {
+                            json.encode(sharedWith),
+							id,
+						}, function(affectedRows)
+                            p:resolve(affectedRows > 0)
+                        end)
                     end
                 else
                     p:resolve(false)
@@ -131,38 +114,20 @@ PHONE.Documents = {
 AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		Database.Game:find({
-			collection = 'character_documents',
-			query = {
-                ['$or'] = {
-                    {
-                        owner = char:GetData("ID"),
-                    },
-                    {
-                        ['sharedWith.ID'] = char:GetData("ID"),
-                    }
-                }
-			},
-		}, function(success, docs)
-			TriggerClientEvent("Phone:Client:SetData", source, "myDocuments", docs)
+		MySQL.query("SELECT * FROM character_documents WHERE owner = ? OR JSON_CONTAINS(sharedWith, ?)", {
+			char:GetData("ID"),
+			json.encode({ID = char:GetData("ID")}),
+		}, function(docs)
+			TriggerClientEvent("Phone:Client:SetData", source, "myDocuments", docs or {})
 		end)
 	end, 2)
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		Database.Game:find({
-			collection = 'character_documents',
-			query = {
-                ['$or'] = {
-                    {
-                        owner = char:GetData("ID"),
-                    },
-                    {
-                        ['sharedWith.ID'] = char:GetData("ID"),
-                    }
-                }
-			},
-		}, function(success, docs)
-			TriggerClientEvent("Phone:Client:SetData", source, "myDocuments", docs)
+		MySQL.query("SELECT * FROM character_documents WHERE owner = ? OR JSON_CONTAINS(sharedWith, ?)", {
+			char:GetData("ID"),
+			json.encode({ID = char:GetData("ID")}),
+		}, function(docs)
+			TriggerClientEvent("Phone:Client:SetData", source, "myDocuments", docs or {})
 		end)
 	end, 2)
 end)
@@ -182,14 +147,11 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 
     Callbacks:RegisterServerCallback("Phone:Documents:Refresh", function(source, data, cb)
         local char = Fetch:Source(source):GetData("Character")
-		Database.Game:find({
-			collection = 'character_documents',
-			query = {
-				owner = char:GetData("ID"),
-                ['sharedWith.ID'] = char:GetData("ID"),
-			},
-		}, function(success, docs)
-            cb("myDocuments", docs)
+		MySQL.query("SELECT * FROM character_documents WHERE owner = ? OR JSON_CONTAINS(sharedWith, ?)", {
+			char:GetData("ID"),
+			json.encode({ID = char:GetData("ID")}),
+		}, function(docs)
+            cb("myDocuments", docs or {})
 		end)
 	end)
 
@@ -289,34 +251,24 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
             else
                 local char = Fetch:Source(source):GetData("Character")
                 if char then
-                    Database.Game:findOneAndUpdate({
-                        collection = 'character_documents',
-                        query = {
-                            _id = data.document._id,
-                            owner = { ['$ne'] = char:GetData("ID") },
-                            ['sharedWith.ID'] = { ['$ne'] = char:GetData("ID") },
-                        },
-                        update = {
-                            ["$push"] = {
-                                sharedWith = {
-                                    Time = os.time(),
-                                    ID = char:GetData("ID"),
-                                    First = char:GetData("First"),
-                                    Last = char:GetData("Last"),
-                                    SID = char:GetData("SID"),
-                                    RequireSignature = data.requireSignature,
-                                },
-                            },
-                            ["$set"] = {
-                                sharedBy = data.document.sharedBy
-                            }
-                        },
-                        options = {
-                            returnDocument = 'after',
-                        }
-                    }, function(success, res)
-                        if success then
-                            cb(res)
+                    MySQL.update("UPDATE character_documents SET sharedWith = JSON_ARRAY_APPEND(sharedWith, '$', ?), sharedBy = ? WHERE id = ? AND owner != ? AND NOT JSON_CONTAINS(sharedWith, ?)", {
+                        json.encode({
+                            Time = os.time(),
+                            ID = char:GetData("ID"),
+                            First = char:GetData("First"),
+                            Last = char:GetData("Last"),
+                            SID = char:GetData("SID"),
+                            RequireSignature = data.requireSignature,
+                        }),
+                        json.encode(data.document.sharedBy),
+                        data.document._id,
+                        char:GetData("ID"),
+                        json.encode({ID = char:GetData("ID")})
+                    }, function(result)
+                        if result and result.affectedRows > 0 then
+                            MySQL.single("SELECT * FROM character_documents WHERE id = ?", {data.document._id}, function(res)
+                                cb(res)
+                            end)
                         else
                             cb(false)
                         end
@@ -333,44 +285,40 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
     Callbacks:RegisterServerCallback("Phone:Documents:Sign", function(source, data, cb)
         local char = Fetch:Source(source):GetData("Character")
         if char then
-            Database.Game:findOneAndUpdate({
-                collection = 'character_documents',
-                query = {
-                    _id = data,
-                    owner = { ['$ne'] = char:GetData("ID") },
-                    ['signed.ID'] = { ['$ne'] = char:GetData("ID") },
-                },
-                update = {
-                    ["$push"] = {
-                        signed = {
-                            Time = os.time(),
-                            ID = char:GetData("ID"),
-                            First = char:GetData("First"),
-                            Last = char:GetData("Last"),
-                            SID = char:GetData("SID"),
-                        },
-                    }
-                },
-                options = {
-                    returnDocument = 'after',
-                }
-            }, function(success, res)
-                cb(success)
+            MySQL.update("UPDATE character_documents SET signed = JSON_ARRAY_APPEND(signed, '$', ?) WHERE id = ? AND owner != ? AND NOT JSON_CONTAINS(signed, ?)", {
+                json.encode({
+                    Time = os.time(),
+                    ID = char:GetData("ID"),
+                    First = char:GetData("First"),
+                    Last = char:GetData("Last"),
+                    SID = char:GetData("SID"),
+                }),
+                data,
+                char:GetData("ID"),
+                json.encode({ID = char:GetData("ID")})
+            }, function(result)
+                if result and result.affectedRows > 0 then
+                    MySQL.single("SELECT * FROM character_documents WHERE id = ?", {data}, function(res)
+                        cb(true)
 
-                if res and res.sharedWith then
-                    for k, v in ipairs(res.sharedWith) do
-                        if v.ID then
-                            local char = Fetch:ID(v.ID)
+                        if res and res.sharedWith then
+                            for k, v in ipairs(res.sharedWith) do
+                                if v.ID then
+                                    local char = Fetch:ID(v.ID)
+                                    if char then
+                                        TriggerClientEvent("Phone:Client:UpdateData", char:GetData("Source"), "myDocuments", res.id, res)
+                                    end
+                                end
+                            end
+
+                            local char = Fetch:ID(res.owner)
                             if char then
-                                TriggerClientEvent("Phone:Client:UpdateData", char:GetData("Source"), "myDocuments", res._id, res)
+                                TriggerClientEvent("Phone:Client:UpdateData", char:GetData("Source"), "myDocuments", res.id, res)
                             end
                         end
-                    end
-
-                    local char = Fetch:ID(res.owner)
-                    if char then
-                        TriggerClientEvent("Phone:Client:UpdateData", char:GetData("Source"), "myDocuments", res._id, res)
-                    end
+                    end)
+                else
+                    cb(false)
                 end
             end)
         else

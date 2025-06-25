@@ -34,33 +34,26 @@ LAPTOP.BizWiz.Receipts = {
             },
         })
 
-		Database.Game:aggregate({
-            collection = 'business_receipts',
-            aggregate = aggregation,
-        }, function(success, results)
-            if not success then
+		MySQL.query("SELECT * FROM business_receipts WHERE job = ? AND (title LIKE ? OR JSON_EXTRACT(author, '$.First') LIKE ? OR JSON_EXTRACT(author, '$.Last') LIKE ? OR JSON_EXTRACT(author, '$.SID') LIKE ?) ORDER BY created DESC", {
+			jobId, '%' .. term .. '%', '%' .. term .. '%', '%' .. term .. '%', '%' .. term .. '%'
+		}, function(results)
+			if not results then
 				p:resolve(false)
-                return
-            end
+				return
+			end
 			p:resolve(results)
-        end)
+		end)
 		return Citizen.Await(p)
 	end,
 	View = function(self, jobId, id)
 		local p = promise.new()
-        Database.Game:findOne({
-            collection = 'business_receipts',
-            query = {
-                job = jobId,
-                _id = id,
-            },
-        }, function(success, report)
-			if not report then
+        MySQL.single("SELECT * FROM business_receipts WHERE job = ? AND id = ?", {jobId, id}, function(result)
+			if not result then
 				p:resolve(false)
 				return
 			end
-			p:resolve(report[1])
-        end)
+			p:resolve(result)
+		end)
 		return Citizen.Await(p)
 	end,
 	Create = function(self, jobId, data)
@@ -70,16 +63,15 @@ LAPTOP.BizWiz.Receipts = {
 
 		local p = promise.new()
         data.job = jobId
-		Database.Game:insertOne({
-			collection = 'business_receipts',
-			document = data,
-		}, function(success, result, insertId)
-			if not success then
+		MySQL.insert("INSERT INTO business_receipts (title, content, job, author, created) VALUES (?, ?, ?, ?, ?)", {
+			data.title, data.content, data.job, json.encode(data.author), data.created
+		}, function(insertId)
+			if not insertId then
 				p:resolve(false)
 				return
 			end
 			p:resolve({
-				_id = insertId[1],
+				id = insertId,
 			})
 		end)
 
@@ -87,41 +79,35 @@ LAPTOP.BizWiz.Receipts = {
 	end,
 	Update = function(self, jobId, id, char, report)
 		local p = promise.new()
-		Database.Game:updateOne({
-			collection = 'business_receipts',
-			query = {
-				_id = id,
-                job = jobId,
-			},
-			update = {
-				["$set"] = report,
-				["$push"] = {
-					history = {
+		MySQL.update("UPDATE business_receipts SET title = ?, content = ? WHERE id = ? AND job = ?", {
+			report.title, report.content, id, jobId
+		}, function(result)
+			if result and result.affectedRows > 0 then
+				-- Add to history
+				MySQL.update("UPDATE business_receipts SET history = JSON_ARRAY_APPEND(history, '$', ?) WHERE id = ?", {
+					json.encode({
 						Time = (os.time() * 1000),
 						Char = char:GetData("SID"),
 						Log = string.format(
 								"%s Updated Report",
 								char:GetData("First") .. " " .. char:GetData("Last")
 						),
-					},
-				},
-			},
-		}, function(success, result)
-			p:resolve(success)
+					}),
+					id
+				}, function(historyResult)
+					p:resolve(true)
+				end)
+			else
+				p:resolve(false)
+			end
 		end)
 		return Citizen.Await(p)
 	end,
     Delete = function(self, jobId, id)
         local p = promise.new()
 
-        Database.Game:deleteOne({
-			collection = 'business_receipts',
-			query = {
-				_id = id,
-                job = jobId,
-			},
-		}, function(success, deleted)
-			p:resolve(success)
+        MySQL.update("DELETE FROM business_receipts WHERE id = ? AND job = ?", {id, jobId}, function(result)
+			p:resolve(result and result.affectedRows > 0)
 		end)
 		return Citizen.Await(p)
     end,
@@ -130,13 +116,8 @@ LAPTOP.BizWiz.Receipts = {
 
 		local p = promise.new()
 
-        Database.Game:delete({
-			collection = 'business_receipts',
-			query = {
-                job = jobId,
-			},
-		}, function(success, deleted)
-			p:resolve(success)
+        MySQL.update("DELETE FROM business_receipts WHERE job = ?", {jobId}, function(result)
+			p:resolve(result and result.affectedRows > 0)
 		end)
 		return Citizen.Await(p)
 	end,

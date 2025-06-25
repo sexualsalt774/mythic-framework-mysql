@@ -204,15 +204,14 @@ _CASINO = {
 				key,
 				json.encode(data),
 				json.encode(data)
-			}, function(success, result)
-				if success then
+			}, function(insertId)
+				if insertId then
 					_casinoConfig[key] = data
 					p:resolve(true)
 				else
 					Logger:Error("Casino", "Failed to update casino config", { console = true })
 					p:resolve(false)
 				end
-
 				_casinoConfigLoaded = true
 			end)
 

@@ -6,10 +6,8 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 		local char = Fetch:Source(source):GetData("Character")
 
 		if _tracks == nil then
-			Database.Game:find({
-				collection = 'tracks_pd',
-			}, function(success, tracks)
-				_tracks = tracks
+			MySQL.query("SELECT * FROM tracks_pd", {}, function(tracks)
+				_tracks = tracks or {}
 				TriggerClientEvent("Phone:Client:Blueline:StoreTracks", source, _tracks)
 				TriggerClientEvent("Phone:Client:SetData", source, "tracks_pd", _tracks)
 			end)
@@ -26,10 +24,8 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 		local char = Fetch:Source(source):GetData("Character")
 
 		if _tracks == nil then
-			Database.Game:find({
-				collection = 'tracks_pd',
-			}, function(success, tracks)
-				_tracks = tracks
+			MySQL.query("SELECT * FROM tracks_pd", {}, function(tracks)
+				_tracks = tracks or {}
 				TriggerClientEvent("Phone:Client:Blueline:StoreTracks", source, _tracks)
 				TriggerClientEvent("Phone:Client:SetData", source, "tracks_pd", _tracks)
 			end)
@@ -54,10 +50,8 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 end)
 
 function ReloadRaceTracksPD()
-	Database.Game:find({
-		collection = 'tracks_pd',
-	}, function(success, tracks)
-		_tracks = tracks
+	MySQL.query("SELECT * FROM tracks_pd", {}, function(tracks)
+		_tracks = tracks or {}
 		TriggerClientEvent("Phone:Client:Blueline:StoreTracks", -1, _tracks)
 		TriggerClientEvent("Phone:Client:SetData", -1, "tracks_pd", _tracks)
 	end)
@@ -179,18 +173,8 @@ end
 function UpdateFastestPD(track, fastest)
 	local p = promise.new()
 
-	Database.Game:updateOne({
-		collection = 'tracks_pd',
-		query = {
-			_id = track,
-		},
-		update = {
-			["$set"] = {
-				Fastest = fastest,
-			},
-		},
-	}, function(success, results)
-		if success then
+	MySQL.update("UPDATE tracks_pd SET Fastest = ? WHERE _id = ?", { fastest, track }, function(affectedRows)
+		if affectedRows > 0 then
 			return p:resolve(true)
 		else
 			return p:resolve(false)
@@ -258,17 +242,15 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local alias = tostring(char:GetData("Callsign"))
 
 		if alias ~= nil then
-			Database.Game:insertOne({
-				collection = 'tracks_pd',
-				document = data,
-			}, function(success, result, insertedIds)
-				if not success then
+			MySQL.insert("INSERT INTO tracks_pd (name, trackData) VALUES (?, ?)", { data.name, data.trackData }, function(insertId)
+				if insertId then
+					data._id = insertId
+					table.insert(_tracks, data)
+					cb(data)
+					TriggerClientEvent("Phone:Client:AddData", -1, "tracks_pd", data)
+				else
 					cb(false)
 				end
-				cb(true)
-				data._id = insertedIds[1]
-				table.insert(_tracks, data)
-				TriggerClientEvent("Phone:Client:AddData", -1, "tracks_pd", data)
 			end)
 		else
 			cb(false)
@@ -276,23 +258,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 	end)
 
 	Callbacks:RegisterServerCallback("Phone:Blueline:SaveLaptimes", function(src, data, cb)
-		Database.Game:update({
-			collection = 'tracks_pd',
-			query = {
-				_id = data.track,
-			},
-			update = {
-				["$push"] = {
-					History = {
-						["$each"] = data.laps,
-						["$sort"] = {
-							time = 1,
-						},
-						["$slice"] = 10,
-					},
-				},
-			},
-		}, function(success, results)
+		MySQL.update("UPDATE tracks_pd SET History = JSON_ARRAY_APPEND(History, '$', ?) WHERE _id = ?", { json.encode(data.laps), data.track }, function(affectedRows)
 			for k, v in ipairs(_tracks) do
 				if v._id == data.track then
 					for k2, v2 in ipairs(data.laps) do
@@ -309,13 +275,8 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local char = Fetch:Source(src):GetData("Character")
 		local alias = tostring(char:GetData("Callsign"))
 		if alias ~= nil then
-			Database.Game:deleteOne({
-				collection = 'tracks_pd',
-				query = {
-					_id = data,
-				},
-			}, function(success, results)
-				cb(success)
+			MySQL.update("DELETE FROM tracks_pd WHERE _id = ?", { data }, function(affectedRows)
+				cb(affectedRows > 0)
 				TriggerClientEvent("Phone:Client:RemoveData", -1, "tracks_pd", data)
 				for k, v in ipairs(_tracks) do
 					if v._id == data then
@@ -333,21 +294,8 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local char = Fetch:Source(src):GetData("Character")
 		local alias = tostring(char:GetData("Callsign"))
 		if alias ~= nil then
-			Database.Game:updateOne({
-				collection = 'tracks_pd',
-				query = {
-					_id = data,
-				},
-				update = {
-					["$set"] = {
-						History = {},
-					},
-					["$unset"] = {
-						Fastest = "",
-					},
-				},
-			}, function(success, results)
-				cb(success)
+			MySQL.update("UPDATE tracks_pd SET History = '[]', Fastest = NULL WHERE _id = ?", { data }, function(affectedRows)
+				cb(affectedRows > 0)
 				for k, v in ipairs(_tracks) do
 					if v._id == data then
 						v.Fastest = nil

@@ -279,9 +279,9 @@ _STORAGEUNITS = {
             doc.managedBy,
             doc.lastAccessed,
             doc.passcode
-        }, function(success, result)
-            if success then
-                doc.id = result.insertId
+        }, function(insertId)
+            if insertId then
+                doc.id = insertId
                 doc.location = location
 
                 local unitIds = GlobalState["StorageUnits"]

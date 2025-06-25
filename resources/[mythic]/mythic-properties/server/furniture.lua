@@ -140,12 +140,9 @@ function GetPropertyFurniture(pId, pInt)
     end
 
     local p = promise.new()
-    Database.Game:findOne({
-        collection = 'properties_furniture',
-        query = { property = pId },
-    }, function(success, results)
-        if success and #results > 0 and results[1] and results[1].furniture then
-            p:resolve(results[1].furniture)
+    MySQL.single("SELECT furniture FROM properties_furniture WHERE property = ?", {pId}, function(result)
+        if result and result.furniture then
+            p:resolve(json.decode(result.furniture))
         else
             local interior = PropertyInteriors[pInt]
             if interior?.defaultFurniture then
@@ -166,21 +163,16 @@ end
 function SetPropertyFurniture(pId, newFurniture, updater)
     local p = promise.new()
 
-    Database.Game:updateOne({
-        collection = 'properties_furniture',
-        query = { property = pId },
-        update = {
-            ["$set"] = {
-                furniture = newFurniture,
-                updatedTime = os.time(),
-                updatedBy = updater,
-            },
-        },
-        options = {
-            upsert = true
-        }
-    }, function(success, updated)
-        p:resolve(success)
+    MySQL.update("INSERT INTO properties_furniture (property, furniture, updatedTime, updatedBy) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE furniture = ?, updatedTime = ?, updatedBy = ?", {
+        pId,
+        json.encode(newFurniture),
+        os.time(),
+        json.encode(updater),
+        json.encode(newFurniture),
+        os.time(),
+        json.encode(updater),
+    }, function(result)
+        p:resolve(result and result.affectedRows > 0)
     end)
 
     local res = Citizen.Await(p)
@@ -196,11 +188,8 @@ end
 function DeletePropertyFurniture(pId)
     local p = promise.new()
 
-    Database.Game:deleteOne({
-        collection = 'properties_furniture',
-        query = { property = pId },
-    }, function(success)
-        p:resolve(success)
+    MySQL.update("DELETE FROM properties_furniture WHERE property = ?", {pId}, function(result)
+        p:resolve(result and result.affectedRows > 0)
     end)
 
     local res = Citizen.Await(p)

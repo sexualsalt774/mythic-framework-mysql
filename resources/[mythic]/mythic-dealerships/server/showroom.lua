@@ -41,13 +41,11 @@ DEALERSHIPS.Showroom = {
                 dealershipId,
                 json.encode(showroom),
                 json.encode(showroom)
-            }, function(success, result)
-                if success then
-                    -- FiveM is dumb
+            }, function(insertId)
+                if insertId then
                     local currentData = GlobalState.DealershipShowrooms
                     currentData[dealershipId] = showroom
                     GlobalState.DealershipShowrooms = currentData
-                    
                     TriggerClientEvent('Dealerships:Client:ShowroomUpdate', -1, dealershipId)
                     p:resolve(showroom)
                 else

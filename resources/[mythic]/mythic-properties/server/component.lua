@@ -88,9 +88,9 @@ PROPERTIES = {
 						json.encode(doc.owner),
 						json.encode(doc.location),
 						json.encode(doc.upgrades)
-					}, function(result)
-						if result and result.insertId then
-							doc.id = result.insertId
+					}, function(insertId)
+						if insertId then
+							doc.id = insertId
 							doc.interior = interior
 							doc.locked = true
 	
@@ -129,8 +129,8 @@ PROPERTIES = {
 			MySQL.update('UPDATE properties SET location = JSON_SET(location, "$.front", ?) WHERE id = ?', {
 				json.encode(pos),
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows > 0 then
 					if _properties[id] and _properties[id].location then
 						_properties[id].location.front = pos
 						TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
@@ -151,8 +151,8 @@ PROPERTIES = {
 			MySQL.update('UPDATE properties SET location = JSON_SET(location, "$.backdoor", ?) WHERE id = ?', {
 				json.encode(pos),
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows > 0 then
 					if _properties[id] and _properties[id].location then
 						_properties[id].location.backdoor = pos
 						TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
@@ -173,8 +173,8 @@ PROPERTIES = {
 			MySQL.update('UPDATE properties SET location = JSON_SET(location, "$.garage", ?) WHERE id = ?', {
 				json.encode(pos),
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows > 0 then
 					if _properties[id] and _properties[id].location then
 						_properties[id].location.garage = pos
 						TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
@@ -217,8 +217,8 @@ PROPERTIES = {
 			MySQL.update('UPDATE properties SET price = ? WHERE id = ?', {
 				price,
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows > 0 then
 					if _properties[id] and _properties[id].price then
 						_properties[id].price = price
 						TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
@@ -239,8 +239,8 @@ PROPERTIES = {
 			MySQL.update('UPDATE properties SET data = JSON_SET(COALESCE(data, "{}"), "$.' .. key .. '", ?) WHERE id = ?', {
 				json.encode(value),
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows > 0 then
 					if _properties[id] then
 						if not _properties[id].data then _properties[id].data = {} end
 						_properties[id].data[key] = value
@@ -286,8 +286,8 @@ PROPERTIES = {
 					MySQL.update('UPDATE properties SET upgrades = JSON_SET(COALESCE(upgrades, "{}"), "$.' .. upgrade .. '", ?) WHERE id = ?', {
 						level,
 						id
-					}, function(result)
-						if result and result.affectedRows > 0 then
+					}, function(affectedRows)
+						if affectedRows > 0 then
 							if _properties[id] then
 								if not _properties[id].upgrades then _properties[id].upgrades = {} end
 								_properties[id].upgrades[upgrade] = level
@@ -340,8 +340,8 @@ PROPERTIES = {
 					MySQL.update('UPDATE properties SET upgrades = JSON_SET(COALESCE(upgrades, "{}"), "$.interior", ?) WHERE id = ?', {
 						interior,
 						id
-					}, function(result)
-						if result and result.affectedRows > 0 then
+					}, function(affectedRows)
+						if affectedRows > 0 then
 							if _properties[id] then
 								if not _properties[id].upgrades then _properties[id].upgrades = {} end
 								_properties[id].upgrades["interior"] = interior
@@ -360,8 +360,8 @@ PROPERTIES = {
 	Commerce = {
 		Sell = function(self, id)
 			local p = promise.new()
-			MySQL.update('UPDATE properties SET sold = false, owner = false, keys = NULL WHERE id = ?', {id}, function(result)
-				if result and result.affectedRows > 0 and _properties[id] then
+			MySQL.update('UPDATE properties SET sold = false, owner = false, keys = NULL WHERE id = ?', {id}, function(affectedRows)
+				if affectedRows > 0 and _properties[id] then
 					_properties[id].sold = false
 					if _properties[id].keys then
 						for k, v in pairs(_properties[id].keys) do
@@ -396,8 +396,8 @@ PROPERTIES = {
 					[owner.Char] = owner,
 				}),
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows > 0 then
 					_properties[id].sold = true
 					_properties[id].keys = {
 						[owner.Char] = owner,
@@ -423,8 +423,8 @@ PROPERTIES = {
 				state,
 				state and os.time() or false,
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows > 0 then
 					if _properties[id] then
 						_properties[id].foreclosed = state
 						TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])

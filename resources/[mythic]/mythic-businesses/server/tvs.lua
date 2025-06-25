@@ -46,8 +46,8 @@ function SetBusinessTVLink(tvId, link)
         tvId,
         link,
         link
-    }, function(success, result)
-        if success then
+    }, function(insertId)
+        if insertId then
             p:resolve(link)
         else
             Logger:Error("TVs", "Failed to update TV link", { console = true })

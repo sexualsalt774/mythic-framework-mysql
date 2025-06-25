@@ -1,9 +1,6 @@
 AddEventHandler("Laptop:Server:RegisterCallbacks", function()
-	Database.Game:find({
-		collection = 'business_notices',
-		query = {},
-	}, function(success, results)
-		if not success then
+	MySQL.query("SELECT * FROM business_notices ORDER BY created DESC", {}, function(results)
+		if not results then
 			return
 		end
 
@@ -44,16 +41,15 @@ LAPTOP.BizWiz.Notices = {
 				Last = char:GetData("Last"),
 			}
 
-			Database.Game:insertOne({
-				collection = 'business_notices',
-				document = data,
-			}, function(success, result, insertIds)
-				if not success then
+			MySQL.insert("INSERT INTO business_notices (title, content, job, author, created) VALUES (?, ?, ?, ?, ?)", {
+				data.title, data.content, data.job, json.encode(data.author), data.created
+			}, function(insertId)
+				if not insertId then
 					p:resolve(false)
 					return
 				end
 
-				data._id = insertIds[1]
+				data.id = insertId
 				table.insert(_businessNotices, data)
 
 				local jobDutyData = Jobs.Duty:GetDutyData(job)
@@ -63,7 +59,7 @@ LAPTOP.BizWiz.Notices = {
 					end
 				end
 
-				p:resolve(insertIds[1])
+				p:resolve(insertId)
 			end)
 			return Citizen.Await(p)
 		end
@@ -71,20 +67,14 @@ LAPTOP.BizWiz.Notices = {
 	end,
 	Delete = function(self, job, id)
 		local p = promise.new()
-		Database.Game:deleteOne({
-			collection = 'business_notices',
-			query = {
-				_id = id,
-				job = job,
-			},
-		}, function(success, deleted)
-			if not success then
+		MySQL.update("DELETE FROM business_notices WHERE id = ? AND job = ?", {id, job}, function(result)
+			if not result or result.affectedRows == 0 then
 				p:resolve(false)
 				return
 			end
 
 			for k, v in ipairs(_businessNotices) do
-				if v._id == id then
+				if v.id == id then
 					table.remove(_businessNotices, k)
 					break
 				end

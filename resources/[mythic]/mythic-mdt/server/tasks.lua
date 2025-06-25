@@ -17,23 +17,18 @@ function RegisterTasks()
 	
     Tasks:Register('mdt_metrics', 5, function()
 		Logger:Trace('MDT', 'Metrics Stored')
-		Database.Game:updateOne({
-			collection = 'mdt_metrics',
-			query = {
-				date = GlobalState['MDT:Metric:CurrentDay']
-			},
-			update = {
-				['$set'] = {
-					Arrests = GlobalState["MDT:Metric:Arrests"],
-					Reports = GlobalState["MDT:Metric:Reports"],
-					Warrants = GlobalState["MDT:Metric:Warrants"],
-					BOLOs = GlobalState["MDT:Metric:BOLOs"],
-					Searches = GlobalState["MDT:Metric:Search"],
-				}
-			},
-			options = {
-				upsert = true,
-			}
+		MySQL.update("INSERT INTO mdt_metrics (date, Arrests, Reports, Warrants, BOLOs, Searches) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE Arrests = ?, Reports = ?, Warrants = ?, BOLOs = ?, Searches = ?", {
+			GlobalState['MDT:Metric:CurrentDay'],
+			GlobalState["MDT:Metric:Arrests"],
+			GlobalState["MDT:Metric:Reports"],
+			GlobalState["MDT:Metric:Warrants"],
+			GlobalState["MDT:Metric:BOLOs"],
+			GlobalState["MDT:Metric:Search"],
+			GlobalState["MDT:Metric:Arrests"],
+			GlobalState["MDT:Metric:Reports"],
+			GlobalState["MDT:Metric:Warrants"],
+			GlobalState["MDT:Metric:BOLOs"],
+			GlobalState["MDT:Metric:Search"],
 		}, function(s, r)
 		end)
     end)
@@ -44,23 +39,18 @@ function RegisterTasks()
 		local t = string.format('%s/%s/%s', date.month, date.day, date.year)
 		if t ~= GlobalState['MDT:Metric:CurrentDay'] then
 			Logger:Trace('MDT', 'New Day, Resetting Metrics')
-			Database.Game:updateOne({
-				collection = 'mdt_metrics',
-				query = {
-					date = GlobalState['MDT:Metric:CurrentDay']
-				},
-				update = {
-					['$set'] = {
-						Arrests = GlobalState["MDT:Metric:Arrests"],
-						Reports = GlobalState["MDT:Metric:Reports"],
-						Warrants = GlobalState["MDT:Metric:Warrants"],
-						BOLOs = GlobalState["MDT:Metric:BOLOs"],
-						Searches = GlobalState["MDT:Metric:Search"],
-					}
-				},
-				options = {
-					upsert = true,
-				}
+			MySQL.update("INSERT INTO mdt_metrics (date, Arrests, Reports, Warrants, BOLOs, Searches) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE Arrests = ?, Reports = ?, Warrants = ?, BOLOs = ?, Searches = ?", {
+				GlobalState['MDT:Metric:CurrentDay'],
+				GlobalState["MDT:Metric:Arrests"],
+				GlobalState["MDT:Metric:Reports"],
+				GlobalState["MDT:Metric:Warrants"],
+				GlobalState["MDT:Metric:BOLOs"],
+				GlobalState["MDT:Metric:Search"],
+				GlobalState["MDT:Metric:Arrests"],
+				GlobalState["MDT:Metric:Reports"],
+				GlobalState["MDT:Metric:Warrants"],
+				GlobalState["MDT:Metric:BOLOs"],
+				GlobalState["MDT:Metric:Search"],
 			}, function(s, r)
 				GlobalState['MDT:Metric:CurrentDay'] = t
 				GlobalState["MDT:Metric:Arrests"] = 0

@@ -621,12 +621,11 @@ _JOBS = {
 						},
 					}
 
-					MySQL.insert('jobs', document, function(success, inserted)
-						if success and inserted > 0 then
-							RefreshAllJobData(document.Id)
-
-							Jobs:GiveJob(ownerSID, document.Id, false, 'owner')
-
+					MySQL.insert('INSERT INTO jobs (Name, Owner, Type, Grade, Workplace, Permissions, Settings) VALUES (?, ?, ?, ?, ?, ?, ?)', {
+						document.Name, document.Owner, document.Type, document.Grade, document.Workplace, json.encode(document.Permissions), json.encode(document.Settings)
+					}, function(insertId)
+						if insertId then
+							document.id = insertId
 							p:resolve(document)
 						else
 							p:resolve(false)

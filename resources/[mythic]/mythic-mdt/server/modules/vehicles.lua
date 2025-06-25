@@ -67,11 +67,11 @@ _MDT.Vehicles = {
 					MySQL.update('UPDATE vehicles SET Flags = ? WHERE VIN = ?', {
 						json.encode(currentFlags),
 						VIN
-					}, function(result)
-						if result and result.affectedRows > 0 and data.radarFlag and plate then
+					}, function(affectedRows)
+						if affectedRows > 0 and data.radarFlag and plate then
 							Radar:AddFlaggedPlate(plate, 'Vehicle Flagged in MDT')
 						end
-						p:resolve(result and result.affectedRows > 0)
+						p:resolve(affectedRows > 0)
 					end)
 				else
 					Logger:Error("MDT", "Failed to get vehicle flags", { console = true })
@@ -99,8 +99,8 @@ _MDT.Vehicles = {
 					MySQL.update('UPDATE vehicles SET Flags = ? WHERE VIN = ?', {
 						json.encode(newFlags),
 						VIN
-					}, function(result)
-						p:resolve(result and result.affectedRows > 0)
+					}, function(affectedRows)
+						p:resolve(affectedRows > 0)
 					end)
 				else
 					Logger:Error("MDT", "Failed to get vehicle flags for removal", { console = true })
@@ -115,8 +115,8 @@ _MDT.Vehicles = {
 		MySQL.update('UPDATE vehicles SET Strikes = ? WHERE VIN = ?', {
 			json.encode(strikes),
 			VIN
-		}, function(result)
-			p:resolve(result and result.affectedRows > 0)
+		}, function(affectedRows)
+			p:resolve(affectedRows > 0)
 		end)
 		return Citizen.Await(p)
 	end,

@@ -12,11 +12,8 @@ itemsLoaded = false
 _started = false
 
 function LoadSchematics()
-	Database.Game:find({
-		collection = 'schematics',
-		query = {},
-	}, function(success, schems)
-		if success then
+	MySQL.query("SELECT * FROM schematics", {}, function(schems)
+		if schems then
 			for k, v in ipairs(schems) do
 				_knownRecipes[v.bench] = _knownRecipes[v.bench] or {}
 				table.insert(_knownRecipes[v.bench], _schematics[v.item])
@@ -316,10 +313,8 @@ function LoadShops()
 			storeBankAccounts[v.id] = f.Account
 		end
 
-		Database.Game:find({
-			collection = 'store_bank_accounts',
-		}, function(success, results)
-			if success and #results > 0 then
+		MySQL.query("SELECT * FROM store_bank_accounts", {}, function(results)
+			if results and #results > 0 then
 				for k, v in ipairs(results) do
 					storeBankAccounts[v.Shop] = v.Account
 				end
@@ -332,22 +327,12 @@ end
 
 function RegisterCommands()
 	Chat:RegisterAdminCommand("storebank", function(source, args, rawCommand)
-		Database.Game:updateOne({
-			collection = 'store_bank_accounts',
-			update = {
-				["$set"] = {
-					Shop = tonumber(args[1]),
-					Account = tonumber(args[2]),
-				},
-			},
-			query = {
-				Shop = tonumber(args[1]),
-			},
-			options = {
-				upsert = true,
-			},
-		}, function(success, result)
-			if success then
+		MySQL.update("INSERT INTO store_bank_accounts (Shop, Account) VALUES (?, ?) ON DUPLICATE KEY UPDATE Account = ?", {
+			tonumber(args[1]),
+			tonumber(args[2]),
+			tonumber(args[2]),
+		}, function(result)
+			if result and result.affectedRows > 0 then
 				storeBankAccounts[string.format("shop:%s", tonumber(args[1]))] = tonumber(args[2])
 			end
 		end)

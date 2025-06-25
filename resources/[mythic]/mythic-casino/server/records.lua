@@ -47,8 +47,8 @@ function UpdateCharacterCasinoStats(source, statType, isWin, amount)
                         totalAmountLost,
                         json.encode(amountWon),
                         json.encode(amountLost)
-                    }, function(insertSuccess, result)
-                        if insertSuccess then
+                    }, function(insertId)
+                        if insertId then
                             p:resolve(true)
                         else
                             Logger:Error("Casino", "Failed to update casino statistics", { console = true })

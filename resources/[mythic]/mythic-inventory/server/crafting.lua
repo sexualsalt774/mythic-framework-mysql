@@ -255,17 +255,16 @@ CRAFTING = {
 		Add = function(self, bench, item)
 			if _types[bench] ~= nil and _schematics[item] ~= nil then
 				if not Crafting.Schematics:Has(bench, item) then
-					Database.Game:insertOne({
-						collection = 'schematics',
-						document = {
-							bench = bench,
-							item = item,
-						},
-					})
-
-					local f = table.copy(_schematics[item])
-					f.schematic = item
-					Crafting:AddRecipeToBench(bench, item, f)
+					MySQL.insert("INSERT INTO schematics (bench, item) VALUES (?, ?)", {
+						bench,
+						item,
+					}, function(result)
+						if result then
+							local f = table.copy(_schematics[item])
+							f.schematic = item
+							Crafting:AddRecipeToBench(bench, item, f)
+						end
+					end)
 				end
 			end
 

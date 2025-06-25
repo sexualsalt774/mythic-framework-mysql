@@ -82,147 +82,71 @@ _MDT.Reports = {
             }
         })
 
-		Database.Game:aggregate({
-            collection = 'mdt_reports',
-            aggregate = aggregation,
-        }, function(success, results)
-            if not success then
+		MySQL.query("SELECT * FROM mdt_reports WHERE JSON_CONTAINS(suspects, JSON_OBJECT('suspect', JSON_OBJECT('First', ?, 'Last', ?)), '$') OR JSON_CONTAINS(suspects, JSON_OBJECT('suspect', JSON_OBJECT('SID', ?)), '$') ORDER BY time DESC", {
+			term, term, term
+		}, function(results)
+			if not results then
 				p:resolve(false)
-                return
-            end
-            GlobalState['MDT:Metric:Search'] = GlobalState['MDT:Metric:Search'] + 1
+				return
+			end
+			GlobalState['MDT:Metric:Search'] = GlobalState['MDT:Metric:Search'] + 1
 			p:resolve(results)
-        end)
+		end)
 		return Citizen.Await(p)
 	end,
     SearchEvidence = function(self, term)
         if not term then term = '' end
 		local p = promise.new()
 
-        local aggregation = {
-            {
-                ['$addFields'] = {
-                    ['suspects.suspect'] = {
-                        ["$map"] = {
-                            ["input"] = "$suspects.suspect",
-                            ["as"] = "u",
-                            ["in"] = {
-                                ["$mergeObjects"] = {
-                                    "$$u",
-                                    {
-                                        FullName = { ["$concat"] = { "$$u.First", " ", "$$u.Last" } }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-        }
-
-        local filterMatchQuery = {}
-
-        if filterMatchQuery.type or filterMatchQuery.tags then
-            table.insert(aggregation, {
-                ['$match'] = filterMatchQuery,
-            })
-        end
-
-        table.insert(aggregation, {
-            ['$match'] = {
-                ['$or'] = {
-                    {
-                        ['evidence'] = {
-                            ['$elemMatch'] = {
-                                value = { ['$regex'] = term, ['$options'] = 'i' }
-                            }
-                        }
-                    },
-                },
-            },
-        })
-
-        table.insert(aggregation, {
-            ["$sort"] = {
-                time = -1,
-            }
-        })
-
-        if #term <= 0 then
-            table.insert(aggregation, {
-                ["$limit"] = 24
-            })
-        end
-
-        table.insert(aggregation, {
-            ["$unwind"] = {
-                path = '$suspects.suspect',
-                preserveNullAndEmptyArrays = true,
-            }
-        })
-
-		Database.Game:aggregate({
-            collection = 'mdt_reports',
-            aggregate = aggregation,
-        }, function(success, results)
-            if not success then
+		MySQL.query("SELECT * FROM mdt_reports WHERE JSON_SEARCH(evidence, 'one', ?, null, '$[*].value') IS NOT NULL ORDER BY time DESC", {
+			term
+		}, function(results)
+			if not results then
 				p:resolve(false)
-                return
-            end
-            GlobalState['MDT:Metric:Search'] = GlobalState['MDT:Metric:Search'] + 1
+				return
+			end
+			GlobalState['MDT:Metric:Search'] = GlobalState['MDT:Metric:Search'] + 1
 			p:resolve(results)
-        end)
+		end)
 		return Citizen.Await(p)
 	end,
 	Mine = function(self, char)
 		local p = promise.new()
-        Database.Game:find({
-            collection = 'mdt_reports',
-            query = {
-                ["$or"] = {
-                    { primaries = char:GetData("Callsign") },
-                    { ["author.SID"] = char:GetData("SID") },
-                },
-            },
-        }, function(success, results)
-            if not success then
+        MySQL.query("SELECT * FROM mdt_reports WHERE primaries = ? OR JSON_EXTRACT(author, '$.SID') = ? ORDER BY time DESC", {
+			char:GetData("Callsign"), char:GetData("SID")
+		}, function(results)
+			if not results then
 				p:resolve(false)
-                return
-            end
+				return
+			end
 			p:resolve(results)
-        end)
+		end)
 		GlobalState['MDT:Metric:Search'] = GlobalState['MDT:Metric:Search'] + 1
 		return Citizen.Await(p)
 	end,
 	View = function(self, id)
 		local p = promise.new()
-        Database.Game:findOne({
-            collection = 'mdt_reports',
-            query = {
-                _id = id,
-            },
-        }, function(success, report)
-			if not report then
+        MySQL.single("SELECT * FROM mdt_reports WHERE id = ?", {id}, function(result)
+			if not result then
 				p:resolve(false)
 				return
 			end
-			p:resolve(report[1])
-        end)
+			p:resolve(result)
+		end)
 		return Citizen.Await(p)
 	end,
 	Create = function(self, data)
 		local p = promise.new()
         data.ID = Sequence:Get('Report')
-		Database.Game:insertOne({
-			collection = 'mdt_reports',
-			document = data,
-		}, function(success, result, insertId)
-			if not success then
+		MySQL.insert("INSERT INTO mdt_reports (ID, title, content, author, suspects, evidence, time) VALUES (?, ?, ?, ?, ?, ?, ?)", {
+			data.ID, data.title, data.content, json.encode(data.author), json.encode(data.suspects), json.encode(data.evidence), data.time
+		}, function(insertId)
+			if not insertId then
 				p:resolve(false)
 				return
 			end
 			p:resolve({
-				_id = insertId[1],
+				id = insertId,
 				ID = data.ID,
 			})
 		end)
@@ -231,39 +155,35 @@ _MDT.Reports = {
 	end,
 	Update = function(self, id, char, report)
 		local p = promise.new()
-		Database.Game:updateOne({
-			collection = 'mdt_reports',
-			query = {
-				_id = id,
-			},
-			update = {
-				["$set"] = report,
-				["$push"] = {
-					history = {
+		MySQL.update("UPDATE mdt_reports SET title = ?, content = ?, suspects = ?, evidence = ? WHERE id = ?", {
+			report.title, report.content, json.encode(report.suspects), json.encode(report.evidence), id
+		}, function(affectedRows)
+			if affectedRows > 0 then
+				-- Add to history
+				MySQL.update("UPDATE mdt_reports SET history = JSON_ARRAY_APPEND(history, '$', ?) WHERE id = ?", {
+					json.encode({
 						Time = (os.time() * 1000),
 						Char = char:GetData("SID"),
 						Log = string.format(
 								"%s Updated Report",
 								char:GetData("First") .. " " .. char:GetData("Last")
 						),
-					},
-				},
-			},
-		}, function(success, result)
-			p:resolve(success)
+					}),
+					id
+				}, function(historyResult)
+					p:resolve(true)
+				end)
+			else
+				p:resolve(false)
+			end
 		end)
 		return Citizen.Await(p)
 	end,
     Delete = function(self, id)
         local p = promise.new()
 
-        Database.Game:deleteOne({
-			collection = 'mdt_reports',
-			query = {
-				_id = id,
-			},
-		}, function(success, deleted)
-			p:resolve(success)
+        MySQL.update("DELETE FROM mdt_reports WHERE id = ?", {id}, function(result)
+			p:resolve(result and result.affectedRows > 0)
 		end)
 		return Citizen.Await(p)
     end,
