@@ -1,7 +1,7 @@
 PHONE.Contacts = {
 	IsContact = function(self, myId, targetNumber)
 		local p = promise.new()
-		MySQL.single("SELECT * FROM phone_contacts WHERE character = ? AND number = ? LIMIT 1", {
+		MySQL.single("SELECT * FROM phone_contacts WHERE `character` = ? AND number = ? LIMIT 1", {
 			myId,
 			targetNumber,
 		}, function(result)
@@ -14,7 +14,7 @@ PHONE.Contacts = {
 AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		MySQL.query("SELECT * FROM phone_contacts WHERE character = ?", {
+		MySQL.query("SELECT * FROM phone_contacts WHERE `character` = ?", {
 			char:GetData("ID"),
 		}, function(contacts)
 			TriggerClientEvent("Phone:Client:SetData", source, "contacts", contacts or {})
@@ -22,7 +22,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	end, 2)
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		MySQL.query("SELECT * FROM phone_contacts WHERE character = ?", {
+		MySQL.query("SELECT * FROM phone_contacts WHERE `character` = ?", {
 			char:GetData("ID"),
 		}, function(contacts)
 			TriggerClientEvent("Phone:Client:SetData", source, "contacts", contacts or {})
@@ -36,7 +36,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local char = Fetch:Source(src):GetData("Character")
 		if char then
 			data.character = char:GetData("ID")
-			MySQL.insert("INSERT INTO phone_contacts (character, name, number, color, avatar, favorite) VALUES (?, ?, ?, ?, ?, ?)", {
+			MySQL.insert("INSERT INTO phone_contacts (`character`, name, number, color, avatar, favorite) VALUES (?, ?, ?, ?, ?, ?)", {
 				data.character,
 				data.name,
 				data.number,
@@ -64,7 +64,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local char = Fetch:Source(src):GetData("Character")
 		if char then
 			data.character = char:GetData("ID")
-			MySQL.update("UPDATE phone_contacts SET name = ?, number = ?, color = ?, avatar = ?, favorite = ? WHERE character = ? AND id = ?", {
+			MySQL.update("UPDATE phone_contacts SET name = ?, number = ?, color = ?, avatar = ?, favorite = ? WHERE `character` = ? AND id = ?", {
 				data.name,
 				data.number,
 				data.color,
@@ -88,7 +88,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 		local src = source
 		local char = Fetch:Source(src):GetData("Character")
 		if char and data then
-			MySQL.update("DELETE FROM phone_contacts WHERE character = ? AND id = ?", {
+			MySQL.update("DELETE FROM phone_contacts WHERE `character` = ? AND id = ?", {
 				char:GetData("ID"),
 				data,
 			}, function(affectedRows)

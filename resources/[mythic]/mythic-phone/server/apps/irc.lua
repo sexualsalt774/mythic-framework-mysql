@@ -3,7 +3,7 @@ local _channels = {}
 AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	Middleware:Add("Characters:Spawning", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		MySQL.query("SELECT * FROM irc_channels WHERE character = ?", {
+		MySQL.query("SELECT * FROM irc_channels WHERE `character` = ?", {
 			char:GetData("ID"),
 		}, function(channels)
 			_channels[char:GetData("ID")] = channels or {}
@@ -12,7 +12,7 @@ AddEventHandler("Phone:Server:RegisterMiddleware", function()
 	end, 2)
 	Middleware:Add("Phone:UIReset", function(source)
 		local char = Fetch:Source(source):GetData("Character")
-		MySQL.query("SELECT * FROM irc_channels WHERE character = ?", {
+		MySQL.query("SELECT * FROM irc_channels WHERE `character` = ?", {
 			char:GetData("ID"),
 		}, function(channels)
 			_channels[char:GetData("ID")] = channels or {}
@@ -130,7 +130,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 			end
 		end
 
-		MySQL.insert("INSERT INTO irc_channels (slug, joined, character) VALUES (?, ?, ?)", {
+		MySQL.insert("INSERT INTO irc_channels (slug, joined, `character`) VALUES (?, ?, ?)", {
 			data2.slug,
 			data2.joined,
 			data2.character,
@@ -150,7 +150,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 	Callbacks:RegisterServerCallback("Phone:IRC:LeaveChannel", function(source, data, cb)
 		local src = source
 		local char = Fetch:Source(src):GetData("Character")
-		MySQL.update("DELETE FROM irc_channels WHERE character = ? AND slug = ?", {
+		MySQL.update("DELETE FROM irc_channels WHERE `character` = ? AND slug = ?", {
 			char:GetData("ID"),
 			data,
 		}, function(affectedRows)
