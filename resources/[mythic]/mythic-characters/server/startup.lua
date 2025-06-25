@@ -16,6 +16,8 @@ function Startup()
 
 		Spawns = { table.unpack(Config.DefaultSpawns) }
 		for _, v in ipairs(results) do
+			v.Coords = json.decode(v.Coords)
+			print(json.encode(v.Coords, {indent = true}))
 			local spawn = {
 				id = v.id,
 				label = v.Name,

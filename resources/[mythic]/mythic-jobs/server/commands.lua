@@ -17,14 +17,18 @@ function RegisterJobChatCommands()
 
     Chat:RegisterAdminCommand('givejob', function(source, args, rawCommand)
         local target, jobId, gradeId, workplaceId = table.unpack(args)
+        Chat.Send.System:Single(source, string.format('%s %s %s %s', target, jobId, gradeId, workplaceId))
         target = math.tointeger(target)
         if not workplaceId then workplaceId = false; end
 
         if target and jobId and gradeId then
             local jobExists = Jobs:DoesExist(jobId, workplaceId, gradeId)
+            Chat.Send.System:Single(source, string.format('%s %s %s %s', 'does this shit work?', jobExists, jobExists, jobExists)))
             if jobExists then
                 local success = Jobs:GiveJob(target, jobId, workplaceId, gradeId)
+                Chat.Send.System:Single(source, success)
                 if success then
+                    Chat.Send.System:Single(source, jobExists.Workplace)
                     if jobExists.Workplace then
                         Chat.Send.System:Single(source, string.format('Gave State ID: %s Job: %s - %s - %s', target, jobExists.Name, jobExists.Workplace.Name, jobExists.Grade.Name))
                     else

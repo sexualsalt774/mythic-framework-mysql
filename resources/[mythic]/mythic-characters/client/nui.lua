@@ -169,6 +169,7 @@ RegisterNUICallback('PlayCharacter', function(data, cb)
     cb('ok')
     Callbacks:ServerCallback('Characters:GetCharacterData', data.character.ID, function(cData)
         cData.spawn = data.spawn
+        print(json.encode(cData.spawn, {indent = true}))
         TriggerEvent('Characters:Client:SetData', -1, cData, function()
             exports['mythic-base']:FetchComponent('Spawn'):SpawnToWorld(cData, function()
                 LocalPlayer.state.canUsePhone = true
