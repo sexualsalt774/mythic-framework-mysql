@@ -919,8 +919,8 @@ function RegisterCallbacks()
 	Callbacks:RegisterServerCallback('Ped:Outfit:SaveCode', function(source, data, cb) 
 		local p = promise.new()
 
-		MySQL.query('INSERT INTO outfit_codes (Code, Data) VALUES (?, ?)', { data.code, json.encode(data.outfit) }, function(results)
-			if results.affectedRows > 0 then
+		MySQL.query('INSERT INTO outfit_codes (Code, Data) VALUES (?, ?)', { data.code, json.encode(data.outfit) }, function(affectedRows)
+			if affectedRows > 0 then
 				p:resolve(true)
 			else
 				p:resolve(false)

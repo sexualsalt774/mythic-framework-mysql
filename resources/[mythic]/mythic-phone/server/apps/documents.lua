@@ -264,8 +264,8 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
                         data.document._id,
                         char:GetData("ID"),
                         json.encode({ID = char:GetData("ID")})
-                    }, function(result)
-                        if result and result.affectedRows > 0 then
+                    }, function(affectedRows)
+                        if affectedRows and affectedRows > 0 then
                             MySQL.single("SELECT * FROM character_documents WHERE id = ?", {data.document._id}, function(res)
                                 cb(res)
                             end)
@@ -296,8 +296,8 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
                 data,
                 char:GetData("ID"),
                 json.encode({ID = char:GetData("ID")})
-            }, function(result)
-                if result and result.affectedRows > 0 then
+            }, function(affectedRows)
+                if affectedRows and affectedRows > 0 then
                     MySQL.single("SELECT * FROM character_documents WHERE id = ?", {data}, function(res)
                         cb(true)
 

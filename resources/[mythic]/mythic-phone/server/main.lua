@@ -1,3 +1,101 @@
+-- Utility functions for building MySQL WHERE clauses from MongoDB-style query objects
+function buildWhereClause(query)
+	if not query or type(query) ~= "table" then
+		return "1=1"
+	end
+	
+	local conditions = {}
+	
+	for field, value in pairs(query) do
+		if type(value) == "table" then
+			-- Handle MongoDB-style operators
+			for operator, operatorValue in pairs(value) do
+				local fieldName = field
+				-- Handle JSON path queries (e.g., "Alias.twitter.name")
+				if string.find(field, "%.") then
+					local baseField = string.match(field, "([^.]+)")
+					local jsonPath = string.sub(field, string.find(field, "%.") + 1)
+					fieldName = "JSON_EXTRACT(" .. baseField .. ", '$." .. jsonPath .. "')"
+				end
+				
+				if operator == "$ne" then
+					table.insert(conditions, fieldName .. " != ?")
+				elseif operator == "$eq" then
+					table.insert(conditions, fieldName .. " = ?")
+				elseif operator == "$gt" then
+					table.insert(conditions, fieldName .. " > ?")
+				elseif operator == "$gte" then
+					table.insert(conditions, fieldName .. " >= ?")
+				elseif operator == "$lt" then
+					table.insert(conditions, fieldName .. " < ?")
+				elseif operator == "$lte" then
+					table.insert(conditions, fieldName .. " <= ?")
+				elseif operator == "$in" then
+					if type(operatorValue) == "table" then
+						local placeholders = {}
+						for i = 1, #operatorValue do
+							table.insert(placeholders, "?")
+						end
+						table.insert(conditions, fieldName .. " IN (" .. table.concat(placeholders, ",") .. ")")
+					end
+				elseif operator == "$nin" then
+					if type(operatorValue) == "table" then
+						local placeholders = {}
+						for i = 1, #operatorValue do
+							table.insert(placeholders, "?")
+						end
+						table.insert(conditions, fieldName .. " NOT IN (" .. table.concat(placeholders, ",") .. ")")
+					end
+				elseif operator == "$like" then
+					table.insert(conditions, fieldName .. " LIKE ?")
+				end
+			end
+		else
+			-- Simple equality
+			local fieldName = field
+			-- Handle JSON path queries (e.g., "Alias.twitter.name")
+			if string.find(field, "%.") then
+				local baseField = string.match(field, "([^.]+)")
+				local jsonPath = string.sub(field, string.find(field, "%.") + 1)
+				fieldName = "JSON_EXTRACT(" .. baseField .. ", '$." .. jsonPath .. "')"
+			end
+			table.insert(conditions, fieldName .. " = ?")
+		end
+	end
+	
+	return table.concat(conditions, " AND ")
+end
+
+function buildWhereParams(query)
+	if not query or type(query) ~= "table" then
+		return {}
+	end
+	
+	local params = {}
+	
+	for field, value in pairs(query) do
+		if type(value) == "table" then
+			-- Handle MongoDB-style operators
+			for operator, operatorValue in pairs(value) do
+				if operator == "$ne" or operator == "$eq" or operator == "$gt" or operator == "$gte" or operator == "$lt" or operator == "$lte" or operator == "$like" then
+					table.insert(params, operatorValue)
+				elseif operator == "$in" or operator == "$nin" then
+					if type(operatorValue) == "table" then
+						for i = 1, #operatorValue do
+							table.insert(params, operatorValue[i])
+						end
+					end
+				end
+			end
+		else
+			-- Simple equality
+			table.insert(params, value)
+		end
+	end
+	
+	return params
+end
+
 function defaultApps()
 	local defApps = {}
 	local dock = { "contacts", "phone", "messages" }
@@ -315,7 +413,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 				},
 			}
 
-			if data?.alias?.name ~= nil then
+			if data.alias and data.alias.name ~= nil then
 				query = {
 					["Alias." .. data.app .. ".name"] = data.alias.name,
 					Phone = {
@@ -334,7 +432,7 @@ AddEventHandler("Phone:Server:RegisterCallbacks", function()
 						local upd = {
 							["Alias." .. data.app] = data.alias,
 						}
-						if data?.alias?.name ~= nil then
+						if data.alias and data.alias.name ~= nil then
 							upd = {
 								["Alias." .. data.app .. ".name"] = data.alias.name,
 							}

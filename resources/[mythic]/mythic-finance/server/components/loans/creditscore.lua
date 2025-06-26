@@ -23,8 +23,8 @@ function SetCharacterCreditScore(stateId, score)
         score = _creditScoreConfig.min
     end
 
-    MySQL.insert('INSERT INTO loans_credit_scores (SID, Score) VALUES (?, ?) ON DUPLICATE KEY UPDATE Score = VALUES(Score)', {stateId, score}, function(result)
-        if result and result.affectedRows > 0 then
+    MySQL.insert('INSERT INTO loans_credit_scores (SID, Score) VALUES (?, ?) ON DUPLICATE KEY UPDATE Score = VALUES(Score)', {stateId, score}, function(affectedRows)
+        if affectedRows and affectedRows > 0 then
             MySQL.query('SELECT Score FROM loans_credit_scores WHERE SID = ? LIMIT 1', {stateId}, function(results2)
                 if results2 and #results2 > 0 then
                     p:resolve(results2[1].Score)

@@ -253,8 +253,8 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 						}
 					}),
 					data.report,
-				}, function(result)
-					if result and result.affectedRows > 0 then
+				}, function(affectedRows)
+					if affectedRows and affectedRows > 0 then
 						sentencedSuspects[data.report][data.data.suspect.SID] = true
 
 						-- Update character convictions
@@ -280,8 +280,8 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 							local p = promise.new()
 
 							if data.parole ~= nil then
-								MySQL.update('UPDATE characters SET Parole = ? WHERE SID = ?', { data.parole, data.data.suspect.SID }, function(affectedRows)
-									p:resolve(affectedRows > 0)
+								MySQL.update('UPDATE characters SET Parole = ? WHERE SID = ?', { data.parole, data.data.suspect.SID }, function(affectedRows2)
+									p:resolve(affectedRows2 > 0)
 								end)
 							end
 
@@ -311,8 +311,8 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 
 								if needsUpdate then
 									local p2 = promise.new()
-									MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ?', { json.encode(licenseUpdate), data.data.suspect.SID }, function(affectedRows)
-										if affectedRows > 0 then
+									MySQL.update('UPDATE characters SET Licenses = ? WHERE SID = ?', { json.encode(licenseUpdate), data.data.suspect.SID }, function(affectedRows3)
+										if affectedRows3 > 0 then
 											local plyr = Fetch:SID(data.data.suspect.SID)
 											if plyr then
 												local char = plyr:GetData('Character')
@@ -322,7 +322,7 @@ AddEventHandler("MDT:Server:RegisterCallbacks", function()
 											end
 										end
 
-										p2:resolve(affectedRows)
+										p2:resolve(affectedRows3)
 									end)
 
 									Citizen.Await(p2)

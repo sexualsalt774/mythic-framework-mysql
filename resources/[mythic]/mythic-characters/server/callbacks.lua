@@ -180,8 +180,8 @@ function RegisterCallbacks()
 				return
 			end
 			local deletingChar = results[1]
-			MySQL.update('UPDATE characters SET Deleted = 1 WHERE User = ? AND ID = ?', { player:GetData('AccountID'), data }, function(result)
-				if result and result.affectedRows > 0 then
+			MySQL.update('UPDATE characters SET Deleted = 1 WHERE User = ? AND ID = ?', { player:GetData('AccountID'), data }, function(affectedRows)
+				if affectedRows and affectedRows > 0 then
 					TriggerEvent('Characters:Server:CharacterDeleted', data)
 					cb(true)
 					Logger:Warn(

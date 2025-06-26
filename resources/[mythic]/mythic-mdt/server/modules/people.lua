@@ -128,8 +128,8 @@ _MDT.People = {
 		local sql = string.format('UPDATE characters SET `%s` = ?, MDTHistory = JSON_ARRAY_APPEND(COALESCE(MDTHistory, JSON_ARRAY()), "$", ?) WHERE SID = ?', key)
 		local params = { (type(value) == 'table' and json.encode(value) or value), mdtHistoryEntry, id }
 
-		MySQL.update(sql, params, function(results)
-			if results and results.affectedRows > 0 then
+		MySQL.update(sql, params, function(affectedRows)
+			if affectedRows and affectedRows > 0 then
 				local target = Fetch:SID(id)
 				if target then
 					target:GetData("Character"):SetData(key, value)

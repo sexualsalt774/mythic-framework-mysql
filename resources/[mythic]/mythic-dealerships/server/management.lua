@@ -54,8 +54,8 @@ DEALERSHIPS.Management = {
                 dealerId,
                 jsonData,
                 jsonData
-            }, function(result)
-                if result and result.affectedRows > 0 then
+            }, function(affectedRows)
+                if affectedRows and affectedRows > 0 then
                     _managementData[dealerId] = dealerData
                     p:resolve(_managementData[dealerId])
                 else
@@ -87,8 +87,8 @@ DEALERSHIPS.Management = {
                 dealerId,
                 jsonData,
                 jsonData
-            }, function(result)
-                if result and result.affectedRows > 0 then
+            }, function(affectedRows)
+                if affectedRows and affectedRows > 0 then
                     _managementData[dealerId] = dealerData
                     p:resolve(_managementData[dealerId])
                 else

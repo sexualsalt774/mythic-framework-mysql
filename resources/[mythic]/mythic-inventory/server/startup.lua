@@ -331,8 +331,8 @@ function RegisterCommands()
 			tonumber(args[1]),
 			tonumber(args[2]),
 			tonumber(args[2]),
-		}, function(result)
-			if result and result.affectedRows > 0 then
+		}, function(affectedRows)
+			if affectedRows and affectedRows > 0 then
 				storeBankAccounts[string.format("shop:%s", tonumber(args[1]))] = tonumber(args[2])
 			end
 		end)

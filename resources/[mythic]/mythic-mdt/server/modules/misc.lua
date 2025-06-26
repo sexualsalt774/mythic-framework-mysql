@@ -117,8 +117,8 @@ _MDT.Misc = {
 			local p = promise.new()
 			MySQL.update("UPDATE mdt_tags SET name = ?, requiredPermission = ?, restrictViewing = ?, style = ? WHERE id = ?", {
 				data.name, data.requiredPermission, data.restrictViewing, data.style, id
-			}, function (result)
-				if not result or result.affectedRows == 0 then
+			}, function (affectedRows)
+				if not affectedRows or affectedRows == 0 then
 					p:resolve(false)
 					return
 				end
@@ -157,8 +157,8 @@ _MDT.Misc = {
 		end,
 		Tag = function(self, id)
 			local p = promise.new()
-			MySQL.update("DELETE FROM mdt_tags WHERE id = ?", {id}, function (result)
-				if not result or result.affectedRows == 0 then
+			MySQL.update("DELETE FROM mdt_tags WHERE id = ?", {id}, function (affectedRows)
+				if not affectedRows or affectedRows == 0 then
 					p:resolve(false)
 					return
 				end
@@ -182,8 +182,8 @@ _MDT.Misc = {
 		end,
 		Notice = function(self, id)
 			local p = promise.new()
-			MySQL.update("DELETE FROM mdt_notices WHERE id = ?", {id}, function (result)
-				if not result or result.affectedRows == 0 then
+			MySQL.update("DELETE FROM mdt_notices WHERE id = ?", {id}, function (affectedRows)
+				if not affectedRows or affectedRows == 0 then
 					p:resolve(false)
 					return
 				end

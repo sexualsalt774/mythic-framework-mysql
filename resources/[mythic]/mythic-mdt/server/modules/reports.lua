@@ -182,8 +182,8 @@ _MDT.Reports = {
     Delete = function(self, id)
         local p = promise.new()
 
-        MySQL.update("DELETE FROM mdt_reports WHERE id = ?", {id}, function(result)
-			p:resolve(result and result.affectedRows > 0)
+        MySQL.update("DELETE FROM mdt_reports WHERE id = ?", {id}, function(affectedRows)
+			p:resolve(affectedRows and affectedRows > 0)
 		end)
 		return Citizen.Await(p)
     end,

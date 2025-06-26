@@ -67,8 +67,8 @@ LAPTOP.BizWiz.Notices = {
 	end,
 	Delete = function(self, job, id)
 		local p = promise.new()
-		MySQL.update("DELETE FROM business_notices WHERE id = ? AND job = ?", {id, job}, function(result)
-			if not result or result.affectedRows == 0 then
+		MySQL.update("DELETE FROM business_notices WHERE id = ? AND job = ?", {id, job}, function(affectedRows)
+			if not affectedRows or affectedRows == 0 then
 				p:resolve(false)
 				return
 			end

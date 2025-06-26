@@ -171,8 +171,8 @@ function SetPropertyFurniture(pId, newFurniture, updater)
         json.encode(newFurniture),
         os.time(),
         json.encode(updater),
-    }, function(result)
-        p:resolve(result and result.affectedRows > 0)
+    }, function(affectedRows)
+        p:resolve(affectedRows and affectedRows > 0)
     end)
 
     local res = Citizen.Await(p)
@@ -188,8 +188,8 @@ end
 function DeletePropertyFurniture(pId)
     local p = promise.new()
 
-    MySQL.update("DELETE FROM properties_furniture WHERE property = ?", {pId}, function(result)
-        p:resolve(result and result.affectedRows > 0)
+    MySQL.update("DELETE FROM properties_furniture WHERE property = ?", {pId}, function(affectedRows)
+        p:resolve(affectedRows and affectedRows > 0)
     end)
 
     local res = Citizen.Await(p)

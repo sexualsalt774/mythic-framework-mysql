@@ -30,8 +30,8 @@ function CreateLoanTasks()
             _loanConfig.paymentInterval,
             _loanConfig.missedPayments.charge,
             TASK_RUN_TIMESTAMP
-        }, function(result)
-            if result and result.affectedRows then
+        }, function(affectedRows)
+            if affectedRows and affectedRows > 0 then
                 -- Get All the Loans that now need to be defaulted and notify/seize
                 MySQL.query('SELECT * FROM loans WHERE MissedPayments >= MissablePayments AND Defaulted = 0', {}, function(results)
                     if results and #results > 0 then
@@ -41,8 +41,8 @@ function CreateLoanTasks()
                             table.insert(updatingAssets, v.AssetIdentifier)
                         end
 
-                        MySQL.update('UPDATE loans SET Defaulted = 1 WHERE AssetIdentifier IN (' .. string.rep('?,', #updatingAssets - 1) .. '?)', updatingAssets, function(result2)
-                            if result2 and result2.affectedRows then
+                        MySQL.update('UPDATE loans SET Defaulted = 1 WHERE AssetIdentifier IN (' .. string.rep('?,', #updatingAssets - 1) .. '?)', updatingAssets, function(affectedRows2)
+                            if affectedRows2 and affectedRows2 > 0 then
                                 Logger:Info('Loans', '^2' .. #results .. '^7 Loans Have Just Been Defaulted')
                                 for k, v in ipairs(results) do
                                     if v.SID then

@@ -96,8 +96,8 @@ function UpdateBankAccount(searchQuery, updateQuery)
         json.encode(updateQuery.JobAccess or updateQuery['$set'].JobAccess or {}), 
         json.encode(updateQuery.JointOwners or updateQuery['$set'].JointOwners or {}),
         searchQuery.Account
-    }, function(result)
-        if result and result.affectedRows > 0 then
+    }, function(affectedRows)
+        if affectedRows and affectedRows > 0 then
             MySQL.single("SELECT * FROM bank_accounts WHERE Account = ?", {searchQuery.Account}, function(updatedResult)
                 p:resolve(updatedResult)
             end)

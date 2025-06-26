@@ -795,8 +795,8 @@ VEHICLE = {
                             seizeState and os.time() or false,
                             json.encode(updatingStorage),
                             VIN
-                        }, function(result)
-                            if result and result.affectedRows > 0 then
+                        }, function(affectedRows)
+                            if affectedRows and affectedRows > 0 then
                                 p:resolve(true)
                             else
                                 Logger:Error("Vehicles", "Failed to seize vehicle", { console = true })

@@ -81,8 +81,8 @@ LAPTOP.BizWiz.Receipts = {
 		local p = promise.new()
 		MySQL.update("UPDATE business_receipts SET title = ?, content = ? WHERE id = ? AND job = ?", {
 			report.title, report.content, id, jobId
-		}, function(result)
-			if result and result.affectedRows > 0 then
+		}, function(affectedRows)
+			if affectedRows and affectedRows > 0 then
 				-- Add to history
 				MySQL.update("UPDATE business_receipts SET history = JSON_ARRAY_APPEND(history, '$', ?) WHERE id = ?", {
 					json.encode({
@@ -106,8 +106,8 @@ LAPTOP.BizWiz.Receipts = {
     Delete = function(self, jobId, id)
         local p = promise.new()
 
-        MySQL.update("DELETE FROM business_receipts WHERE id = ? AND job = ?", {id, jobId}, function(result)
-			p:resolve(result and result.affectedRows > 0)
+        MySQL.update("DELETE FROM business_receipts WHERE id = ? AND job = ?", {id, jobId}, function(affectedRows)
+			p:resolve(affectedRows and affectedRows > 0)
 		end)
 		return Citizen.Await(p)
     end,
@@ -116,8 +116,8 @@ LAPTOP.BizWiz.Receipts = {
 
 		local p = promise.new()
 
-        MySQL.update("DELETE FROM business_receipts WHERE job = ?", {jobId}, function(result)
-			p:resolve(result and result.affectedRows > 0)
+        MySQL.update("DELETE FROM business_receipts WHERE job = ?", {jobId}, function(affectedRows)
+			p:resolve(affectedRows and affectedRows > 0)
 		end)
 		return Citizen.Await(p)
 	end,

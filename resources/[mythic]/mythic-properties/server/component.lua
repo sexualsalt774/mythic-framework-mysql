@@ -195,8 +195,8 @@ PROPERTIES = {
 			MySQL.update('UPDATE properties SET label = ? WHERE id = ?', {
 				label,
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows and affectedRows > 0 then
 					if _properties[id] and _properties[id].label then
 						_properties[id].label = label
 						TriggerClientEvent("Properties:Client:Update", -1, id, _properties[id])
@@ -255,8 +255,8 @@ PROPERTIES = {
 		end,
 		Delete = function(self, id)
 			local p = promise.new()
-			MySQL.query('DELETE FROM properties WHERE id = ?', {id}, function(result)
-				if result and result.affectedRows > 0 then
+			MySQL.query('DELETE FROM properties WHERE id = ?', {id}, function(affectedRows)
+				if affectedRows and affectedRows > 0 then
 					_properties[id] = nil
 					TriggerClientEvent("Properties:Client:Update", -1, id, nil)
 					p:resolve(true)
@@ -484,8 +484,8 @@ PROPERTIES = {
 					Permissions = permissions,
 				}),
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows and affectedRows > 0 then
 					MySQL.query('SELECT * FROM properties WHERE id = ?', {id}, function(result2)
 						if result2 and #result2 > 0 then
 							local property = result2[1]
@@ -525,8 +525,8 @@ PROPERTIES = {
 
 			MySQL.update('UPDATE properties SET keys = JSON_REMOVE(COALESCE(keys, "{}"), "$.' .. target .. '") WHERE id = ?', {
 				id
-			}, function(result)
-				if result and result.affectedRows > 0 then
+			}, function(affectedRows)
+				if affectedRows and affectedRows > 0 then
 					MySQL.query('SELECT * FROM properties WHERE id = ?', {id}, function(result2)
 						if result2 and #result2 > 0 then
 							local property = result2[1]
