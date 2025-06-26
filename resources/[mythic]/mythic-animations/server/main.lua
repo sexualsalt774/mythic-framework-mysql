@@ -1,6 +1,5 @@
 AddEventHandler('Animations:Shared:DependencyUpdate', RetrieveComponents)
 function RetrieveComponents()
-    Database = exports['mythic-base']:FetchComponent('Database')
     Utils = exports['mythic-base']:FetchComponent('Utils')
     Callbacks = exports['mythic-base']:FetchComponent('Callbacks')
     Chat = exports['mythic-base']:FetchComponent('Chat')

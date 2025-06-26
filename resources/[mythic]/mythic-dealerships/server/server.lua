@@ -2,7 +2,6 @@ _hashToVeh = {}
 
 AddEventHandler('Dealerships:Shared:DependencyUpdate', RetrieveComponents)
 function RetrieveComponents()
-    Database = exports['mythic-base']:FetchComponent('Database')
     Callbacks = exports['mythic-base']:FetchComponent('Callbacks')
     Logger = exports['mythic-base']:FetchComponent('Logger')
     Utils = exports['mythic-base']:FetchComponent('Utils')

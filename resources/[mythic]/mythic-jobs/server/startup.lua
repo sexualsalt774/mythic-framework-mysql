@@ -6,7 +6,6 @@ _loaded = false
 
 AddEventHandler('Jobs:Shared:DependencyUpdate', RetrieveComponents)
 function RetrieveComponents()
-	Database = exports['mythic-base']:FetchComponent('Database')
 	Middleware = exports['mythic-base']:FetchComponent('Middleware')
 	Callbacks = exports['mythic-base']:FetchComponent('Callbacks')
 	Logger = exports['mythic-base']:FetchComponent('Logger')

@@ -98,7 +98,6 @@ end
 
 AddEventHandler("Inventory:Shared:DependencyUpdate", RetrieveComponents)
 function RetrieveComponents()
-	Database = exports["mythic-base"]:FetchComponent("Database")
 	Callbacks = exports["mythic-base"]:FetchComponent("Callbacks")
 	Sequence = exports["mythic-base"]:FetchComponent("Sequence")
 	Logger = exports["mythic-base"]:FetchComponent("Logger")

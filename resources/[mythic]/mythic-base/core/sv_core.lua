@@ -46,6 +46,8 @@ AddEventHandler("Core:Server:StartupReady", function()
 			Wait(1)
 		end
 
+		-- TODO DATABASE REMOVAL
+		-- NEED TO FOLLOW CODE mythic-base\core\sv_database.js
 		TriggerEvent(
 			"Database:Server:Initialize",
 			COMPONENTS.Convar.AUTH_URL.value,
@@ -80,6 +82,7 @@ CreateThread(function()
 end)
 
 AddEventHandler("Database:Server:Ready", function(db)
+	-- TODO REMOVE DATABASE CODE?
 	if COMPONENTS.Database == nil and db ~= nil then
 		COMPONENTS.Database = db
 	end

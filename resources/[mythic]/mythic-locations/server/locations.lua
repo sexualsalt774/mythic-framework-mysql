@@ -4,7 +4,6 @@ end)
 
 AddEventHandler("Locations:Shared:DependencyUpdate", RetrieveComponents)
 function RetrieveComponents()
-	Database = exports["mythic-base"]:FetchComponent("Database")
 	Chat = exports["mythic-base"]:FetchComponent("Chat")
 	Callbacks = exports["mythic-base"]:FetchComponent("Callbacks")
 	Locations = exports["mythic-base"]:FetchComponent("Locations")

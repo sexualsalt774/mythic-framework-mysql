@@ -10,7 +10,6 @@ _savedVehiclePropertiesClusterfuck = {}
 AddEventHandler('Vehicles:Shared:DependencyUpdate', RetrieveComponents)
 function RetrieveComponents()
     Callbacks = exports['mythic-base']:FetchComponent('Callbacks')
-    Database = exports['mythic-base']:FetchComponent('Database')
     Execute = exports['mythic-base']:FetchComponent('Execute')
     Fetch = exports['mythic-base']:FetchComponent('Fetch')
     Locations = exports['mythic-base']:FetchComponent('Locations')

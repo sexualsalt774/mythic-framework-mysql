@@ -1,6 +1,5 @@
 AddEventHandler("Restaurant:Shared:DependencyUpdate", RetrieveComponents)
 function RetrieveComponents()
-	Database = exports["mythic-base"]:FetchComponent("Database")
 	Callbacks = exports["mythic-base"]:FetchComponent("Callbacks")
 	Middleware = exports["mythic-base"]:FetchComponent("Middleware")
 	Logger = exports["mythic-base"]:FetchComponent("Logger")

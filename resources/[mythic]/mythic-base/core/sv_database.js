@@ -176,6 +176,7 @@ AddEventHandler('Core:Shared:Ready', () => {
 	);
 });
 
+// TODO DATABASE REMOVALE
 AddEventHandler(
 	'Database:Server:Initialize',
 	function (a_url, a_db, g_url, g_db) {

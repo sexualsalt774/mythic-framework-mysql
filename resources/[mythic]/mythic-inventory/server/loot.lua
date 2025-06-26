@@ -1,6 +1,5 @@
 AddEventHandler("Loot:Shared:DependencyUpdate", LootComponents)
 function LootComponents()
-	Database = exports["mythic-base"]:FetchComponent("Database")
 	Callbacks = exports["mythic-base"]:FetchComponent("Callbacks")
 	Fetch = exports["mythic-base"]:FetchComponent("Fetch")
 	Logger = exports["mythic-base"]:FetchComponent("Logger")

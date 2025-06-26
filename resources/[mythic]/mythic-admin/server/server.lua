@@ -1,6 +1,5 @@
 AddEventHandler("Admin:Shared:DependencyUpdate", RetrieveComponents)
 function RetrieveComponents()
-	Database = exports["mythic-base"]:FetchComponent("Database")
 	Logger = exports["mythic-base"]:FetchComponent("Logger")
 	Callbacks = exports["mythic-base"]:FetchComponent("Callbacks")
 	Fetch = exports["mythic-base"]:FetchComponent("Fetch")

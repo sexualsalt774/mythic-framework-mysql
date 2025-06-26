@@ -20,7 +20,6 @@ end)
 
 AddEventHandler('VOIP:Shared:DependencyUpdate', RetrieveComponents)
 function RetrieveComponents()
-    Database = exports['mythic-base']:FetchComponent('Database')
     Callbacks = exports['mythic-base']:FetchComponent('Callbacks')
     Fetch = exports['mythic-base']:FetchComponent('Fetch')
     Chat = exports['mythic-base']:FetchComponent('Chat')

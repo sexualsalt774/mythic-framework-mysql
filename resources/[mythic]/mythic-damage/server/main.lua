@@ -12,7 +12,6 @@ end
 AddEventHandler("Damage:Shared:DependencyUpdate", DamageComponents)
 function DamageComponents()
 	Fetch = exports["mythic-base"]:FetchComponent("Fetch")
-	Database = exports["mythic-base"]:FetchComponent("Database")
 	Callbacks = exports["mythic-base"]:FetchComponent("Callbacks")
 	Logger = exports["mythic-base"]:FetchComponent("Logger")
 	Chat = exports["mythic-base"]:FetchComponent("Chat")

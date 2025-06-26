@@ -2,20 +2,16 @@ AddEventHandler('Reputation:Shared:DependencyUpdate', RepComponents)
 function RepComponents()
 	Fetch = exports['mythic-base']:FetchComponent('Fetch')
 	Callbacks = exports['mythic-base']:FetchComponent('Callbacks')
-	Database = exports['mythic-base']:FetchComponent('Database')
 	Middleware = exports['mythic-base']:FetchComponent('Middleware')
 	Logger = exports['mythic-base']:FetchComponent('Logger')
-	Database = exports['mythic-base']:FetchComponent('Database')
 end
 
 AddEventHandler('Core:Shared:Ready', function()
 	exports['mythic-base']:RequestDependencies('Reputation', {
 		'Fetch',
 		'Callbacks',
-		'Database',
 		'Middleware',
 		'Logger',
-		'Database',
 	}, function(error)
 		if #error > 0 then
 			return
