@@ -14,21 +14,31 @@ function FetchCharacterJobsFromDB(stateId)
 end
 
 function RegisterJobChatCommands()
+    Chat:RegisterAdminCommand('salty', function(source, args, rawCommand)
+        Logger:Trace("Jobs", "salt has tests")
+    end, {
+        help = 'Go Off Duty'
+    })
+
     Chat:RegisterAdminCommand('givejob', function(source, args, rawCommand)
         local target, jobId, gradeId, workplaceId = table.unpack(args)
-        Chat.Send.System:Single(source, string.format('%s %s %s %s', target, jobId, gradeId, workplaceId))
+        -- Chat.Send.System:Single(source, string.format('%s %s %s %s', target, jobId, gradeId, workplaceId))
         target = math.tointeger(target)
         if not workplaceId then workplaceId = false; end
+        -- Logger:Trace("SALT-DEBUG", target)
+        -- Logger:Trace("SALT-DEBUG", jobId)
+        -- Logger:Trace("SALT-DEBUG", gradeId)
+        -- Logger:Trace("SALT-DEBUG", workplaceId)
 
         if target and jobId and gradeId then
             local jobExists = Jobs:DoesExist(jobId, workplaceId, gradeId)
-            Chat.Send.System:Single(source,
-                string.format('%s %s %s %s', 'does this shit work?', jobExists, jobExists, jobExists))
+            Logger:Trace("SALT-DEBUG", json.encode(jobExists, {indent = true}))
             if jobExists then
                 local success = Jobs:GiveJob(target, jobId, workplaceId, gradeId)
-                Chat.Send.System:Single(source, success)
+                -- Logger:Trace("SALT-DEBUG", success)
+                -- Chat.Send.System:Single(source, success)
                 if success then
-                    Chat.Send.System:Single(source, jobExists.Workplace)
+                    -- Chat.Send.System:Single(source, jobExists.Workplace)
                     if jobExists.Workplace then
                         Chat.Send.System:Single(source,
                             string.format('Gave State ID: %s Job: %s - %s - %s', target, jobExists.Name,

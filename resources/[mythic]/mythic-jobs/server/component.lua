@@ -1,4 +1,3 @@
-local _payPeriod = GetConvar('mythic_paycheck_payPeriod', 30)
 local JOB_CACHE = {}
 
 local function RefreshAllJobData(jobId)
@@ -36,7 +35,7 @@ AddEventHandler('onResourceStart', function(resourceName)
 	end
 end)
 
-local _characterDuty = {}
+_characterDuty = {}
 _dutyData = {}
 
 _JOBS = {
@@ -203,9 +202,14 @@ _JOBS = {
 					table.remove(charJobData, k)
 				end
 			end
+			if #charJobData == 0 then
+				charJobData = nil
+			end
 
 			if found then
 				local source = char:GetData('Source')
+				-- print(#charJobData)
+				Logger:Trace("SALT-DEBUG", #charJobData)
 				char:SetData('Jobs', charJobData)
 				Jobs.Duty:Off(source, jobId, true)
 
@@ -234,6 +238,9 @@ _JOBS = {
 								table.remove(charJobData, k)
 							end
 						end
+						if #charJobData == 0 then
+							charJobData = nil
+						end -- what
 
 						if found then
 							MySQL.update('UPDATE characters SET Jobs = ? WHERE SID = ?', { json.encode(charJobData), stateId }, function(updated)

@@ -100,7 +100,7 @@ function RegisterCallbacks()
 			Origin = json.encode(data.origin),
 			DOB = data.dob,
 			LastPlayed = -1,
-			Jobs = {},
+			-- Jobs = {},
 			SID = Sequence:Get('Character'),
 			Cash = 5000,
 			New = true,
