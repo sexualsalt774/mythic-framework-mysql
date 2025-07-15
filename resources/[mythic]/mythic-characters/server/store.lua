@@ -46,6 +46,17 @@ function StoreData(source)
 
 	data.LastPlayed = os.time() * 1000
 
+	-- Safety to fix everyting?
+	for k, v in pairs(data) do
+		if type(v) == "table" then
+			if next(v) == nil then
+				data[k] = nil
+			else
+				data[k] = json.encode(v)
+			end
+		end
+	end
+	
 	Logger:Trace('Characters', string.format('Saving Character %s', cId), { console = true })
 	local setStr, values = buildUpdateQuery(data)
 	table.insert(values, plyr:GetData('AccountID'))

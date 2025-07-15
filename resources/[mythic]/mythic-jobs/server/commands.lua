@@ -14,11 +14,11 @@ function FetchCharacterJobsFromDB(stateId)
 end
 
 function RegisterJobChatCommands()
-    Chat:RegisterAdminCommand('salty', function(source, args, rawCommand)
-        Logger:Trace("Jobs", "salt has tests")
-    end, {
-        help = 'Go Off Duty'
-    })
+    -- Chat:RegisterAdminCommand('salty', function(source, args, rawCommand)
+    --     Logger:Trace("Jobs", "salt has tests")
+    -- end, {
+    --     help = 'Go Off Duty'
+    -- })
 
     Chat:RegisterAdminCommand('givejob', function(source, args, rawCommand)
         local target, jobId, gradeId, workplaceId = table.unpack(args)
@@ -32,7 +32,7 @@ function RegisterJobChatCommands()
 
         if target and jobId and gradeId then
             local jobExists = Jobs:DoesExist(jobId, workplaceId, gradeId)
-            Logger:Trace("SALT-DEBUG", json.encode(jobExists, {indent = true}))
+            -- Logger:Trace("SALT-DEBUG", json.encode(jobExists, {indent = true}))
             if jobExists then
                 local success = Jobs:GiveJob(target, jobId, workplaceId, gradeId)
                 -- Logger:Trace("SALT-DEBUG", success)
@@ -145,11 +145,15 @@ function RegisterJobChatCommands()
                 stateId = char:GetData('SID')
                 charJobs = char:GetData('Jobs') or {}
             end
+             Logger:Trace("SALT-DEBUG", '1')
         elseif target and target > 0 then
             stateId = target
+            Logger:Trace("SALT-DEBUG", '2')
             charJobs = FetchCharacterJobsFromDB(target)
         end
 
+        Logger:Trace("SALT-DEBUG", charJobs)
+        Logger:Trace("SALT-DEBUG", json.encode(charJobs, {indent = true}))
         if charJobs then
             if #charJobs > 0 then
                 for k, v in ipairs(charJobs) do
